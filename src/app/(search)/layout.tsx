@@ -1,2 +1,15 @@
-// Layout for search-related pages
-// TODO: Implement search layout with navigation
+import { ReactNode } from 'react';
+
+interface SearchLayoutProps {
+  children: ReactNode;
+}
+
+export default function SearchLayout({ children }: SearchLayoutProps) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {children}
+      </div>
+    </div>
+  );
+}
