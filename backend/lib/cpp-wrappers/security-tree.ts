@@ -42,11 +42,12 @@ function loadSecurityTreeModule(): SecurityTreeService | null {
   }
 }
 
-export function getSecurityTreeService(): SecurityTreeService {
+export function getSecurityTreeService(): SecurityTreeService | null {
   if (!securityTreeService) {
     securityTreeService = loadSecurityTreeModule();
     if (!securityTreeService) {
-      throw new Error('SecurityTree Service is not available.');
+      console.warn('⚠️ SecurityTree Service is not available, returning null');
+      return null;
     }
   }
   return securityTreeService;
@@ -55,6 +56,10 @@ export function getSecurityTreeService(): SecurityTreeService {
 export async function initializeSecurityTreeService(): Promise<boolean> {
   try {
     const service = getSecurityTreeService();
+    if (!service) {
+      console.warn('SecurityTree service is not available');
+      return false;
+    }
     // Test the service
     const timestamp = service.getCurrentTimestamp();
     console.log(`SecurityTree service initialized at timestamp: ${timestamp}`);
@@ -239,11 +244,15 @@ class FallbackSecurityTreeService implements SecurityTreeService {
 let securityService: SecurityTreeService;
 
 try {
-  securityService = getSecurityTreeService();
-  console.log('✅ Using high-performance C++ SecurityTree service');
+  const cppService = getSecurityTreeService();
+  if (cppService) {
+    securityService = cppService;
+    console.log('✅ Using high-performance C++ SecurityTree service');
+  } else {
+    throw new Error('C++ service not available');
+  }
 } catch (error) {
   console.warn('⚠️ C++ SecurityTree service unavailable, falling back to TypeScript version');
-  console.warn('Error:', error);
   securityService = new FallbackSecurityTreeService();
 }
 

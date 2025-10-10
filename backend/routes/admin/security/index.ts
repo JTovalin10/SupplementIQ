@@ -4,7 +4,8 @@
 
 import { Request, Response, Router } from 'express';
 import { securityService } from '../../../lib/cpp-wrappers/security-tree';
-import { isUserAdmin, isUserOwner, validateAdminId } from '../utils';
+import { adminAuth, ownerAuth } from '../../../middleware/auth';
+import { validateAdminId } from '../utils';
 
 const router = Router();
 
@@ -16,35 +17,15 @@ const router = Router();
  * @returns 403 - Unauthorized
  * @returns 500 - Failed to get security stats
  */
-router.get('/stats', async (req: Request, res: Response) => {
+router.get('/stats', adminAuth, async (req: Request, res: Response) => {
   try {
-    // Check authorization (would typically use middleware)
-    const { userId } = req.body; // This would come from auth middleware
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
-    }
-
-    const isAdmin = await isUserAdmin(req.user.id);
-    const isOwner = await isUserOwner(req.user.id);
-    
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Admin access required'
-      });
-    }
 
     const currentTimestamp = Math.floor(Date.now() / 1000);
     
     const securityStats = {
       totalRequestsToday: securityService.getTotalRequestsToday(currentTimestamp),
       currentTimestamp,
-      dayStartTimestamp: securityService.getDayStart(currentTimestamp),
+      dayStartTimestamp: currentTimestamp - (currentTimestamp % 86400),
       securityPolicies: {
         timezone: 'PST/PDT',
         dailyResetTime: '12:00 AM PST/PDT',
@@ -102,8 +83,9 @@ router.post('/validate-admin', async (req: Request, res: Response) => {
     }
 
     // Check if user exists and has admin role
-    const isAdmin = await isUserAdmin(req.user.id);
-    const isOwner = await isUserOwner(req.user.id);
+    const userId = req.user?.id;
+    const isAdmin = userId ? await require('../utils').isUserAdmin(userId) : false;
+    const isOwner = userId ? await require('../utils').isUserOwner(userId) : false;
     const hasAccess = isAdmin || isOwner;
 
     res.json({
@@ -137,30 +119,9 @@ router.post('/validate-admin', async (req: Request, res: Response) => {
  * @returns 403 - Unauthorized
  * @returns 500 - Failed to check permission
  */
-router.get('/can-make-request/:adminId', async (req: Request, res: Response) => {
+router.get('/can-make-request/:adminId', adminAuth, async (req: Request, res: Response) => {
   try {
     const { adminId } = req.params;
-    
-    // Check authorization (would typically use middleware)
-    const { userId } = req.body; // This would come from auth middleware
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
-    }
-
-    const isAdmin = await isUserAdmin(req.user.id);
-    const isOwner = await isUserOwner(req.user.id);
-    
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Admin access required'
-      });
-    }
 
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const canMakeRequest = securityService.canMakeRequest(adminId, currentTimestamp);
@@ -175,7 +136,7 @@ router.get('/can-make-request/:adminId', async (req: Request, res: Response) => 
         hasAdminMadeRequestToday,
         adminRequestCountToday,
         currentTimestamp,
-        dayStartTimestamp: securityService.getDayStart(currentTimestamp)
+        dayStartTimestamp: currentTimestamp - (currentTimestamp % 86400)
       }
     });
 
@@ -198,30 +159,9 @@ router.get('/can-make-request/:adminId', async (req: Request, res: Response) => 
  * @returns 403 - Unauthorized
  * @returns 500 - Failed to get admin stats
  */
-router.get('/admin-stats/:adminId', async (req: Request, res: Response) => {
+router.get('/admin-stats/:adminId', adminAuth, async (req: Request, res: Response) => {
   try {
     const { adminId } = req.params;
-    
-    // Check authorization (would typically use middleware)
-    const { userId } = req.body; // This would come from auth middleware
-    if (!userId) {
-      return res.status(401).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Authentication required'
-      });
-    }
-
-    const isAdmin = await isUserAdmin(req.user.id);
-    const isOwner = await isUserOwner(req.user.id);
-    
-    if (!isAdmin && !isOwner) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Admin access required'
-      });
-    }
 
     const currentTimestamp = Math.floor(Date.now() / 1000);
     
@@ -231,9 +171,9 @@ router.get('/admin-stats/:adminId', async (req: Request, res: Response) => {
       adminRequestCountToday: securityService.getAdminRequestCountToday(adminId, currentTimestamp),
       canMakeRequest: securityService.canMakeRequest(adminId, currentTimestamp),
       currentTimestamp,
-      dayStartTimestamp: securityService.getDayStart(currentTimestamp),
-      isValidAdmin: await isUserAdmin(adminId),
-      isOwner: await isUserOwner(req.user.id)
+      dayStartTimestamp: currentTimestamp - (currentTimestamp % 86400),
+      isValidAdmin: await require('../utils').isUserAdmin(adminId),
+      isOwner: await require('../utils').isUserOwner(req.user?.id || '')
     };
 
     res.json({
@@ -260,19 +200,9 @@ router.get('/admin-stats/:adminId', async (req: Request, res: Response) => {
  * @returns 403 - Unauthorized (not owner)
  * @returns 500 - Cleanup failed
  */
-router.post('/cleanup-expired', async (req: Request, res: Response) => {
+router.post('/cleanup-expired', ownerAuth, async (req: Request, res: Response) => {
   try {
     const { ownerId } = req.body;
-    
-    // Check if this is the owner
-    const isOwner = await isUserOwner(req.user.id);
-    if (!isOwner) {
-      return res.status(403).json({
-        success: false,
-        error: 'Unauthorized',
-        message: 'Only the owner can trigger cleanup'
-      });
-    }
 
     const currentTimestamp = Math.floor(Date.now() / 1000);
     const cleanedCount = securityService.cleanupExpiredRequests(currentTimestamp);

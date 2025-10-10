@@ -372,5 +372,6 @@ process.on('SIGTERM', () => {
   process.exit(0);
 });
 
-export { QueueConfig, QueuedRequest, RequestQueue };
+export { RequestQueue };
+export type { QueueConfig, QueuedRequest };
 

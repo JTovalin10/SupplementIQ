@@ -98,27 +98,16 @@ router.post('/force-process', async (req: Request, res: Response) => {
     }
 
     // Force queue processing
-    const processed = await requestQueue.forceProcess();
+    await requestQueue.forceProcess();
     
-    if (processed) {
-      res.json({
-        success: true,
-        message: 'Queue processing triggered successfully',
-        data: {
-          processed: true,
-          timestamp: new Date()
-        }
-      });
-    } else {
-      res.json({
-        success: true,
-        message: 'No requests in queue to process',
-        data: {
-          processed: false,
-          timestamp: new Date()
-        }
-      });
-    }
+    res.json({
+      success: true,
+      message: 'Queue processing triggered successfully',
+      data: {
+        processed: true,
+        timestamp: new Date()
+      }
+    });
 
   } catch (error) {
     console.error('Failed to force queue processing:', error);

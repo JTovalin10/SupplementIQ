@@ -9,7 +9,7 @@ export class CppAutocompleteService {
 
     constructor() {
         try {
-            this.service = new NativeAutocompleteService();
+            this.service = new CppAutocompleteService();
             console.log('✅ C++ Autocomplete service loaded');
         } catch (error) {
             console.error('❌ Failed to load C++ Autocomplete service:', error);

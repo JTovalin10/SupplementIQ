@@ -21,8 +21,8 @@ const dev = process.env.NODE_ENV !== 'production';
 const hostname = process.env.HOSTNAME || 'localhost';
 const port = parseInt(process.env.PORT || '3000', 10);
 
-// Initialize Next.js app
-const nextApp = next({ dev, hostname, port });
+// Initialize Next.js app (pointing to frontend directory)
+const nextApp = next({ dev, hostname, port, dir: '../frontend' });
 const handle = nextApp.getRequestHandler();
 
 // Rate limiting configuration
@@ -107,7 +107,14 @@ app.get('/health', (req, res) => {
 });
 
 // Mount API routes
+console.log('🔄 Mounting API routes...');
 app.use(apiRoutes);
+console.log('✅ API routes mounted');
+
+// Test route to verify API is working
+app.get('/api/test', (req, res) => {
+  res.json({ success: true, message: 'API is working!' });
+});
 
 /**
  * Global error handling middleware
@@ -186,9 +193,13 @@ app.use('/api/*', (req, res) => {
  */
 async function startServer() {
   try {
+    console.log('🔄 Preparing Next.js app...');
     await nextApp.prepare();
+    console.log('✅ Next.js app prepared successfully');
     
+    console.log('🔄 Creating HTTP server...');
     const server = createServer(app);
+    console.log('✅ HTTP server created');
     
     // Handle Next.js requests
     app.all('*', (req, res) => {
@@ -196,6 +207,7 @@ async function startServer() {
       handle(req, res, parsedUrl);
     });
     
+    console.log('🔄 About to start server listening...');
     server.listen(port, () => {
       console.log(`🚀 Server ready on http://${hostname}:${port}`);
       console.log(`📊 Environment: ${process.env.NODE_ENV}`);

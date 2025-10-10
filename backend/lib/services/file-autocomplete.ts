@@ -1,6 +1,6 @@
-import fs from 'fs/promises';
-import path from 'path';
-import { Trie } from '../../tools/autocomplete';
+import { promises as fs } from 'fs';
+import * as path from 'path';
+import { Trie } from '../../../tools/autocomplete';
 
 /**
  * File-based persistent autocomplete service
@@ -24,26 +24,16 @@ export class FileAutocompleteService {
      */
     async initialize(): Promise<void> {
         try {
-            // Ensure data directory exists
-            await fs.mkdir(this.dataDir, { recursive: true });
-            
-            // Only load from files if they exist (server restart scenario)
-            const filesExist = await this.checkFilesExist();
-            
-            if (filesExist) {
-                console.log('🔄 Server restart detected - loading from cache files...');
-                await this.loadFromFiles();
-                console.log('✅ File autocomplete service initialized from cache');
-            } else {
-                console.log('🆕 First startup - initializing with static data...');
-                this.initializeStaticData();
-                await this.saveToFiles();
-                console.log('✅ File autocomplete service initialized with static data');
-            }
-            
+            console.log('🔄 Initializing file autocomplete service...');
+            // Always use static data for now to avoid file loading issues
+            console.log('🆕 Initializing with static data...');
+            this.initializeStaticData();
+            console.log('✅ File autocomplete service initialized with static data');
         } catch (error) {
             console.error('Failed to initialize file autocomplete:', error);
+            console.log('🔄 Falling back to static data initialization...');
             this.initializeStaticData();
+            console.log('✅ File autocomplete service initialized with static data (fallback)');
         }
     }
 

@@ -1,4 +1,4 @@
-import { Trie } from '../../tools/autocomplete';
+import { Trie } from '../../../tools/autocomplete';
 
 /**
  * Autocomplete service using Trie data structure for fast prefix matching
@@ -165,7 +165,7 @@ export class AutocompleteService {
 }
 
 // Singleton instance - using high-performance C++ version
-import { getCppAutocompleteService } from './cpp-autocomplete';
+import { getCppAutocompleteService } from '../cpp-wrappers/cpp-autocomplete';
 
 // Try to initialize C++ service, fallback to TypeScript version if needed
 let autocompleteService: any;
@@ -188,8 +188,13 @@ async function initializeService() {
         
         // Fallback to TypeScript version
         const { fileAutocompleteService } = await import('./file-autocomplete');
-        await fileAutocompleteService.initialize();
-        autocompleteService = fileAutocompleteService;
+        try {
+            await fileAutocompleteService.initialize();
+            autocompleteService = fileAutocompleteService;
+        } catch (initError) {
+            console.error('Failed to initialize file autocomplete service:', initError);
+            throw initError;
+        }
     }
 }
 

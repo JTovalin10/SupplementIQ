@@ -1,10 +1,3 @@
 {
-  "/(search)/brands/page": "app/(search)/brands/page.js",
-  "/(search)/products/page": "app/(search)/products/page.js",
-  "/(search)/products/protein-powder/page": "app/(search)/products/protein-powder/page.js",
-  "/(search)/rankings/page": "app/(search)/rankings/page.js",
-  "/_not-found/page": "app/_not-found/page.js",
-  "/contribute/new-product/page": "app/contribute/new-product/page.js",
-  "/contribute/page": "app/contribute/page.js",
-  "/page": "app/page.js"
+  "/_not-found/page": "app/_not-found/page.js"
 }

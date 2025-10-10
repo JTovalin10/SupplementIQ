@@ -1,32 +1,6 @@
--- 1) Drop dependent objects and tables (destructive)
-DROP TABLE IF EXISTS public.user_badges CASCADE;
-DROP TABLE IF EXISTS public.preworkout_details CASCADE;
-DROP TABLE IF EXISTS public.non_stim_preworkout_details CASCADE; -- Added this line
-DROP TABLE IF EXISTS public.energy_drink_details CASCADE;
-DROP TABLE IF EXISTS public.protein_details CASCADE;
-DROP TABLE IF EXISTS public.amino_acid_details CASCADE;
-DROP TABLE IF EXISTS public.fat_burner_details CASCADE;
-DROP TABLE IF EXISTS public.products CASCADE;
-DROP TABLE IF EXISTS public.brands CASCADE;
-DROP TABLE IF EXISTS public.users CASCADE;
-
--- Drop types if they exist (to recreate cleanly)
-DO $$ BEGIN
-    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
-        DROP TYPE user_role;
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'contribution_status') THEN
-        DROP TYPE contribution_status;
-    END IF;
-    IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'product_category') THEN
-        DROP TYPE product_category;
-    END IF;
-END $$;
-
 -- 2) Create ENUM types
 CREATE TYPE user_role AS ENUM ('newcomer', 'contributor', 'trusted_editor', 'moderator', 'admin', 'owner');
 CREATE TYPE contribution_status AS ENUM ('pending', 'approved', 'rejected', 'needs_review');
--- UPDATED: Added 'non-stim-pre-workout' to the list
 CREATE TYPE product_category AS ENUM ('protein', 'pre-workout', 'non-stim-pre-workout', 'energy-drink', 'bcaa', 'eaa', 'fat-burner', 'appetite-suppressant', 'creatine');
 
 -- 3) Recreate tables
@@ -78,10 +52,12 @@ CREATE TABLE public.products (
     ) STORED
 );
 
+-- UPDATED: Added flavors array
 CREATE TABLE public.preworkout_details (
     product_id INTEGER PRIMARY KEY REFERENCES public.products(id) ON DELETE CASCADE,
     serving_scoops INTEGER,
     serving_g NUMERIC(5,1),
+    flavors TEXT[] DEFAULT '{}',
     sugar_g INTEGER NOT NULL DEFAULT 0 CHECK (sugar_g >= 0 OR sugar_g = -1),
     key_features TEXT[] DEFAULT array['pump','endurance','focus','power'],
     l_citrulline_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_citrulline_mg >= 0 OR l_citrulline_mg = -1),
@@ -97,11 +73,12 @@ CREATE TABLE public.preworkout_details (
     bioperine_mg INTEGER NOT NULL DEFAULT 0 CHECK (bioperine_mg >= 0 OR bioperine_mg = -1)
 );
 
--- NEW TABLE ADDED: Based on the provided image (2-scoop serving)
+-- UPDATED: Added flavors array
 CREATE TABLE public.non_stim_preworkout_details (
     product_id INTEGER PRIMARY KEY REFERENCES public.products(id) ON DELETE CASCADE,
     serving_scoops INTEGER DEFAULT 2,
     serving_g NUMERIC(5,1) DEFAULT 40.2,
+    flavors TEXT[] DEFAULT '{}',
     key_features TEXT[] DEFAULT array['pump','endurance','focus','power', 'non-stim'],
     calories INTEGER NOT NULL DEFAULT 20 CHECK (calories >= 0 OR calories = -1),
     total_carbohydrate_g INTEGER NOT NULL DEFAULT 4 CHECK (total_carbohydrate_g >= 0 OR total_carbohydrate_g = -1),
@@ -122,9 +99,11 @@ CREATE TABLE public.non_stim_preworkout_details (
     vasodrive_ap_mg INTEGER NOT NULL DEFAULT 508 CHECK (vasodrive_ap_mg >= 0 OR vasodrive_ap_mg = -1)
 );
 
+-- UPDATED: Added flavors array
 CREATE TABLE public.energy_drink_details (
     product_id INTEGER PRIMARY KEY REFERENCES public.products(id) ON DELETE CASCADE,
     serving_size_fl_oz INTEGER,
+    flavors TEXT[] DEFAULT '{}',
     sugar_g INTEGER NOT NULL DEFAULT 0 CHECK (sugar_g >= 0 OR sugar_g = -1),
     key_features TEXT[] DEFAULT array['focus','nootropics','mental clarity','sugar-free'],
     caffeine_mg INTEGER NOT NULL DEFAULT 0 CHECK (caffeine_mg >= 0 OR caffeine_mg = -1),
@@ -141,20 +120,19 @@ CREATE TABLE public.energy_drink_details (
     pantothenic_acid_b5_mg INTEGER NOT NULL DEFAULT 0 CHECK (pantothenic_acid_b5_mg >= 0 OR pantothenic_acid_b5_mg = -1)
 );
 
+-- UPDATED: Major redesign to use JSONB for flexible protein sources
 CREATE TABLE public.protein_details (
     product_id INTEGER PRIMARY KEY REFERENCES public.products(id) ON DELETE CASCADE,
+    flavors TEXT[] DEFAULT '{}',
     protein_claim_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (protein_claim_g >= 0 OR protein_claim_g = -1),
     effective_protein_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (effective_protein_g >= 0 OR effective_protein_g = -1),
-    whey_concentrate_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (whey_concentrate_g >= 0 OR whey_concentrate_g = -1),
-    whey_isolate_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (whey_isolate_g >= 0 OR whey_isolate_g = -1),
-    whey_hydrolysate_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (whey_hydrolysate_g >= 0 OR whey_hydrolysate_g = -1),
-    casein_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (casein_g >= 0 OR casein_g = -1),
-    egg_protein_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (egg_protein_g >= 0 OR egg_protein_g = -1),
-    soy_protein_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (soy_protein_g >= 0 OR soy_protein_g = -1)
+    protein_sources JSONB
 );
 
+-- UPDATED: Added flavors array
 CREATE TABLE public.amino_acid_details (
     product_id INTEGER PRIMARY KEY REFERENCES public.products(id) ON DELETE CASCADE,
+    flavors TEXT[] DEFAULT '{}',
     key_features TEXT[] DEFAULT array['recovery','hydration','muscle protein synthesis'],
     total_eaas_mg INTEGER NOT NULL DEFAULT 0 CHECK (total_eaas_mg >= 0 OR total_eaas_mg = -1),
     l_leucine_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_leucine_mg >= 0 OR l_leucine_mg = -1),
@@ -243,3 +221,4 @@ CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON public.user_badges (user_i
 
 -- Validate: show count placeholders (will be returned to client)
 SELECT 'tables_created' AS action, count(*) AS cnt FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('users','products','brands');
+
