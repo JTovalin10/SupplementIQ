@@ -1,6 +1,14 @@
+/**
+ * Load environment variables from .env.local file FIRST
+ * Reads configuration values for database, API keys, and server settings
+ */
+import dotenv from 'dotenv';
+
+// Load .env file explicitly from project root directory
+dotenv.config({ path: '../.env' });
+
 import compression from 'compression';
 import cors from 'cors';
-import dotenv from 'dotenv';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
@@ -9,12 +17,6 @@ import morgan from 'morgan';
 import next from 'next';
 import { parse } from 'url';
 import { apiRoutes } from './routes';
-
-/**
- * Load environment variables from .env file
- * Reads configuration values for database, API keys, and server settings
- */
-dotenv.config();
 
 // Environment configuration
 const dev = process.env.NODE_ENV !== 'production';

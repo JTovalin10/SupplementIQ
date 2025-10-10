@@ -128,11 +128,20 @@ interface SystemLog {
 
 class DashboardService {
   private async fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('supabase.auth.token');
+    // Get Supabase session token
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    
+    // If no token, provide helpful error message
+    if (!token) {
+      throw new Error('Authentication required - please log in to access the dashboard');
+    }
     
     // Create an AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
@@ -140,7 +149,7 @@ class DashboardService {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
           ...options.headers,
         },
       });
@@ -148,6 +157,9 @@ class DashboardService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Authentication required - please log in');
+        }
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 

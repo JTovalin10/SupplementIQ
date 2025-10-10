@@ -31,10 +31,41 @@ interface DashboardProps {
 }
 
 export default function Dashboard({ userRole }: DashboardProps) {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   
   const isOwner = userRole === 'owner';
+  
+  // Show login prompt if not authenticated
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="mb-6">
+            <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
+            <p className="text-gray-600 mb-6">
+              Please log in to access the {userRole} dashboard.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <a
+              href="/login"
+              className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors inline-block"
+            >
+              Sign In
+            </a>
+            <a
+              href="/register"
+              className="w-full bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-semibold hover:bg-gray-200 transition-colors inline-block"
+            >
+              Create Account
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
   // State for real data
   const [stats, setStats] = useState<DashboardStats>({
@@ -53,13 +84,19 @@ export default function Dashboard({ userRole }: DashboardProps) {
   const [pendingSubmissions, setPendingSubmissions] = useState<PendingSubmission[]>([]);
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [systemLogs, setSystemLogs] = useState<SystemLog[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cacheStatus, setCacheStatus] = useState<{ hours: number; minutes: number; seconds: number } | null>(null);
 
   // Fetch dashboard data on component mount
   useEffect(() => {
     const fetchDashboardData = async () => {
+      // Don't fetch data if user is not authenticated
+      if (!isAuthenticated) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
@@ -111,7 +148,7 @@ export default function Dashboard({ userRole }: DashboardProps) {
     };
 
     fetchDashboardData();
-  }, [userRole]);
+  }, [userRole, isAuthenticated]);
 
   // Update cache status timer every 5 minutes
   useEffect(() => {

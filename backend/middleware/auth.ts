@@ -3,9 +3,8 @@
  * Validates JWT tokens and extracts authenticated user information
  */
 
+import { createClient } from '@supabase/supabase-js';
 import { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import { supabase } from '../lib/supabase';
 
 // Extend Request interface to include authenticated user
 declare global {
@@ -23,12 +22,21 @@ declare global {
 
 /**
  * JWT Authentication Middleware
- * Validates JWT token and extracts user information
+ * Validates Supabase JWT token and extracts user information
  */
 export async function authenticateToken(req: Request, res: Response, next: NextFunction) {
   try {
     const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: 'Access token required',
+        message: 'Authorization header with Bearer token is required'
+      });
+    }
+
+    const token = authHeader.split(' ')[1]; // Bearer TOKEN
 
     if (!token) {
       return res.status(401).json({
@@ -38,14 +46,34 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
       });
     }
 
-    // Verify JWT token (you'll need to implement this based on your JWT secret)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    // Create Supabase client with service role key for token verification
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     
-    if (!decoded.sub) {
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing Supabase environment variables');
+      return res.status(500).json({
+        success: false,
+        error: 'Server configuration error',
+        message: 'Missing Supabase configuration'
+      });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Use Supabase's built-in JWT verification
+    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
+    
+    console.log('🔍 Auth Debug - Token received:', token ? 'Yes' : 'No');
+    console.log('🔍 Auth Debug - Supabase user:', supabaseUser ? `${supabaseUser.email} (${supabaseUser.id})` : 'None');
+    console.log('🔍 Auth Debug - Auth error:', authError);
+    
+    if (authError || !supabaseUser) {
+      console.error('Supabase auth error:', authError);
       return res.status(401).json({
         success: false,
         error: 'Invalid token',
-        message: 'Token does not contain user information'
+        message: 'Token verification failed'
       });
     }
 
@@ -53,10 +81,14 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     const { data: user, error } = await supabase
       .from('users')
       .select('id, role, email, username')
-      .eq('id', decoded.sub)
+      .eq('id', supabaseUser.id)
       .single();
 
+    console.log('🔍 Auth Debug - User lookup result:', user ? `${user.email} (${user.role})` : 'None');
+    console.log('🔍 Auth Debug - User lookup error:', error);
+
     if (error || !user) {
+      console.error('User lookup error:', error);
       return res.status(401).json({
         success: false,
         error: 'User not found',
