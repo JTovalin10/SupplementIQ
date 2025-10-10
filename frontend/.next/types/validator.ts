@@ -245,6 +245,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../src/app/admin/update-role/page.tsx
+{
+  type __IsExpected<Specific extends AppPageConfig<"/admin/update-role">> = Specific
+  const handler = {} as typeof import("../../src/app/admin/update-role/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../src/app/contribute/new-product/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/contribute/new-product">> = Specific
@@ -294,6 +303,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends AppPageConfig<"/user/profile">> = Specific
   const handler = {} as typeof import("../../src/app/user/profile/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../src/app/api/admin/update-role/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/update-role">> = Specific
+  const handler = {} as typeof import("../../src/app/api/admin/update-role/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

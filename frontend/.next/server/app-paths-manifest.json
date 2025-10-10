@@ -1,7 +1,9 @@
 {
+  "/(auth)/login/page": "app/(auth)/login/page.js",
   "/(search)/products/page": "app/(search)/products/page.js",
   "/(search)/rankings/page": "app/(search)/rankings/page.js",
   "/owner/page": "app/owner/page.js",
   "/page": "app/page.js",
+  "/user/dashboard/page": "app/user/dashboard/page.js",
   "/user/profile/page": "app/user/profile/page.js"
 }
