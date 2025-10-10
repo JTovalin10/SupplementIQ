@@ -6,11 +6,9 @@
 import { Request, Response, Router } from 'express';
 import { adminCache } from '../../../lib/core/admin-cache';
 import { supabase } from '../../../lib/supabase';
+import { adminAuth } from '../../../middleware/auth';
 
 const router = Router();
-
-// Apply admin authentication to dashboard routes
-router.use(adminAuth);
 
 /**
  * @route GET /api/v1/admin/dashboard/stats
@@ -20,7 +18,7 @@ router.use(adminAuth);
  * @returns 403 - Unauthorized
  * @returns 500 - Failed to get statistics
  */
-router.get('/stats', async (req: Request, res: Response) => {
+router.get('/stats', adminAuth, async (req: Request, res: Response) => {
   try {
     // Get user from auth middleware (would be set by adminAuth/ownerAuth)
     const userId = (req as any).user?.id;
@@ -163,7 +161,7 @@ router.get('/stats', async (req: Request, res: Response) => {
  * @returns 403 - Unauthorized
  * @returns 500 - Failed to get submissions
  */
-router.get('/pending-submissions', async (req: Request, res: Response) => {
+router.get('/pending-submissions', adminAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) {
@@ -237,7 +235,7 @@ router.get('/pending-submissions', async (req: Request, res: Response) => {
  * @returns 403 - Unauthorized
  * @returns 500 - Failed to get activity
  */
-router.get('/recent-activity', async (req: Request, res: Response) => {
+router.get('/recent-activity', adminAuth, async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user?.id;
     if (!userId) {
