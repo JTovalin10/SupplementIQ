@@ -134,6 +134,11 @@ class DashboardService {
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token;
     
+    // If no token, provide helpful error message
+    if (!token) {
+      throw new Error('Authentication required - please log in to access the dashboard');
+    }
+    
     // Create an AbortController for timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -144,7 +149,7 @@ class DashboardService {
         signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` }),
+          'Authorization': `Bearer ${token}`,
           ...options.headers,
         },
       });
@@ -152,6 +157,9 @@ class DashboardService {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          throw new Error('Authentication required - please log in');
+        }
         throw new Error(`API request failed: ${response.status} ${response.statusText}`);
       }
 
