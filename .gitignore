@@ -36,6 +36,12 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# compiled files
+dist/
+build/
+*.js.map
+*.d.ts
+
 # supabase
 .supabase/
 
