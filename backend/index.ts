@@ -4,8 +4,8 @@
  */
 import dotenv from 'dotenv';
 
-// Load .env.local file explicitly from current working directory
-dotenv.config({ path: '.env.local' });
+// Load .env file explicitly from project root directory
+dotenv.config({ path: '../.env' });
 
 import compression from 'compression';
 import cors from 'cors';

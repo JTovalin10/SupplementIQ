@@ -3,6 +3,7 @@ import { adminRoutes } from './admin';
 import { authRoutes } from './auth';
 import autocompleteRoutes from './autocomplete';
 import { contributionRoutes } from './contributions';
+import debugRoutes from './debug';
 import { ingredientRoutes } from './ingredients';
 import ownerRoutes from './owner';
 import { productRoutes } from './products';
@@ -31,6 +32,7 @@ router.use(`${API_VERSION}/upload`, uploadRoutes);
 router.use(`${API_VERSION}/autocomplete`, autocompleteRoutes);
 router.use(`${API_VERSION}/admin`, adminRoutes);
 router.use(`${API_VERSION}/owner`, ownerRoutes);
+router.use(`${API_VERSION}/debug`, debugRoutes);
 
 /**
  * API documentation endpoint
