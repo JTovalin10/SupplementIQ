@@ -128,11 +128,15 @@ interface SystemLog {
 
 class DashboardService {
   private async fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const token = localStorage.getItem('supabase.auth.token');
+    // Get Supabase session token
+    const { createClient } = await import('@/lib/supabase/client');
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
     
     // Create an AbortController for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
     
     try {
       const response = await fetch(`${API_BASE}${endpoint}`, {
