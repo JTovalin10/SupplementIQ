@@ -4,7 +4,6 @@
  */
 
 import { NextFunction, Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
 import { supabase } from '../lib/supabase';
 
 // Extend Request interface to include authenticated user
@@ -23,7 +22,7 @@ declare global {
 
 /**
  * JWT Authentication Middleware
- * Validates JWT token and extracts user information
+ * Validates Supabase JWT token and extracts user information
  */
 export async function authenticateToken(req: Request, res: Response, next: NextFunction) {
   try {
@@ -38,14 +37,15 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
       });
     }
 
-    // Verify JWT token (you'll need to implement this based on your JWT secret)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback-secret') as any;
+    // Verify Supabase JWT token by getting the user from Supabase
+    const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser(token);
     
-    if (!decoded.sub) {
+    if (authError || !supabaseUser) {
+      console.error('Supabase auth error:', authError);
       return res.status(401).json({
         success: false,
         error: 'Invalid token',
-        message: 'Token does not contain user information'
+        message: 'Token verification failed'
       });
     }
 
@@ -53,10 +53,11 @@ export async function authenticateToken(req: Request, res: Response, next: NextF
     const { data: user, error } = await supabase
       .from('users')
       .select('id, role, email, username')
-      .eq('id', decoded.sub)
+      .eq('id', supabaseUser.id)
       .single();
 
     if (error || !user) {
+      console.error('User lookup error:', error);
       return res.status(401).json({
         success: false,
         error: 'User not found',

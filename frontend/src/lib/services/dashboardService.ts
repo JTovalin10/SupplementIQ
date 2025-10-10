@@ -131,7 +131,7 @@ class DashboardService {
     // Get Supabase session token
     const { createClient } = await import('@/lib/supabase/client');
     const supabase = createClient();
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session }, error } = await supabase.auth.getSession();
     const token = session?.access_token;
     
     // If no token, provide helpful error message

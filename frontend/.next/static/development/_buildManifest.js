@@ -1,18 +1,1 @@
-self.__BUILD_MANIFEST = {
-  "/_error": [
-    "./static/chunks/pages/_error.js"
-  ],
-  "__rewrites": {
-    "afterFiles": [
-      {
-        "source": "/api/v1/:path*"
-      }
-    ],
-    "beforeFiles": [],
-    "fallback": []
-  },
-  "sortedPages": [
-    "/_app",
-    "/_error"
-  ]
-};self.__BUILD_MANIFEST_CB && self.__BUILD_MANIFEST_CB()
+self.__BUILD_MANIFEST = (function(a){return {__rewrites:{afterFiles:[{has:a,source:"\u002Fapi\u002Fv1\u002F:path*",destination:a}],beforeFiles:[],fallback:[]},__routerFilterStatic:a,__routerFilterDynamic:a,sortedPages:["\u002F_app"]}}(void 0));self.__BUILD_MANIFEST_CB && self.__BUILD_MANIFEST_CB()
