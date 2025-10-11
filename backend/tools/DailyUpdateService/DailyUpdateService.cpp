@@ -5,8 +5,10 @@
 #include <algorithm>
 #include <ctime>
 #include <regex>
-#include <curl/curl.h>
-#include <nlohmann/json.hpp>
+#include <fstream>
+#include <filesystem>
+#include <cstdlib>
+#include <cstring>
 
 /**
  * Constructor - Initialize the DailyUpdateService with default values
@@ -22,45 +24,53 @@ DailyUpdateService::~DailyUpdateService() {
 }
 
 /**
- * Initialize the service with database connection details
- * @param dbUrl - Supabase database URL for API calls
- * @param apiKey - Supabase API key for authentication
+ * Initialize the service with file paths and Go binary location
+ * @param queueFilePath - Path to the queue persistence file
+ * @param cacheDir - Directory for cache files and Trie data
+ * @param goBinary - Path to the Go Supabase binary
  * @return true if initialization successful
  */
-bool DailyUpdateService::initialize(const std::string& dbUrl, const std::string& apiKey) {
-    databaseUrl_ = dbUrl;
-    supabaseKey_ = apiKey;
+bool DailyUpdateService::initialize(const std::string& queueFilePath, const std::string& cacheDir, const std::string& goBinary) {
+    queueFilePath_ = queueFilePath;
+    cacheDirectory_ = cacheDir;
+    goSupabaseBinary_ = goBinary;
     
-    std::cout << "✅ DailyUpdateService initialized" << std::endl;
-    std::cout << "📊 Database URL: " << (dbUrl.empty() ? "Not configured" : "Configured") << std::endl;
-    std::cout << "🔑 API Key: " << (apiKey.empty() ? "Not configured" : "Configured") << std::endl;
+    // Create cache directory if it doesn't exist
+    std::filesystem::create_directories(cacheDir);
+    
+    std::cout << "✅ DailyUpdateService initialized (File/Cache Component)" << std::endl;
+    std::cout << "📁 Queue file: " << queueFilePath_ << std::endl;
+    std::cout << "📂 Cache directory: " << cacheDirectory_ << std::endl;
+    std::cout << "🔧 Go binary: " << goSupabaseBinary_ << std::endl;
+    
+    // Load existing queue from file
+    loadQueueFromFile();
     
     return true;
 }
 
 /**
- * Initialize the service using environment variables
- * Loads NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY from environment
+ * Initialize the service using default paths
+ * Sets up default file paths for queue, cache, and Go binary
  * @return true if initialization successful
  */
-bool DailyUpdateService::initializeFromEnv() {
-    // Get environment variables
-    const char* url = std::getenv("NEXT_PUBLIC_SUPABASE_URL");
-    const char* key = std::getenv("SUPABASE_SERVICE_ROLE_KEY");
+bool DailyUpdateService::initializeFromDefaults() {
+    // Set default paths
+    queueFilePath_ = "./data/queue/products_queue.json";
+    cacheDirectory_ = "./data/cache/";
+    goSupabaseBinary_ = "./go-supabase/main";
     
-    if (!url || !key) {
-        std::cerr << "❌ Missing required environment variables:" << std::endl;
-        if (!url) std::cerr << "   - NEXT_PUBLIC_SUPABASE_URL" << std::endl;
-        if (!key) std::cerr << "   - SUPABASE_SERVICE_ROLE_KEY" << std::endl;
-        return false;
-    }
+    // Create directories if they don't exist
+    std::filesystem::create_directories(cacheDirectory_);
+    std::filesystem::create_directories(std::filesystem::path(queueFilePath_).parent_path());
     
-    databaseUrl_ = std::string(url);
-    supabaseKey_ = std::string(key);
+    std::cout << "✅ DailyUpdateService initialized with defaults (File/Cache Component)" << std::endl;
+    std::cout << "📁 Queue file: " << queueFilePath_ << std::endl;
+    std::cout << "📂 Cache directory: " << cacheDirectory_ << std::endl;
+    std::cout << "🔧 Go binary: " << goSupabaseBinary_ << std::endl;
     
-    std::cout << "✅ DailyUpdateService initialized from environment variables" << std::endl;
-    std::cout << "📊 Database URL: " << databaseUrl_ << std::endl;
-    std::cout << "🔑 API Key: " << (supabaseKey_.empty() ? "Not configured" : "Configured") << std::endl;
+    // Load existing queue from file
+    loadQueueFromFile();
     
     return true;
 }
@@ -106,6 +116,9 @@ void DailyUpdateService::stop() {
     if (queueProcessorThread_ && queueProcessorThread_->joinable()) {
         queueProcessorThread_->join();
     }
+    
+    // Save queue to file before stopping
+    saveQueueToFile();
     
     isRunning_ = false;
     std::cout << "✅ DailyUpdateService stopped" << std::endl;
@@ -270,8 +283,8 @@ void DailyUpdateService::queueProcessorThreadFunction() {
                 
                 lock.unlock(); // Release lock during processing
                 
-                // Process the product - THIS CALLS insertProductIntoDatabase() WHICH SENDS TO SUPABASE
-                if (insertProductIntoDatabase(product)) {
+                // Process the product - THIS CALLS Go Supabase component
+                if (callGoSupabaseInsert(product)) {
                     updateTrieWithProduct(product);
                     totalProcessed_++;
                     std::cout << "✅ Processed product: " << product.name << std::endl;
@@ -326,6 +339,12 @@ void DailyUpdateService::performDailyUpdate() {
     // Process all approved products
     processApprovedQueue();
     
+    // Reset server caches
+    resetServerCaches();
+    
+    // Save queue to file for persistence
+    saveQueueToFile();
+    
     // Update Trie with all new products
     // This would integrate with the C++ AutocompleteService
     
@@ -344,7 +363,7 @@ void DailyUpdateService::processApprovedQueue() {
         ProductData product = approvedProductsQueue_.front();
         approvedProductsQueue_.pop();
         
-        if (insertProductIntoDatabase(product)) {
+        if (callGoSupabaseInsert(product)) {
             updateTrieWithProduct(product);
             totalProcessed_++;
             std::cout << "✅ Added to database and Trie: " << product.name << std::endl;
@@ -355,84 +374,43 @@ void DailyUpdateService::processApprovedQueue() {
 }
 
 /**
- * **THIS IS WHERE PRODUCTS GET SENT TO SUPABASE**
- * Insert a product into the Supabase database
- * @param product - Product data to insert
+ * Call Go Supabase component to insert product
+ * @param product - Product data to insert via Go component
  * @return true if insertion successful, false otherwise
  */
-bool DailyUpdateService::insertProductIntoDatabase(const ProductData& product) {
-    if (databaseUrl_.empty() || supabaseKey_.empty()) {
-        std::cerr << "❌ Database URL or API key not configured" << std::endl;
-        return false;
-    }
-    
-    std::cout << "💾 Inserting into Supabase database: " << product.name 
+bool DailyUpdateService::callGoSupabaseInsert(const ProductData& product) {
+    std::cout << "🔄 Calling Go Supabase component for: " << product.name 
               << " (" << product.brand_name << ")" << std::endl;
     
-    // Initialize cURL
-    CURL* curl = curl_easy_init();
-    if (!curl) {
-        std::cerr << "❌ Failed to initialize cURL" << std::endl;
+    // Check if Go binary exists
+    if (!std::filesystem::exists(goSupabaseBinary_)) {
+        std::cerr << "❌ Go Supabase binary not found: " << goSupabaseBinary_ << std::endl;
         return false;
     }
     
-    // Prepare JSON payload
-    nlohmann::json productJson;
-    productJson["name"] = product.name;
-    productJson["brand_name"] = product.brand_name;
-    productJson["flavor"] = product.flavor;
-    productJson["year"] = product.year;
-    productJson["created_at"] = product.created_at;
-    productJson["updated_at"] = product.updated_at;
+    // Prepare JSON payload for Go component
+    std::ostringstream jsonStream;
+    jsonStream << "{"
+               << "\"name\":\"" << product.name << "\","
+               << "\"brand_name\":\"" << product.brand_name << "\","
+               << "\"flavor\":\"" << product.flavor << "\","
+               << "\"year\":\"" << product.year << "\","
+               << "\"created_at\":\"" << product.created_at << "\","
+               << "\"updated_at\":\"" << product.updated_at << "\""
+               << "}";
     
-    std::string jsonString = productJson.dump();
+    std::string jsonPayload = jsonStream.str();
     
-    // Prepare headers
-    struct curl_slist* headers = nullptr;
-    headers = curl_slist_append(headers, ("Authorization: Bearer " + supabaseKey_).c_str());
-    headers = curl_slist_append(headers, "Content-Type: application/json");
-    headers = curl_slist_append(headers, "Prefer: return=minimal");
+    // Execute Go binary with JSON payload
+    std::string command = goSupabaseBinary_ + " insert-product '" + jsonPayload + "'";
     
-    // Response data
-    std::string responseData;
+    int result = std::system(command.c_str());
     
-    // Set cURL options
-    curl_easy_setopt(curl, CURLOPT_URL, (databaseUrl_ + "/products").c_str());
-    curl_easy_setopt(curl, CURLOPT_POSTFIELDS, jsonString.c_str());
-    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, [](void* contents, size_t size, size_t nmemb, std::string* s) {
-        size_t newLength = size * nmemb;
-        try {
-            s->append((char*)contents, newLength);
-            return newLength;
-        } catch (std::bad_alloc& e) {
-            return 0;
-        }
-    });
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &responseData);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-    
-    // Perform the request
-    CURLcode res = curl_easy_perform(curl);
-    
-    // Check response
-    long responseCode;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-    
-    // Cleanup
-    curl_slist_free_all(headers);
-    curl_easy_cleanup(curl);
-    
-    if (res != CURLE_OK) {
-        std::cerr << "❌ cURL error: " << curl_easy_strerror(res) << std::endl;
-        return false;
-    }
-    
-    if (responseCode >= 200 && responseCode < 300) {
-        std::cout << "✅ Successfully inserted product into Supabase (HTTP " << responseCode << ")" << std::endl;
+    if (result == 0) {
+        std::cout << "✅ Go Supabase component successfully processed product" << std::endl;
         return true;
     } else {
-        std::cerr << "❌ Supabase insertion failed (HTTP " << responseCode << "): " << responseData << std::endl;
+        std::cerr << "❌ Go Supabase component failed with exit code: " << result << std::endl;
         return false;
     }
 }
@@ -467,6 +445,121 @@ std::vector<ProductData> DailyUpdateService::findSimilarProducts(const ProductDa
     // This would be a database query with similarity matching
     
     return similar;
+}
+
+bool DailyUpdateService::saveQueueToFile() {
+    try {
+        std::lock_guard<std::mutex> lock(queueMutex_);
+        
+        // Create JSON array of products
+        std::ostringstream jsonStream;
+        jsonStream << "[\n";
+        
+        std::queue<ProductData> tempQueue = approvedProductsQueue_;
+        bool first = true;
+        
+        while (!tempQueue.empty()) {
+            if (!first) {
+                jsonStream << ",\n";
+            }
+            first = false;
+            
+            const ProductData& product = tempQueue.front();
+            jsonStream << "  {\n"
+                       << "    \"name\":\"" << product.name << "\",\n"
+                       << "    \"brand_name\":\"" << product.brand_name << "\",\n"
+                       << "    \"flavor\":\"" << product.flavor << "\",\n"
+                       << "    \"year\":\"" << product.year << "\",\n"
+                       << "    \"created_at\":\"" << product.created_at << "\",\n"
+                       << "    \"updated_at\":\"" << product.updated_at << "\",\n"
+                       << "    \"is_approved\":" << (product.is_approved ? "true" : "false") << ",\n"
+                       << "    \"approved_by\":\"" << product.approved_by << "\"\n"
+                       << "  }";
+            
+            tempQueue.pop();
+        }
+        
+        jsonStream << "\n]";
+        
+        // Write to file
+        std::ofstream file(queueFilePath_);
+        if (!file.is_open()) {
+            std::cerr << "❌ Failed to open queue file for writing: " << queueFilePath_ << std::endl;
+            return false;
+        }
+        
+        file << jsonStream.str();
+        file.close();
+        
+        std::cout << "✅ Queue saved to file: " << queueFilePath_ << std::endl;
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "❌ Error saving queue to file: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool DailyUpdateService::loadQueueFromFile() {
+    try {
+        std::lock_guard<std::mutex> lock(queueMutex_);
+        
+        // Check if file exists
+        if (!std::filesystem::exists(queueFilePath_)) {
+            std::cout << "📁 Queue file doesn't exist, starting with empty queue" << std::endl;
+            return true;
+        }
+        
+        std::ifstream file(queueFilePath_);
+        if (!file.is_open()) {
+            std::cerr << "❌ Failed to open queue file for reading: " << queueFilePath_ << std::endl;
+            return false;
+        }
+        
+        // Read entire file content
+        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        file.close();
+        
+        // Simple JSON parsing (in real implementation, use a proper JSON library)
+        if (content.empty() || content == "[]") {
+            std::cout << "📁 Queue file is empty, starting with empty queue" << std::endl;
+            return true;
+        }
+        
+        // For now, just log that we found a queue file
+        // In a real implementation, we would parse the JSON and reconstruct the queue
+        std::cout << "📁 Found queue file with data: " << queueFilePath_ << std::endl;
+        std::cout << "⚠️ JSON parsing not implemented - queue will start empty" << std::endl;
+        
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "❌ Error loading queue from file: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+bool DailyUpdateService::resetServerCaches() {
+    try {
+        std::cout << "🔄 Resetting server caches..." << std::endl;
+        
+        // Clear cache directory
+        if (std::filesystem::exists(cacheDirectory_)) {
+            for (const auto& entry : std::filesystem::directory_iterator(cacheDirectory_)) {
+                if (std::filesystem::is_regular_file(entry.path())) {
+                    std::filesystem::remove(entry.path());
+                    std::cout << "🗑️ Removed cache file: " << entry.path().filename() << std::endl;
+                }
+            }
+        }
+        
+        std::cout << "✅ Server caches reset successfully" << std::endl;
+        return true;
+        
+    } catch (const std::exception& e) {
+        std::cerr << "❌ Error resetting server caches: " << e.what() << std::endl;
+        return false;
+    }
 }
 
 void DailyUpdateService::cleanupExpiredProducts() {

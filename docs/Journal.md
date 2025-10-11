@@ -142,14 +142,40 @@
 - **Node.js V8 bindings** for seamless JavaScript integration
 - **Persistence layer** with automatic file backup and recovery
 
-## DailyUpdateService: Automated Database Management
-- **Multi-threaded background processing** with dedicated worker threads
+## DailyUpdateService: Dual-Component Architecture
+- **Split architecture** separating Supabase operations from file/cache management
+- **Go component** with optimized batch processing and exponential backoff
+- **File/cache component** managing server cache resets and Trie data updates
+- **Single-operation batch processing** to minimize database calls
+- **Rate limiting and connection pooling** to prevent Supabase rate limiting
 - **Product verification system** preventing duplicate entries
 - **Queue management** for approved products with automatic processing
-- **Scheduled updates** at 12 PM PST with timezone handling
-- **Supabase integration** with HTTP client and authentication
+- **Scheduled updates** every hour (instead of every minute) for efficiency
+- **Single batch product checking** reducing database calls from N to 1
 - **Comprehensive testing suite** with mock data and performance benchmarks
 - **Thread-safe operations** supporting high-volume product processing
+
+### Database Operation Optimization: Single-Query Approach
+- **Problem**: Processing 1000 products required 1000+ individual database calls
+- **Solution**: Single query to check all products (brand + product + year combinations) at once
+- **Implementation**: 
+  - Collect all unique products (brand|name|flavor|year combinations) from queue
+  - Single query: `SELECT brand_name, name, year FROM products WHERE (brand_name=brand1 AND name=prod1 AND year=year1) OR (brand_name=brand2 AND name=prod2 AND year IS NULL) OR ...`
+  - Insert only products that don't exist (brands are created automatically if they don't exist)
+  - Return clean set of new products for trie updates (duplicates removed)
+  - NULL handling for products without year (standard database practice)
+- **Efficiency**: One query checks all products instead of separate brand/product checks
+- **Result**: 1 single query + individual inserts for new products only
+- **Performance**: Eliminates redundant brand checking - direct product existence verification
+- **Example**: 1000 products = 1 query + inserts for new products only
+
+### Trie Integration: Clean Set for Autocomplete Updates
+- **Duplicate Removal**: Set automatically removes products that already exist in database
+- **User-Focused Data**: Only brand, product name, and flavor (year excluded - users search "Gorilla Mode" not "Gorilla Mode 2023")
+- **Unique Data Processing**: Only truly new products are processed by trie
+- **JSON Backup First**: Trie saves new products to JSON before updating (system outage protection)
+- **Efficient Updates**: Trie only processes new, unique data without reformulation info
+- **Workflow**: Database processing → Extract trie data → Clean set → JSON backup → Trie update
 
 ## SecurityTree: Advanced Security & Rate Limiting
 - **Segment tree implementation** for 24-hour request tracking

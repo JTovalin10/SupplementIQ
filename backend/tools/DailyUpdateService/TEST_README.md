@@ -1,284 +1,240 @@
 # DailyUpdateService Test Suite
 
-This directory contains comprehensive tests for the DailyUpdateService to ensure it works correctly with Supabase integration.
+This document describes the comprehensive test suite for the DailyUpdateService, including Go Supabase component tests and C++ component tests.
 
-## Test Files
+## Test Structure
 
-### 1. `test_daily_update.cpp`
-- **C++ Unit Tests**: Comprehensive test suite for the C++ implementation
-- **Tests**: Initialization, environment variables, product queue, approval/rejection, verification, threading
-- **Performance Tests**: High-volume queue processing
-- **Mock Tests**: Supabase integration without actual HTTP calls
+### Go Tests (`go-supabase/main_test.go`)
+- **Unit Tests**: Test individual functions and methods
+- **Integration Tests**: Test component interactions
+- **Performance Tests**: Benchmark database operations
+- **Mock Tests**: Test with mock Supabase responses
 
-### 2. `test_runner.sh`
-- **Test Runner**: Automated script to compile and run C++ tests
-- **Dependency Checking**: Validates required libraries are installed
-- **Environment Setup**: Sets up test environment variables
-- **Cleanup**: Removes temporary files after testing
-
-### 3. `test_node.js`
-- **Node.js Tests**: Tests the service through Node.js bindings
-- **Environment Validation**: Checks environment variables
-- **Mock Data**: Creates test product data structures
-- **Performance Simulation**: Simulates high-volume processing
-
-## Running Tests
-
-### Prerequisites
-
-Install required dependencies:
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install g++ libcurl4-openssl-dev nlohmann-json3-dev
-
-# macOS
-brew install curl nlohmann-json
-
-# CentOS/RHEL
-sudo yum install gcc-c++ libcurl-devel nlohmann-json-devel
-```
-
-### Test Execution
-
-#### 1. Run C++ Tests
-```bash
-cd backend/tools/DailyUpdateService
-./test_runner.sh
-```
-
-#### 2. Run Node.js Tests
-```bash
-cd backend/tools/DailyUpdateService
-node test_node.js
-```
-
-#### 3. Build and Test Addon
-```bash
-cd backend/tools/DailyUpdateService
-make build
-make test
-```
+### C++ Tests
+- **TrieManager Tests** (`components/trie/TrieManager_test.cpp`)
+- **CacheManager Tests** (`components/cache/CacheManager_test.cpp`)
+- **Main Service Tests** (`DailyUpdateServiceV2_test.cpp`)
 
 ## Test Coverage
 
-### Core Functionality
-- ✅ Service initialization (manual and environment variables)
-- ✅ Product queue management (add, retrieve, process)
-- ✅ Product approval/rejection workflow
-- ✅ Product verification (duplicate checking)
-- ✅ Queue statistics and monitoring
-- ✅ Force daily update functionality
+### Go Supabase Component Tests
+- ✅ `BatchCheckAndInsert` functionality
+- ✅ `BatchCheckProductsExist` with single query optimization
+- ✅ Rate limiting and exponential backoff
+- ✅ NULL year handling for reformulation detection
+- ✅ Trie data extraction (brand + name + flavor only)
+- ✅ Error handling and edge cases
+- ✅ Performance benchmarking
 
-### Threading and Performance
-- ✅ Background thread management
-- ✅ Queue processor thread
-- ✅ Thread-safe operations
-- ✅ High-volume processing (1000+ products)
-- ✅ Performance benchmarks
+### C++ Component Tests
+- ✅ **TrieManager**: Autocomplete functionality, JSON persistence, system outage recovery
+- ✅ **CacheManager**: Cache operations, AdminCache management, cold start recovery
+- ✅ **DailyUpdateServiceV2**: Service lifecycle, queue processing, component orchestration
 
-### Supabase Integration
-- ✅ Environment variable loading
-- ✅ HTTP request preparation
-- ✅ JSON payload creation
-- ✅ Error handling and response validation
-- ✅ Authentication header setup
+## Running Tests
 
-### Error Handling
-- ✅ Missing environment variables
-- ✅ Invalid configuration
-- ✅ Network errors
-- ✅ Invalid product data
-- ✅ Thread safety violations
-
-## Expected Test Results
-
-### Successful Test Run
-```
-🧪 DailyUpdateService Test Suite
-=========================================
-
-📋 Test 1: Service Initialization
-✅ Manual initialization successful
-✅ Invalid initialization handled correctly
-
-📋 Test 2: Environment Variables
-✅ Environment variable initialization successful
-✅ Missing environment variables handled correctly
-
-📋 Test 3: Product Queue Management
-✅ Products added to queue successfully
-✅ Retrieved pending products: 3
-✅ Product data integrity verified
-
-📋 Test 4: Product Approval/Rejection
-✅ Product approval successful
-✅ Product rejection successful
-
-📋 Test 5: Product Verification
-✅ Product verification completed
-
-📋 Test 6: Queue Statistics
-✅ Queue statistics retrieved successfully
-   - Queue Size: 3
-   - Total Approved: 1
-   - Total Rejected: 1
-   - Total Processed: 0
-
-📋 Test 7: Force Daily Update
-✅ Force daily update executed without errors
-
-📋 Test 8: Threading and Background Processing
-✅ Service started successfully
-✅ Service stopped successfully
-
-📋 Test 9: Mock Supabase Integration
-✅ Mock Supabase initialization successful
-✅ Product data structure ready for Supabase:
-   - Name: Test Whey
-   - Brand: Test Brand
-   - Flavor: Vanilla
-   - Year: 2024
-   - Created: 2024-01-15T10:30:00Z
-   - Updated: 2024-01-15T10:30:00Z
-
-📋 Test 10: High Volume Queue Performance
-✅ Added 1000 products in 15ms
-✅ Queue size verified: 1000
-
-🎉 ALL TESTS PASSED!
-The DailyUpdateService is working correctly!
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### 1. Compilation Errors
-```
-❌ Error: g++ compiler not found
-```
-**Solution**: Install g++ compiler
+### Quick Start
 ```bash
-sudo apt-get install g++
+# Run all tests
+./run_tests.sh
+
+# Run specific test types
+./run_tests.sh go          # Go tests only
+./run_tests.sh cpp         # C++ tests only
+./run_tests.sh integration # Integration tests
+./run_tests.sh performance # Performance tests
 ```
 
-#### 2. Missing Libraries
-```
-❌ Error: libcurl development libraries not found
-```
-**Solution**: Install libcurl development package
+### Using Makefile
 ```bash
-sudo apt-get install libcurl4-openssl-dev
+# Build all test executables
+make all
+
+# Run all tests
+make test
+
+# Run specific tests
+make test-go      # Go tests
+make test-cpp     # C++ tests
+make test-cache   # Cache Manager tests
+make test-trie    # Trie Manager tests
+make test-main    # Main service tests
 ```
 
-#### 3. Environment Variables
-```
-❌ Missing required environment variables:
-   - NEXT_PUBLIC_SUPABASE_URL
-   - SUPABASE_SERVICE_ROLE_KEY
-```
-**Solution**: Set environment variables or create .env file
+### Manual Testing
 ```bash
-export NEXT_PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-export SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+# Go tests
+cd go-supabase
+go test -v
+
+# C++ tests
+make test-cache
+make test-trie
+make test-main
 ```
 
-#### 4. Threading Issues
+## Test Scenarios
+
+### Database Operations
+1. **Single Query Optimization**: Verify that batch checking uses only one database call
+2. **NULL Year Handling**: Test products with and without year parameters
+3. **Duplicate Detection**: Ensure existing products are not re-inserted
+4. **Rate Limiting**: Verify exponential backoff prevents Supabase rate limiting
+5. **Error Handling**: Test graceful handling of database errors
+
+### Trie Integration
+1. **Data Extraction**: Verify trie gets only brand + name + flavor (no year)
+2. **JSON Persistence**: Test system outage recovery with JSON backup
+3. **Autocomplete**: Test case-insensitive and partial matching
+4. **Performance**: Benchmark large dataset operations
+
+### Cache Management
+1. **Daily Reset**: Verify cache clearing at 12 AM PST
+2. **AdminCache**: Test admin count caching and cold start recovery
+3. **File Operations**: Test JSON file creation, reading, and error handling
+4. **Concurrent Access**: Test thread safety
+
+### Service Lifecycle
+1. **Initialization**: Test service startup and component initialization
+2. **Daily Updates**: Test scheduled operations at 12 AM PST
+3. **Queue Processing**: Test product queue handling
+4. **Error Recovery**: Test graceful handling of failures
+
+## Test Data
+
+### Mock Products
+```json
+[
+  {
+    "name": "Gold Standard Whey",
+    "brand": "Optimum Nutrition",
+    "flavor": "Chocolate",
+    "year": "2023"
+  },
+  {
+    "name": "Nitro-Tech",
+    "brand": "MuscleTech",
+    "flavor": "Strawberry",
+    "year": "2024"
+  }
+]
 ```
-❌ Error: pthread not found
-```
-**Solution**: Install pthread development package
+
+### Test Scenarios
+- **Empty Input**: Handle empty product queues gracefully
+- **Invalid JSON**: Test error handling for malformed data
+- **Large Datasets**: Performance testing with 1000+ products
+- **Concurrent Operations**: Test thread safety and race conditions
+
+## Performance Benchmarks
+
+### Expected Performance
+- **Database Operations**: 1 query for 1000 products (vs 1000+ individual queries)
+- **Trie Operations**: < 1 second for 1000 product searches
+- **Cache Operations**: < 5 seconds for 100 cache operations
+- **Service Startup**: < 2 seconds for full initialization
+
+### Benchmark Results
 ```bash
-sudo apt-get install libpthread-stubs0-dev
+# Run performance tests
+./run_tests.sh performance
+
+# Generate coverage report
+./run_tests.sh coverage
 ```
 
-## Integration with Main System
+## Dependencies
+
+### Required Tools
+- **Go 1.19+**: For Go component tests
+- **g++**: For C++ compilation
+- **Google Test**: For C++ unit testing
+- **make**: For build automation
+
+### Installation (Ubuntu/Debian)
+```bash
+# Install dependencies
+./run_tests.sh deps
+
+# Or manually
+sudo apt-get install build-essential libgtest-dev cmake
+```
+
+## Test Environment
 
 ### Environment Variables
-The service expects these environment variables:
-- `NEXT_PUBLIC_SUPABASE_URL`: Your Supabase project URL
-- `SUPABASE_SERVICE_ROLE_KEY`: Your Supabase service role key
-
-### Database Schema
-The service inserts products into a `products` table with these fields:
-- `name` (string): Product name
-- `brand_name` (string): Brand name
-- `flavor` (string): Product flavor
-- `year` (string): Formula year
-- `created_at` (timestamp): Creation timestamp
-- `updated_at` (timestamp): Last update timestamp
-
-### API Integration
-The service makes HTTP POST requests to:
+```bash
+export SUPABASE_URL="http://localhost:54321"
+export SUPABASE_ANON_KEY="test-key"
+export TEST_MODE="true"
 ```
-POST {NEXT_PUBLIC_SUPABASE_URL}/products
-Authorization: Bearer {SUPABASE_SERVICE_ROLE_KEY}
-Content-Type: application/json
-```
+
+### Test Directories
+- **Go Tests**: `go-supabase/`
+- **C++ Tests**: `tests/`
+- **Test Data**: `/tmp/daily_update_test/`
+- **Coverage**: `go-supabase/coverage.html`
 
 ## Continuous Integration
 
-To integrate with CI/CD pipelines:
-
+### GitHub Actions (Example)
 ```yaml
-# .github/workflows/test-daily-update.yml
-name: Test DailyUpdateService
+name: DailyUpdateService Tests
 on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install g++ libcurl4-openssl-dev nlohmann-json3-dev
-      - name: Run tests
-        run: |
-          cd backend/tools/DailyUpdateService
-          ./test_runner.sh
+      - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '1.19'
+      - run: ./run_tests.sh
 ```
 
-## Performance Benchmarks
+## Troubleshooting
 
-### Expected Performance
-- **Queue Addition**: < 1ms per product
-- **1000 Products**: < 50ms total
-- **Memory Usage**: < 10MB for 1000 products
-- **Thread Overhead**: < 1% CPU usage when idle
+### Common Issues
+1. **Google Test Not Found**: Run `./run_tests.sh deps`
+2. **Permission Denied**: Run `chmod +x run_tests.sh`
+3. **Go Module Issues**: Run `cd go-supabase && go mod tidy`
+4. **Compilation Errors**: Check C++ compiler version (requires C++17)
 
-### Load Testing
-For production load testing:
+### Debug Mode
 ```bash
-# Test with 10,000 products
-for i in {1..10000}; do
-  # Add product to queue
-done
+# Run tests with verbose output
+go test -v -race
+make test-cpp VERBOSE=1
 ```
 
-## Security Considerations
+## Test Results
 
-### Environment Variables
-- Never commit real API keys to version control
-- Use environment-specific configuration files
-- Rotate service role keys regularly
+### Success Criteria
+- ✅ All unit tests pass
+- ✅ Integration tests pass
+- ✅ Performance benchmarks meet requirements
+- ✅ Coverage > 80%
+- ✅ No memory leaks
+- ✅ Thread safety verified
 
-### Network Security
-- All requests use HTTPS
-- Service role key provides database access
-- No user authentication required (service-to-service)
+### Reporting
+- **Test Results**: Console output with colored status
+- **Coverage Report**: HTML report in `go-supabase/coverage.html`
+- **Performance Metrics**: Benchmark results in console
+- **Error Logs**: Detailed error messages for failures
 
-## Monitoring and Logging
+## Contributing
 
-### Log Levels
-- `INFO`: Normal operations
-- `WARN`: Non-critical issues
-- `ERROR`: Failed operations
-- `DEBUG`: Detailed debugging information
+### Adding New Tests
+1. Follow existing test patterns
+2. Add comprehensive test cases
+3. Include performance benchmarks
+4. Update documentation
+5. Ensure CI compatibility
 
-### Metrics to Monitor
-- Queue size and processing rate
-- Database insertion success rate
-- Thread health and performance
-- Memory usage and leaks
+### Test Guidelines
+- **Unit Tests**: Test individual functions
+- **Integration Tests**: Test component interactions
+- **Performance Tests**: Benchmark critical operations
+- **Edge Cases**: Test error conditions and boundary cases
+- **Documentation**: Document test scenarios and expected behavior
