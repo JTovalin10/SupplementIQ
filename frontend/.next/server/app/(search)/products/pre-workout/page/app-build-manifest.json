@@ -1,0 +1,18 @@
+{
+  "pages": {
+    "/(search)/products/pre-workout/page": [
+      "static/chunks/ff1a16fafef87110.js",
+      "static/chunks/7dd66bdf8a7e5707.js",
+      "static/chunks/b86a27c074077efb.css",
+      "static/chunks/ac72badc4dbc90cd.js",
+      "static/chunks/edbab9f1863d5044.js",
+      "static/chunks/ae1396a57a7f5a9f.js",
+      "static/chunks/aaea1e64ef7e0faa.js",
+      "static/chunks/5daf9879421e1556.js",
+      "static/chunks/30cb146bc1e6f45f.js",
+      "static/chunks/d54b50666d053b37.js",
+      "static/chunks/8de370c3cbabf345.js",
+      "static/chunks/turbopack-6447c83b0b455f8a.js"
+    ]
+  }
+}

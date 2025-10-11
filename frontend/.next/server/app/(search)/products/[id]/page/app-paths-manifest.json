@@ -1,0 +1,3 @@
+{
+  "/(search)/products/[id]/page": "app/(search)/products/[id]/page.js"
+}
