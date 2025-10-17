@@ -1,0 +1,9 @@
+/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/daily_update_service_rust/target/debug/deps/libstringprep-65667cec55462443.rmeta: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/rfc3454.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/tables.rs
+
+/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/daily_update_service_rust/target/debug/deps/libstringprep-65667cec55462443.rlib: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/rfc3454.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/tables.rs
+
+/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/daily_update_service_rust/target/debug/deps/stringprep-65667cec55462443.d: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/rfc3454.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/tables.rs
+
+/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/lib.rs:
+/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/rfc3454.rs:
+/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/stringprep-0.1.5/src/tables.rs:

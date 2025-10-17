@@ -1,0 +1,9 @@
+/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/daily_update_service_rust/target/debug/deps/libiana_time_zone-e42aca82ffbcc158.rmeta: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/ffi_utils.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/tz_darwin.rs
+
+/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/daily_update_service_rust/target/debug/deps/libiana_time_zone-e42aca82ffbcc158.rlib: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/ffi_utils.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/tz_darwin.rs
+
+/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/daily_update_service_rust/target/debug/deps/iana_time_zone-e42aca82ffbcc158.d: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/ffi_utils.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/tz_darwin.rs
+
+/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/lib.rs:
+/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/ffi_utils.rs:
+/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/iana-time-zone-0.1.64/src/tz_darwin.rs:

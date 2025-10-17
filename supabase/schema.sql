@@ -30,6 +30,16 @@ CREATE TABLE public.brands (
     slug TEXT UNIQUE,
     website TEXT,
     product_count INTEGER DEFAULT 0,
+    brand_trust TEXT DEFAULT 'new' CHECK (brand_trust IN ('new', 'reputable', 'controversial')),
+    transparency_score INTEGER DEFAULT 0 CHECK (transparency_score BETWEEN 0 AND 100),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE public.brand_logos (
+    id SERIAL PRIMARY KEY,
+    brand_id INTEGER NOT NULL REFERENCES public.brands(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -45,12 +55,83 @@ CREATE TABLE public.products (
     serving_size_g DECIMAL(5,2),
     transparency_score INTEGER DEFAULT 0 CHECK (transparency_score BETWEEN 0 AND 100),
     confidence_level TEXT DEFAULT 'estimated' CHECK (confidence_level IN ('verified', 'likely', 'estimated', 'unknown')),
+    dosage_rating INTEGER DEFAULT 0 CHECK (dosage_rating BETWEEN 0 AND 100),
+    danger_rating INTEGER DEFAULT 0 CHECK (danger_rating BETWEEN 0 AND 100),
+    community_rating DECIMAL(3,1) DEFAULT 0.0 CHECK (community_rating BETWEEN 0.0 AND 10.0),
+    total_reviews INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     search_vector tsvector GENERATED ALWAYS AS (
         setweight(to_tsvector('english', coalesce(name, '')), 'A')
     ) STORED
 );
+
+-- Product reviews and community comments
+CREATE TABLE public.product_reviews (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    rating DECIMAL(3,1) NOT NULL CHECK (rating BETWEEN 1.0 AND 10.0),
+    title TEXT NOT NULL,
+    comment TEXT NOT NULL,
+    recommended_scoops INTEGER,
+    recommended_frequency TEXT,
+    value_for_money INTEGER CHECK (value_for_money BETWEEN 1 AND 5),
+    effectiveness INTEGER CHECK (effectiveness BETWEEN 1 AND 5),
+    safety_concerns TEXT,
+    is_verified_purchase BOOLEAN DEFAULT FALSE,
+    helpful_votes INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(product_id, user_id) -- One review per user per product
+);
+
+-- Indexes for reviews
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON public.product_reviews (product_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_user_id ON public.product_reviews (user_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_rating ON public.product_reviews (rating);
+
+-- Product images table
+CREATE TABLE public.product_images (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    alt_text TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Function to update product review statistics
+CREATE OR REPLACE FUNCTION update_product_review_stats() RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    new_avg_rating DECIMAL(3,1);
+    new_total_reviews INTEGER;
+BEGIN
+    -- Calculate new average rating and total count
+    SELECT 
+        COALESCE(AVG(rating), 0.0),
+        COUNT(*)
+    INTO new_avg_rating, new_total_reviews
+    FROM public.product_reviews 
+    WHERE product_id = COALESCE(NEW.product_id, OLD.product_id);
+    
+    -- Update the product with new statistics
+    UPDATE public.products 
+    SET 
+        community_rating = new_avg_rating,
+        total_reviews = new_total_reviews,
+        updated_at = NOW()
+    WHERE id = COALESCE(NEW.product_id, OLD.product_id);
+    
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+-- Trigger for INSERT, UPDATE, DELETE on product_reviews
+CREATE TRIGGER product_reviews_stats_trigger
+    AFTER INSERT OR UPDATE OR DELETE ON public.product_reviews
+    FOR EACH ROW EXECUTE FUNCTION update_product_review_stats();
 
 -- UPDATED: Added flavors array
 CREATE TABLE public.preworkout_details (
@@ -215,10 +296,47 @@ ON CONFLICT (id) DO UPDATE SET
     email = EXCLUDED.email,
     updated_at = NOW();
 
+-- Temporary products table for contribution system (identical to products table with approval flag)
+CREATE TABLE public.temporary_products (
+    id SERIAL PRIMARY KEY,
+    brand_id INTEGER REFERENCES public.brands(id),
+    category product_category NOT NULL,
+    name TEXT NOT NULL,
+    slug TEXT UNIQUE NOT NULL,
+    image_url TEXT,
+    description TEXT,
+    servings_per_container INTEGER,
+    serving_size_g DECIMAL(5,2),
+    transparency_score INTEGER DEFAULT 0 CHECK (transparency_score BETWEEN 0 AND 100),
+    confidence_level TEXT DEFAULT 'estimated' CHECK (confidence_level IN ('verified', 'likely', 'estimated', 'unknown')),
+    dosage_rating INTEGER DEFAULT 0 CHECK (dosage_rating BETWEEN 0 AND 100),
+    danger_rating INTEGER DEFAULT 0 CHECK (danger_rating BETWEEN 0 AND 100),
+    community_rating DECIMAL(3,1) DEFAULT 0.0 CHECK (community_rating BETWEEN 0.0 AND 10.0),
+    total_reviews INTEGER DEFAULT 0,
+    -- Approval status: 1 = approved, 0 = pending, -1 = denied
+    approval_status INTEGER DEFAULT 0 CHECK (approval_status IN (1, 0, -1)),
+    submitted_by UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    reviewed_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    rejection_reason TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    reviewed_at TIMESTAMPTZ,
+    search_vector tsvector GENERATED ALWAYS AS (
+        setweight(to_tsvector('english', coalesce(name, '')), 'A')
+    ) STORED
+);
+
+-- Indexes for temporary products
+CREATE INDEX IF NOT EXISTS idx_temporary_products_approval_status ON public.temporary_products (approval_status);
+CREATE INDEX IF NOT EXISTS idx_temporary_products_submitted_by ON public.temporary_products (submitted_by);
+CREATE INDEX IF NOT EXISTS idx_temporary_products_reviewed_by ON public.temporary_products (reviewed_by);
+CREATE INDEX IF NOT EXISTS idx_temporary_products_created_at ON public.temporary_products (created_at);
+CREATE INDEX IF NOT EXISTS idx_temporary_products_search_vector ON public.temporary_products USING GIN (search_vector);
+
 -- Indexes for RLS/performance
 CREATE INDEX IF NOT EXISTS idx_products_search_vector ON public.products USING GIN (search_vector);
 CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON public.user_badges (user_id);
 
 -- Validate: show count placeholders (will be returned to client)
-SELECT 'tables_created' AS action, count(*) AS cnt FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('users','products','brands');
+SELECT 'tables_created' AS action, count(*) AS cnt FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('users','products','brands','temporary_products');
 
