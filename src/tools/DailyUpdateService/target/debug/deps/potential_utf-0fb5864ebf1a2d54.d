@@ -1,9 +1,0 @@
-/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/DailyUpdateService/target/debug/deps/libpotential_utf-0fb5864ebf1a2d54.rmeta: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/uchar.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/ustr.rs
-
-/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/DailyUpdateService/target/debug/deps/libpotential_utf-0fb5864ebf1a2d54.rlib: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/uchar.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/ustr.rs
-
-/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/DailyUpdateService/target/debug/deps/potential_utf-0fb5864ebf1a2d54.d: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/uchar.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/ustr.rs
-
-/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/lib.rs:
-/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/uchar.rs:
-/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/potential_utf-0.1.3/src/ustr.rs:

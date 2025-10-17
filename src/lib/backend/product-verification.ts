@@ -3,7 +3,12 @@
  * Checks if products already exist before submission to prevent duplicates
  */
 
-import { supabase } from './supabase';
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export interface ProductSubmission {
     name: string;
@@ -73,8 +78,7 @@ export async function verifyProductSubmission(submission: ProductSubmission): Pr
             }
         }
 
-        // Step 3: Check Trie for autocomplete matches
-        await checkTrieMatches(submission, result);
+        // Step 3: Trie functionality removed (autocomplete was disabled)
 
         // Step 4: Generate suggestions
         generateSuggestions(submission, result);

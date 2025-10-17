@@ -6,7 +6,7 @@ import { hasRoleAccess } from '@/lib/utils/role-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-export default function AdminDashboardPage() {
+export default function ModeratorDashboardPage() {
   const { user, isAuthenticated, isLoading } = useJWTAuth();
   const router = useRouter();
 
@@ -17,8 +17,8 @@ export default function AdminDashboardPage() {
         return;
       }
       
-      // Check if user has admin access using role hierarchy
-      if (user && !hasRoleAccess(user.role, 'admin')) {
+      // Check if user has moderator access or higher
+      if (user && !hasRoleAccess(user.role, 'moderator')) {
         router.push('/');
         return;
       }
@@ -38,5 +38,5 @@ export default function AdminDashboardPage() {
   }
 
   // Use the user's actual role from Supabase auth
-  return <JWTDashboard userRole={user.role as 'admin' | 'owner'} />;
+  return <JWTDashboard userRole={user.role as 'moderator' | 'admin' | 'owner'} />;
 }

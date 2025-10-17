@@ -3,7 +3,13 @@
  * Checks if products already exist before submission to prevent duplicates
  */
 
-import { supabase } from './supabase';
+import { createClient } from '@supabase/supabase-js';
+import { get } from 'fast-levenshtein';
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export interface ProductSubmission {
     name: string;
@@ -43,38 +49,42 @@ export async function verifyProductSubmission(submission: ProductSubmission): Pr
         suggestions: []
     };
 
-    try {
-        console.log(`🔍 Verifying product submission: ${submission.name} (${submission.brand_name})`);
+        try {
+            console.log(`🔍 Verifying product submission: ${submission.name} (${submission.brand_name})`);
 
-        // Step 1: Check for exact matches
-        const exactMatches = await findExactMatches(submission);
-        if (exactMatches.length > 0) {
-            result.exists = true;
-            result.matchType = 'exact';
-            result.canSubmit = false;
-            result.existingProducts = exactMatches;
-            result.warnings.push('Exact product match found in database');
-            return result;
-        }
-
-        // Step 2: Check for similar products
-        const similarProducts = await findSimilarProducts(submission);
-        if (similarProducts.length > 0) {
-            result.matchType = 'similar';
-            result.existingProducts = similarProducts;
+            // Single database call to get all potentially matching products
+            const allProducts = await findMatchingProducts(submission);
             
-            // Check similarity scores
-            const highSimilarity = similarProducts.some(p => p.similarity_score > 0.9);
-            if (highSimilarity) {
-                result.canSubmit = false;
-                result.warnings.push('Very similar product found - review required');
-            } else {
-                result.warnings.push('Similar products found - please review');
-            }
-        }
+            // Separate exact matches from similar products
+            const exactMatches = allProducts.filter(p => p.similarity_score === 1.0);
+            const similarProducts = allProducts.filter(p => p.similarity_score < 1.0 && p.similarity_score > 0.7);
 
-        // Step 3: Check Trie for autocomplete matches
-        await checkTrieMatches(submission, result);
+            // Step 1: Check for exact matches
+            if (exactMatches.length > 0) {
+                result.exists = true;
+                result.matchType = 'exact';
+                result.canSubmit = false;
+                result.existingProducts = exactMatches;
+                result.warnings.push('Exact product match found in database');
+                return result;
+            }
+
+            // Step 2: Check for similar products
+            if (similarProducts.length > 0) {
+                result.matchType = 'similar';
+                result.existingProducts = similarProducts;
+                
+                // Check similarity scores
+                const highSimilarity = similarProducts.some(p => p.similarity_score > 0.9);
+                if (highSimilarity) {
+                    result.canSubmit = false;
+                    result.warnings.push('Very similar product found - review required');
+                } else {
+                    result.warnings.push('Similar products found - please review');
+                }
+            }
+
+        // Step 3: Trie functionality removed (autocomplete was disabled)
 
         // Step 4: Generate suggestions
         generateSuggestions(submission, result);
@@ -91,56 +101,30 @@ export async function verifyProductSubmission(submission: ProductSubmission): Pr
 }
 
 /**
- * Find exact matches in the database
+ * Find all potentially matching products with a single database call
  */
-async function findExactMatches(submission: ProductSubmission): Promise<VerificationResult['existingProducts']> {
-    const { data, error } = await supabase
-        .from('products')
-        .select('id, name, brand_name, flavor, year')
-        .eq('name', submission.name.toLowerCase())
-        .eq('brand_name', submission.brand_name.toLowerCase())
-        .limit(10);
-
-    if (error) {
-        console.error('❌ Error finding exact matches:', error);
-        return [];
-    }
-
-    return (data || []).map(product => ({
-        id: product.id,
-        name: product.name,
-        brand_name: product.brand_name,
-        flavor: product.flavor,
-        year: product.year,
-        similarity_score: 1.0
-    }));
-}
-
-/**
- * Find similar products using fuzzy matching
- */
-async function findSimilarProducts(submission: ProductSubmission): Promise<VerificationResult['existingProducts']> {
-    // Search for products with similar names or same brand
+async function findMatchingProducts(submission: ProductSubmission): Promise<VerificationResult['existingProducts']> {
+    // Single database call to get products with similar names or same brand
     const { data, error } = await supabase
         .from('products')
         .select('id, name, brand_name, flavor, year')
         .or(`name.ilike.%${submission.name}%,brand_name.eq.${submission.brand_name.toLowerCase()}`)
-        .limit(20);
+        .limit(30); // Increased limit since we're doing one call
 
     if (error) {
-        console.error('❌ Error finding similar products:', error);
+        console.error('❌ Error finding matching products:', error);
         return [];
     }
 
     const products = data || [];
-    const similarProducts: VerificationResult['existingProducts'] = [];
+    const matchingProducts: VerificationResult['existingProducts'] = [];
 
     for (const product of products) {
         const similarity = calculateSimilarity(submission, product);
         
-        // Only include products with > 0.7 similarity
+        // Include all products with > 0.7 similarity (including exact matches)
         if (similarity > 0.7) {
-            similarProducts.push({
+            matchingProducts.push({
                 id: product.id,
                 name: product.name,
                 brand_name: product.brand_name,
@@ -152,7 +136,7 @@ async function findSimilarProducts(submission: ProductSubmission): Promise<Verif
     }
 
     // Sort by similarity score (highest first)
-    return similarProducts.sort((a, b) => b.similarity_score - a.similarity_score);
+    return matchingProducts.sort((a, b) => b.similarity_score - a.similarity_score);
 }
 
 /**
@@ -190,46 +174,17 @@ function calculateSimilarity(submission: ProductSubmission, existing: any): numb
 }
 
 /**
- * Calculate Levenshtein similarity between two strings
+ * Calculate Levenshtein similarity between two strings using fast-levenshtein
  */
 function levenshteinSimilarity(str1: string, str2: string): number {
     const maxLength = Math.max(str1.length, str2.length);
     if (maxLength === 0) return 1.0;
 
-    const distance = levenshteinDistance(str1, str2);
+    // Use fast-levenshtein library for better performance
+    const distance = get(str1, str2);
     return (maxLength - distance) / maxLength;
 }
 
-/**
- * Calculate Levenshtein distance between two strings
- */
-function levenshteinDistance(str1: string, str2: string): number {
-    const matrix = Array(str2.length + 1).fill(null).map(() => Array(str1.length + 1).fill(null));
-
-    for (let i = 0; i <= str1.length; i++) matrix[0][i] = i;
-    for (let j = 0; j <= str2.length; j++) matrix[j][0] = j;
-
-    for (let j = 1; j <= str2.length; j++) {
-        for (let i = 1; i <= str1.length; i++) {
-            const cost = str1[i - 1] === str2[j - 1] ? 0 : 1;
-            matrix[j][i] = Math.min(
-                matrix[j][i - 1] + 1,
-                matrix[j - 1][i] + 1,
-                matrix[j - 1][i - 1] + cost
-            );
-        }
-    }
-
-    return matrix[str2.length][str1.length];
-}
-
-/**
- * Check Trie for autocomplete matches - REMOVED (autocomplete service no longer used)
- */
-async function checkTrieMatches(submission: ProductSubmission, result: VerificationResult): Promise<void> {
-    // Autocomplete functionality removed
-    // This function is kept for compatibility but does nothing
-}
 
 /**
  * Generate suggestions for the user

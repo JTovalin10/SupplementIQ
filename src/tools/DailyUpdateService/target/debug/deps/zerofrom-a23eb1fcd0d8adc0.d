@@ -1,9 +1,0 @@
-/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/DailyUpdateService/target/debug/deps/libzerofrom-a23eb1fcd0d8adc0.rmeta: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/macro_impls.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/zero_from.rs
-
-/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/DailyUpdateService/target/debug/deps/libzerofrom-a23eb1fcd0d8adc0.rlib: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/macro_impls.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/zero_from.rs
-
-/Users/justinhernandeztovalin/Desktop/personal projects/SupplementIQ/src/tools/DailyUpdateService/target/debug/deps/zerofrom-a23eb1fcd0d8adc0.d: /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/lib.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/macro_impls.rs /Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/zero_from.rs
-
-/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/lib.rs:
-/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/macro_impls.rs:
-/Users/justinhernandeztovalin/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerofrom-0.1.6/src/zero_from.rs:

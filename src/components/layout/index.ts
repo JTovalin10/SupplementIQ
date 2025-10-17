@@ -1,2 +1,4 @@
 // Layout components exports
-// TODO: Export all layout components from this index file
+export { default as Footer } from './footer';
+export { default as Header } from './header';
+

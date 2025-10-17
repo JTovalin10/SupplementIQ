@@ -1,6 +1,6 @@
-import React from 'react';
 import { Shield, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
+import React from 'react';
 
 const categories = [
   { id: 'protein', name: 'Protein', description: 'Whey, casein, and plant-based proteins' },
