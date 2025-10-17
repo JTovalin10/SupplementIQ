@@ -1,2 +1,0 @@
--- Database seed data
--- TODO: Add sample data for development and testing

@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { withCache } from '@/lib/utils/cache';
+import { useEffect, useRef, useState } from 'react';
 
 interface ActivityItem {
   id: string;
@@ -15,7 +16,10 @@ export default function RecentActivity() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const hasFetchedRef = useRef(false);
   useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     fetchRecentActivity();
   }, []);
 
@@ -23,37 +27,46 @@ export default function RecentActivity() {
     try {
       setLoading(true);
       setError(null);
-      
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/dashboard/recent-activity');
-      // const data = await response.json();
-      
-      // Mock data for now
-      const mockActivities = [
-        {
-          id: '1',
-          action: 'Product approved',
-          user: 'Admin User',
-          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          details: 'Optimum Nutrition Gold Standard Whey approved'
-        },
-        {
-          id: '2',
-          action: 'User registration',
-          user: 'System',
-          timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-          details: 'New user john.doe@example.com registered'
-        },
-        {
-          id: '3',
-          action: 'Product submission',
-          user: 'User123',
-          timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-          details: 'New product submission: MuscleTech NitroTech'
+      const page = 1;
+      const limit = 10;
+      const url = `/api/admin/dashboard/recent-activity?page=${page}&limit=${limit}`;
+      const fetcher = async () => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Failed to load');
+        return response.json();
+      };
+      const json = page === 1
+        ? await withCache(`admin:recent-activity:page=${page}:limit=${limit}`, fetcher, 45)
+        : await fetcher();
+      const mapped: ActivityItem[] = (json.activities || []).map((a: any) => {
+        const ts = a.timestamp ?? a.created_at;
+        if (a.type === 'product_approved') {
+          return {
+            id: a.id,
+            action: 'Product approved',
+            user: a.user?.username ?? 'Unknown',
+            timestamp: ts,
+            details: a.product ? `${a.product.name} approved` : 'Product approved',
+          };
         }
-      ];
-      
-      setActivities(mockActivities);
+        if (a.type === 'product_created') {
+          return {
+            id: a.id,
+            action: 'Product created',
+            user: a.user?.username ?? 'System',
+            timestamp: ts,
+            details: a.product ? `New product: ${a.product.name}` : 'New product created',
+          };
+        }
+        return {
+          id: a.id,
+          action: 'Comment',
+          user: a.user?.username ?? 'Unknown',
+          timestamp: ts,
+          details: a.metadata?.title ?? 'New comment',
+        };
+      });
+      setActivities(mapped);
     } catch (err) {
       console.error('Failed to fetch recent activity:', err);
       setError('Failed to load recent activity');

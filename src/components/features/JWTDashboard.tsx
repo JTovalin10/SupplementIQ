@@ -15,13 +15,14 @@ import RecentActivity from './dashboard/RecentActivity';
 import UserManagement from './dashboard/UserManagement';
 
 interface DashboardProps {
-  userRole: 'moderator' | 'admin' | 'owner';
+  userRole?: 'user' | 'moderator' | 'admin' | 'owner';
 }
 
 export default function JWTDashboard({ userRole }: DashboardProps) {
   const { user, isAuthenticated, isLoading } = useJWTAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [cacheLoading, setCacheLoading] = useState(false);
+  const effectiveRole = (userRole ?? user?.role ?? 'user') as 'user' | 'moderator' | 'admin' | 'owner';
   
   // Show loading state while authentication is being checked
   if (isLoading) {
@@ -41,7 +42,7 @@ export default function JWTDashboard({ userRole }: DashboardProps) {
             <Lock className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Authentication Required</h2>
             <p className="text-gray-600">
-              Please log in to access the {userRole} dashboard.
+              Please log in to access the {effectiveRole} dashboard.
             </p>
           </div>
           <div className="space-y-4">
@@ -64,7 +65,7 @@ export default function JWTDashboard({ userRole }: DashboardProps) {
   }
 
   // Get role-based navigation tabs
-  const tabConfigs = getAvailableTabs(userRole);
+  const tabConfigs = getAvailableTabs(effectiveRole);
   const tabs = tabConfigs.map(tab => ({
     ...tab,
     icon: tab.id === 'overview' ? BarChart3 : Settings
@@ -82,7 +83,7 @@ export default function JWTDashboard({ userRole }: DashboardProps) {
               </div>
               <div className="ml-4">
                 <h1 className="text-2xl font-bold text-gray-900">
-                  {userRole.charAt(0).toUpperCase() + userRole.slice(1)} Dashboard
+                  {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)} Dashboard
                 </h1>
                 <p className="text-sm text-gray-500">
                   Welcome back, {user.username}
@@ -151,22 +152,6 @@ export default function JWTDashboard({ userRole }: DashboardProps) {
 
             {activeTab === 'users' && (
               <UserManagement />
-            )}
-
-            {activeTab === 'system' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow">
-                  <div className="px-6 py-4 border-b">
-                    <h3 className="text-lg font-semibold text-gray-900">System Monitoring</h3>
-                  </div>
-                  <div className="p-6">
-                    <p className="text-gray-500">
-                      System monitoring is handled by external services (Vercel Analytics & Supabase Observability).
-                      Check your platform dashboards for detailed metrics.
-                    </p>
-                  </div>
-                </div>
-              </div>
             )}
 
             {activeTab === 'settings' && (

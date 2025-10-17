@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 
 // Initialize Supabase client
 const supabase = createClient(
@@ -155,7 +155,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/v1/users') ||
     pathname.startsWith('/api/v1/contributions') ||
     pathname.startsWith('/api/v1/upload') ||
-    pathname.startsWith('/api/v1/pending-products')
+    pathname.startsWith('/api/v1/pending-products') ||
+    pathname.startsWith('/api/pending-products')
   ) {
     const authHeader = request.headers.get('authorization');
     

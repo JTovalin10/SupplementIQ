@@ -1,48 +1,40 @@
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const userId = params.id;
-
+    
     if (!userId) {
-      return NextResponse.json(
-        { error: 'User ID is required' },
-        { status: 400 }
-      );
+      throw new Error("User ID is not defined");
     }
 
-    // Get user from Supabase auth
-    const { data: authUser, error: authError } = await supabase.auth.admin.getUserById(userId);
-    
-    if (authError || !authUser.user) {
+    const { data: user, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (error || !user) {
       return NextResponse.json(
-        { error: 'User not found' },
+        { error: 'User not found or error fetching role' },
         { status: 404 }
       );
     }
 
-    // TODO: Get user role from your users table
-    // For now, return default role
-    const userRole = {
-      role: 'user', // This should come from your users table
+    const rawRole = user.role as string | undefined;
+    const normalize = (r?: string) => {
+      if (!r) return null;
+      const lc = r.toLowerCase();
+      if (lc === 'authenticated user' || lc === 'auth' || lc === 'member' || lc === 'user') return 'newcomer' as const;
+      if (['newcomer','contributor','trusted_editor','moderator','admin','owner'].includes(lc)) return lc as any;
+      return null;
     };
-
-    return NextResponse.json(userRole);
+    const role = normalize(rawRole);
+    return NextResponse.json({ role });
 
   } catch (error) {
-    console.error('Failed to get user role:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    console.error("Failed to get user role:", error);
+    return new Response("Internal Server Error", { status: 500 });
   }
 }

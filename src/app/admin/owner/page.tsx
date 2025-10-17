@@ -2,28 +2,26 @@
 
 import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
 import {
-    Activity,
-    AlertTriangle,
-    Ban,
-    BarChart3,
-    CheckCircle,
-    Clock,
-    Crown,
-    Database,
-    FileText,
-    Globe,
-    Key,
-    Lock,
-    Settings,
-    Shield,
-    Trash2,
-    TrendingUp,
-    UserPlus,
-    Users,
-    XCircle,
-    Zap
+  Activity,
+  AlertTriangle,
+  Ban,
+  BarChart3,
+  CheckCircle,
+  Clock,
+  Crown,
+  Database,
+  FileText,
+  Globe,
+  Key,
+  Lock,
+  Shield,
+  Trash2,
+  UserPlus,
+  Users,
+  XCircle,
+  Zap
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface OwnerStats {
   totalUsers: number;
@@ -65,87 +63,77 @@ interface SystemLog {
 export default function OwnerDashboard() {
   const { user } = useJWTAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  // Remove dummy data
   const [stats, setStats] = useState<OwnerStats>({
-    totalUsers: 1247,
-    pendingSubmissions: 23,
-    pendingEdits: 8,
-    totalProducts: 156,
-    recentActivity: 45,
-    systemHealth: 98,
-    databaseSize: '2.4 GB',
-    apiCalls: 15420
+    totalUsers: 0,
+    pendingSubmissions: 0,
+    pendingEdits: 0,
+    totalProducts: 0,
+    recentActivity: 0,
+    systemHealth: 0,
+    databaseSize: '',
+    apiCalls: 0
   });
 
-  const [pendingSubmissions] = useState<PendingSubmission[]>([
-    {
-      id: '1',
-      productName: 'Gorilla Mode Pre-Workout',
-      brandName: 'Gorilla Mind',
-      category: 'pre-workout',
-      submittedBy: 'john_doe',
-      submittedAt: '2024-01-15T10:30:00Z',
-      status: 'pending'
-    },
-    {
-      id: '2',
-      productName: 'Optimum Nutrition Gold Standard',
-      brandName: 'Optimum Nutrition',
-      category: 'protein',
-      submittedBy: 'fitness_guru',
-      submittedAt: '2024-01-15T09:15:00Z',
-      status: 'pending'
-    }
-  ]);
+  const [pendingSubmissions, setPendingSubmissions] = useState<PendingSubmission[]>([]);
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
 
-  const [recentActivity] = useState<RecentActivity[]>([
-    {
-      id: '1',
-      type: 'approval',
-      description: 'Approved product submission: "Creatine Monohydrate"',
-      user: 'admin_user',
-      timestamp: '2024-01-15T14:20:00Z'
-    },
-    {
-      id: '2',
-      type: 'submission',
-      description: 'New product submission: "BCAA Complex"',
-      user: 'contributor_123',
-      timestamp: '2024-01-15T13:45:00Z'
-    }
-  ]);
+  // Fetch logic
+  const didFetchRef = useRef(false);
+  useEffect(() => {
+    if (didFetchRef.current) return;
+    didFetchRef.current = true;
+    async function fetchDashboardData() {
+      try {
+        // TODO: Implement stats endpoint; keep zero defaults for now
 
-  const [systemLogs] = useState<SystemLog[]>([
-    {
-      id: '1',
-      type: 'success',
-      message: 'Daily product update completed successfully',
-      timestamp: '2024-01-15T12:00:00Z',
-      component: 'DailyUpdateService'
-    },
-    {
-      id: '2',
-      type: 'warning',
-      message: 'High memory usage detected on server',
-      timestamp: '2024-01-15T11:45:00Z',
-      component: 'SystemMonitor'
-    },
-    {
-      id: '3',
-      type: 'info',
-      message: 'New user registration: fitness_enthusiast_99',
-      timestamp: '2024-01-15T11:30:00Z',
-      component: 'AuthService'
-    }
-  ]);
+        // Fetch pending submissions with pagination
+        const pendingResponse = await fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10');
+        if (pendingResponse.ok) {
+          const pendingJson = await pendingResponse.json();
+          const mapped = (pendingJson.submissions || []).map((s: any) => ({
+            id: String(s.id),
+            productName: s.productName ?? s.name ?? 'Unknown',
+            brandName: s.brand?.name ?? 'Unknown',
+            category: s.category ?? 'Unknown',
+            submittedBy: s.submittedBy ?? 'Unknown',
+            submittedAt: s.submittedAt,
+            status: s.status ?? 'pending',
+          }));
+          setPendingSubmissions(mapped);
+        }
 
+        // Fetch recent activity with pagination
+        const activityResponse = await fetch('/api/admin/dashboard/recent-activity?page=1&limit=10');
+        if (activityResponse.ok) {
+          const activityJson = await activityResponse.json();
+          const mapped = (activityJson.activities || []).map((a: any) => ({
+            id: a.id,
+            type: a.type,
+            description:
+              a.type === 'product_approved' && a.product?.name
+                ? `${a.product.name} approved`
+                : a.type === 'product_created' && a.product?.name
+                ? `New product: ${a.product.name}`
+                : a.metadata?.title ?? 'Activity',
+            user: a.user?.username ?? 'Unknown',
+            timestamp: a.timestamp ?? a.created_at,
+          }));
+          setRecentActivity(mapped);
+        }
+      } catch (error) {
+        console.error('Failed to fetch dashboard data', error);
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
+
+  // Ensure tabs only include desired components
   const tabs = [
-    { id: 'overview', name: 'Overview', icon: BarChart3 },
+    { id: 'recent activity', name: 'Recent Activity', icon: BarChart3 },
     { id: 'moderation', name: 'Product Moderation', icon: Shield },
-    { id: 'users', name: 'User Management', icon: Users },
-    { id: 'analytics', name: 'Analytics', icon: TrendingUp },
-    { id: 'system', name: 'System Management', icon: Database },
-    { id: 'ownership', name: 'Owner Tools', icon: Crown },
-    { id: 'settings', name: 'Settings', icon: Settings }
+    { id: 'users', name: 'User Management', icon: Users }
   ];
 
   const formatDate = (dateString: string) => {
@@ -215,16 +203,6 @@ export default function OwnerDashboard() {
     // TODO: Implement delete logic
   };
 
-  const handleSystemRestart = () => {
-    console.log('Restarting system...');
-    // TODO: Implement system restart
-  };
-
-  const handleDatabaseBackup = () => {
-    console.log('Creating database backup...');
-    // TODO: Implement database backup
-  };
-
   const handleOverridePromote = (userId: string, role: string) => {
     console.log(`Override promoting user ${userId} to ${role}`);
     // TODO: Implement override promotion
@@ -289,10 +267,6 @@ export default function OwnerDashboard() {
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <Users className="w-6 h-6 text-blue-600" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-black">Total Users</p>
-                    <p className="text-2xl font-bold text-black">{stats.totalUsers.toLocaleString()}</p>
-                  </div>
                 </div>
               </div>
 
@@ -352,10 +326,6 @@ export default function OwnerDashboard() {
                   <div className="p-2 bg-green-100 rounded-lg">
                     <Zap className="w-6 h-6 text-green-600" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-black">System Health</p>
-                    <p className="text-2xl font-bold text-black">{stats.systemHealth}%</p>
-                  </div>
                 </div>
               </div>
 
@@ -364,10 +334,6 @@ export default function OwnerDashboard() {
                   <div className="p-2 bg-blue-100 rounded-lg">
                     <Database className="w-6 h-6 text-blue-600" />
                   </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-black">Database Size</p>
-                    <p className="text-2xl font-bold text-black">{stats.databaseSize}</p>
-                  </div>
                 </div>
               </div>
 
@@ -375,10 +341,6 @@ export default function OwnerDashboard() {
                 <div className="flex items-center">
                   <div className="p-2 bg-purple-100 rounded-lg">
                     <Globe className="w-6 h-6 text-purple-600" />
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm font-medium text-black">API Calls Today</p>
-                    <p className="text-2xl font-bold text-black">{stats.apiCalls.toLocaleString()}</p>
                   </div>
                 </div>
               </div>
@@ -517,91 +479,6 @@ export default function OwnerDashboard() {
           </div>
         )}
 
-        {activeTab === 'analytics' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-semibold text-black">Platform Analytics</h3>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-black mb-2">1,247</div>
-                    <div className="text-sm text-black">Total Users</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-black mb-2">156</div>
-                    <div className="text-sm text-black">Products Added</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-black mb-2">89%</div>
-                    <div className="text-sm text-black">Approval Rate</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-black mb-2">15,420</div>
-                    <div className="text-sm text-black">API Calls Today</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-black mb-2">98%</div>
-                    <div className="text-sm text-black">Uptime</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-black mb-2">2.4 GB</div>
-                    <div className="text-sm text-black">Database Size</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'system' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-semibold text-black">System Management</h3>
-              </div>
-              <div className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
-                    <h4 className="text-md font-medium text-black">System Actions</h4>
-                    <div className="space-y-2">
-                      <button
-                        onClick={handleSystemRestart}
-                        className="w-full px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 flex items-center space-x-2"
-                      >
-                        <Zap className="w-4 h-4" />
-                        <span>Restart System</span>
-                      </button>
-                      <button
-                        onClick={handleDatabaseBackup}
-                        className="w-full px-4 py-2 text-sm font-medium bg-blue-100 text-blue-800 rounded hover:bg-blue-200 flex items-center space-x-2"
-                      >
-                        <Database className="w-4 h-4" />
-                        <span>Backup Database</span>
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <h4 className="text-md font-medium text-black">Recent System Logs</h4>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {systemLogs.map((log) => (
-                        <div key={log.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <div className="flex items-center space-x-2">
-                            {getLogBadge(log.type)}
-                            <span className="text-sm text-black">{log.message}</span>
-                          </div>
-                          <span className="text-xs text-black">{formatDate(log.timestamp)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {activeTab === 'ownership' && (
           <div className="space-y-6">
             <div className="bg-white rounded-lg shadow-sm border">
@@ -652,51 +529,6 @@ export default function OwnerDashboard() {
                         <span>Emergency Shutdown</span>
                       </button>
                     </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <div className="bg-white rounded-lg shadow-sm border">
-              <div className="px-6 py-4 border-b">
-                <h3 className="text-lg font-semibold text-black">Platform Settings</h3>
-              </div>
-              <div className="p-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2">
-                      Auto-approval threshold
-                    </label>
-                    <select className="w-full px-3 py-2 border border-gray-300 rounded-md text-black">
-                      <option>Manual review required</option>
-                      <option>100+ contributions</option>
-                      <option>500+ contributions</option>
-                      <option>1000+ contributions</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2">
-                      Daily update time
-                    </label>
-                    <input
-                      type="time"
-                      defaultValue="12:00"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-black mb-2">
-                      Rate limiting (requests per minute)
-                    </label>
-                    <input
-                      type="number"
-                      defaultValue="60"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md text-black"
-                    />
                   </div>
                 </div>
               </div>

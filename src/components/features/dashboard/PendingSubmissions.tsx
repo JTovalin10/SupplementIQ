@@ -1,13 +1,15 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { withCache } from '@/lib/utils/cache';
+import { useEffect, useRef, useState } from 'react';
 
 interface Submission {
   id: string;
-  title: string;
-  user: string;
+  productName: string;
+  brandName: string;
+  category: string;
+  submittedBy: string;
   submittedAt: string;
-  type: 'product' | 'edit' | 'review';
   status: 'pending' | 'approved' | 'rejected';
 }
 
@@ -16,7 +18,10 @@ export default function PendingSubmissions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const hasFetchedRef = useRef(false);
   useEffect(() => {
+    if (hasFetchedRef.current) return;
+    hasFetchedRef.current = true;
     fetchPendingSubmissions();
   }, []);
 
@@ -24,43 +29,40 @@ export default function PendingSubmissions() {
     try {
       setLoading(true);
       setError(null);
-      
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/dashboard/pending-submissions');
-      // const data = await response.json();
-      
-      // Mock data for now
-      const mockSubmissions = [
-        {
-          id: '1',
-          title: 'Optimum Nutrition Gold Standard Whey',
-          user: 'John Doe',
-          submittedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-          type: 'product',
-          status: 'pending'
-        },
-        {
-          id: '2',
-          title: 'Dymatize ISO100 Update',
-          user: 'Jane Smith',
-          submittedAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(),
-          type: 'edit',
-          status: 'pending'
-        },
-        {
-          id: '3',
-          title: 'MuscleTech NitroTech Review',
-          user: 'Mike Johnson',
-          submittedAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(),
-          type: 'review',
-          status: 'pending'
+      const page = 1;
+      const limit = 10;
+      const url = `/api/admin/dashboard/pending-submissions?page=${page}&limit=${limit}`;
+      const fetcher = async () => {
+        const response = await fetch(url);
+        if (!response.ok) {
+          let details = '';
+          try {
+            const errJson = await response.json();
+            details = errJson?.error || JSON.stringify(errJson);
+          } catch {
+            try { details = await response.text(); } catch { details = ''; }
+          }
+          const message = `Failed to load (HTTP ${response.status}${response.statusText ? ` ${response.statusText}` : ''})${details ? `: ${details}` : ''}`;
+          throw new Error(message);
         }
-      ];
-      
-      setSubmissions(mockSubmissions);
+        return response.json();
+      };
+      const json = page === 1
+        ? await withCache(`admin:pending-submissions:page=${page}:limit=${limit}`, fetcher, 60)
+        : await fetcher();
+      const mapped: Submission[] = (json.submissions || []).map((s: any) => ({
+        id: String(s.id),
+        productName: s.productName ?? s.name ?? 'Unknown',
+        brandName: s.brand?.name ?? 'Unknown',
+        category: s.category ?? 'Unknown',
+        submittedBy: s.submittedBy ?? 'Unknown',
+        submittedAt: s.submittedAt ?? new Date().toISOString(),
+        status: s.status ?? 'pending',
+      }));
+      setSubmissions(mapped);
     } catch (err) {
       console.error('Failed to fetch pending submissions:', err);
-      setError('Failed to load pending submissions');
+      setError(err instanceof Error ? err.message : 'Failed to load pending submissions');
     } finally {
       setLoading(false);
     }
@@ -164,14 +166,13 @@ export default function PendingSubmissions() {
               <div key={submission.id} className="border rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-medium text-gray-900">{submission.title}</h4>
-                    <p className="text-sm text-gray-500">by {submission.user}</p>
+                    <h4 className="font-medium text-gray-900">{submission.productName}</h4>
+                    <p className="text-sm text-gray-500">Brand: {submission.brandName} • Category: {submission.category}</p>
+                    <p className="text-sm text-gray-500">by {submission.submittedBy}</p>
                     <p className="text-xs text-gray-400">{formatTimestamp(submission.submittedAt)}</p>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor(submission.type)}`}>
-                      {submission.type}
-                    </span>
+                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor('product')}`}>Pending</span>
                     <div className="flex space-x-2">
                       <button
                         onClick={() => handleApprove(submission.id)}

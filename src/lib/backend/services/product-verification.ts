@@ -3,13 +3,8 @@
  * Checks if products already exist before submission to prevent duplicates
  */
 
-import { createClient } from '@supabase/supabase-js';
 import { get } from 'fast-levenshtein';
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { supabase } from '../../supabase/client';
 
 export interface ProductSubmission {
     name: string;

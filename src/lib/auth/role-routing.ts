@@ -7,7 +7,7 @@ export interface UserRole {
   id: string;
   email: string;
   username: string;
-  role: 'user' | 'moderator' | 'admin' | 'owner';
+  role: 'newcomer' | 'contributor' | 'trusted_editor' | 'moderator' | 'admin' | 'owner';
 }
 
 /**
@@ -30,11 +30,13 @@ export function getDashboardRoute(userRole: string): string {
  */
 export function hasRoleAccess(userRole: string, requiredRole: string): boolean {
   const roleHierarchy = {
-    'user': 1,
-    'moderator': 2,
-    'admin': 3,
-    'owner': 4,
-  };
+    'newcomer': 1,
+    'contributor': 2,
+    'trusted_editor': 3,
+    'moderator': 4,
+    'admin': 5,
+    'owner': 6,
+  } as const;
   
   const userLevel = roleHierarchy[userRole as keyof typeof roleHierarchy] || 0;
   const requiredLevel = roleHierarchy[requiredRole as keyof typeof roleHierarchy] || 999;

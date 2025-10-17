@@ -75,7 +75,7 @@ export default function UserDashboardPage() {
                       Role
                     </dt>
                     <dd className="text-lg font-medium text-black capitalize">
-                      {user.role.replace('_', ' ')}
+                      {(user.role ?? 'user').replace('_', ' ')}
                     </dd>
                   </dl>
                 </div>

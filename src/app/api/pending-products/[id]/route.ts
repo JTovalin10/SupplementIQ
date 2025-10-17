@@ -12,7 +12,6 @@ const supabase = createClient(
 const ProductApprovalRequestSchema = z.object({
   status: z.enum(['approved', 'rejected']),
   reviewed_by: z.string().uuid(),
-  rejection_reason: z.string().optional(),
 });
 
 // GET /api/pending-products/[id] - Get specific pending product
@@ -84,13 +83,7 @@ export async function PUT(
     const body = await request.json();
     const validatedData = ProductApprovalRequestSchema.parse(body);
 
-    // If rejected, rejection reason should be provided
-    if (validatedData.status === 'rejected' && (!validatedData.rejection_reason || validatedData.rejection_reason.trim() === '')) {
-      return NextResponse.json(
-        { error: 'Rejection reason is required when rejecting a product' },
-        { status: 400 }
-      );
-    }
+    // No rejection reason stored anymore
 
     // Update the pending product status
     const { data: updatedProduct, error: updateError } = await supabase
@@ -99,7 +92,6 @@ export async function PUT(
         status: validatedData.status,
         reviewed_by: validatedData.reviewed_by,
         reviewed_at: new Date().toISOString(),
-        rejection_reason: validatedData.rejection_reason,
       })
       .eq('id', productId)
       .eq('status', 'pending') // Only allow updating pending products

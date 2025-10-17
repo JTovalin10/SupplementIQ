@@ -1,9 +1,28 @@
 'use client';
 
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Correct import without NextRouter type
+import { useEffect, useState } from 'react';
 import { useJWTAuth } from '../../lib/contexts/JWTAuthContext';
+
+function redirectToRoleDashboard(userRole: string | undefined, router: any) {
+  switch(userRole) {
+    case 'owner':
+      router.push('/owner');
+      break;
+    case 'admin':
+      router.push('/admin');
+      break;
+    case 'moderator':
+      router.push('/moderator');
+      break;
+    case 'user':
+      router.push('/user');
+      break;
+    default:
+      router.push('/');
+  }
+}
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,14 +31,15 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, isAuthenticated } = useJWTAuth();
+  const { login, isAuthenticated, user } = useJWTAuth();
   const router = useRouter();
 
-  // Redirect if already authenticated
-  if (isAuthenticated) {
-    router.push('/owner');
-    return null;
-  }
+  // Ensure useRouter and redirect is only used once after mount
+  useEffect(() => {
+    if (isAuthenticated) {
+      setTimeout(() => redirectToRoleDashboard(user?.role, router), 0); // Ensure it runs after component mount
+    }
+  }, [isAuthenticated, user?.role, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +50,7 @@ export default function LoginPage() {
       const result = await login(email, password);
       
       if (result.success) {
-        router.push('/owner');
+        redirectToRoleDashboard(user?.role, router);
       } else {
         setError(result.error || 'Login failed');
       }
@@ -151,35 +171,6 @@ export default function LoginPage() {
               </button>
             </div>
           </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Demo Credentials</span>
-              </div>
-            </div>
-
-            <div className="mt-6 bg-gray-50 p-4 rounded-md">
-              <h3 className="text-sm font-medium text-gray-900 mb-2">Test Accounts:</h3>
-              <div className="space-y-2 text-xs text-gray-600">
-                <div>
-                  <strong>Owner:</strong> owner@example.com / password123
-                </div>
-                <div>
-                  <strong>Admin:</strong> admin@example.com / password123
-                </div>
-                <div>
-                  <strong>Moderator:</strong> moderator@example.com / password123
-                </div>
-                <div>
-                  <strong>User:</strong> user@example.com / password123
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </div>

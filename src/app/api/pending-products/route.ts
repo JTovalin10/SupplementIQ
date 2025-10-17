@@ -1,12 +1,8 @@
+import { supabase } from '@/lib/supabase';
+import * as ipaddr from 'ipaddr.js';
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import isURL from 'validator/lib/isURL';
 import { z } from 'zod';
-
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
 
 // Validation schemas
 const PendingProductRequestSchema = z.object({
@@ -32,8 +28,41 @@ const ProductApprovalRequestSchema = z.object({
   id: z.number(),
   status: z.enum(['approved', 'rejected']),
   reviewed_by: z.string().uuid(),
-  rejection_reason: z.string().optional(),
 });
+
+// URL sanitization helper (defense-in-depth against JS/data/blob/ssrf-ish inputs)
+function sanitizeHttpUrl(input: string | undefined): string | null {
+  if (!input) return null;
+  const candidate = input.trim();
+  if (candidate.length === 0 || candidate.length > 2048) return null;
+  // Quick structural check
+  if (!isURL(candidate, { protocols: ['http','https'], require_protocol: true, allow_fragment: false })) {
+    return null;
+  }
+  try {
+    const url = new URL(candidate);
+    if (url.username || url.password) return null;
+    const hostname = url.hostname;
+    // If hostname is an IP, block private/loopback/link-local
+    if (ipaddr.isValid(hostname)) {
+      const addr = ipaddr.parse(hostname);
+      if (addr.range() !== 'unicast') return null; // blocks private, loopback, link-local, etc.
+      // ipaddr.js marks RFC1918 as 'private'; also disallow 'loopback', 'linkLocal', 'uniqueLocal'
+      const rng = addr.range();
+      if (rng === 'private' || rng === 'loopback' || rng === 'linkLocal' || rng === 'uniqueLocal') return null;
+    } else {
+      // Block common local hostnames
+      const lower = hostname.toLowerCase();
+      if (lower === 'localhost' || lower.endsWith('.local') || lower.endsWith('.internal')) return null;
+    }
+    url.hash = '';
+    // Normalize stray '?'
+    if (url.search === '?') url.search = '';
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
 
 // Helper function to generate slug
 function generateSlug(name: string): string {
@@ -55,6 +84,63 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const validatedData = PendingProductRequestSchema.parse(body);
+
+    // Check if user has permission to submit image URLs
+    const userId = request.headers.get('x-user-id');
+    const userRole = request.headers.get('x-user-role');
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Get user's reputation points and role from database
+    const { data: userData, error: userError } = await supabase
+      .from('users')
+      .select('reputation_points, role')
+      .eq('id', userId)
+      .single();
+
+    if (userError || !userData) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Use database role as primary, fallback to header role
+    const effectiveRole = userData.role || userRole;
+    
+    // Check if user can submit image URLs (1000+ points OR admin/owner/moderator)
+    const canSubmitImageUrl = userData.reputation_points >= 1000 || 
+      ['admin', 'owner', 'moderator'].includes(effectiveRole);
+
+    // If image_url is provided but user doesn't have permission, reject
+    if (validatedData.image_url && !canSubmitImageUrl) {
+      return NextResponse.json(
+        { 
+          error: 'Image URL submission requires 1000+ reputation points or moderator/admin/owner role',
+          required_points: 1000,
+          current_points: userData.reputation_points,
+          current_role: effectiveRole
+        },
+        { status: 403 }
+      );
+    }
+
+    // Sanitize optional image_url
+    let safeImageUrl: string | null = null;
+    if (validatedData.image_url) {
+      safeImageUrl = sanitizeHttpUrl(validatedData.image_url);
+      if (!safeImageUrl) {
+        return NextResponse.json(
+          { error: 'Invalid image_url. Only http/https URLs to public hosts are allowed.' },
+          { status: 400 }
+        );
+      }
+    }
 
     // Get or create brand
     const { data: brandData, error: brandError } = await supabase
@@ -99,7 +185,7 @@ export async function POST(request: NextRequest) {
         name: validatedData.name,
         slug: generateSlug(validatedData.name),
         release_year: parseYear(validatedData.year),
-        image_url: validatedData.image_url,
+        image_url: safeImageUrl,
         description: validatedData.description,
         servings_per_container: validatedData.servings_per_container,
         price: validatedData.price,
