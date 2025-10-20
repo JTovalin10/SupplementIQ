@@ -1,3 +1,4 @@
+import { getRedisTCP } from '@/../../Database/Redis/client';
 import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
@@ -35,7 +36,36 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Simple query - no complex caching
+    // Check if this is the first page with 10 users - use Redis cache
+    const isFirstPageWithTenUsers = page === 1 && limit === 10;
+    
+    if (isFirstPageWithTenUsers) {
+      try {
+        const redis = getRedisTCP();
+        if (!redis.isOpen) await redis.connect();
+        
+        // Create cache key based on timeRange
+        const cacheKey = `rankings:first_page:${timeRange}`;
+        
+        // Try to get from Redis cache first
+        const cached = await redis.get(cacheKey);
+        if (cached) {
+          try {
+            const cachedData = JSON.parse(cached);
+            console.log(`🚀 Redis cache HIT for ${cacheKey}`);
+            return NextResponse.json(cachedData);
+          } catch (parseError) {
+            console.warn('Failed to parse cached data:', parseError);
+          }
+        }
+        
+        console.log(`❌ Redis cache MISS for ${cacheKey} - fetching from DB`);
+      } catch (redisError) {
+        console.warn('Redis error, falling back to database:', redisError);
+      }
+    }
+
+    // Fetch from database
     let query = supabase
       .from('users')
       .select(`
@@ -68,7 +98,7 @@ export async function GET(request: NextRequest) {
 
     const totalPages = Math.ceil((count || 0) / limit);
 
-    return NextResponse.json({ 
+    const response = { 
       rankings,
       totalCount: count || 0,
       totalPages,
@@ -76,7 +106,23 @@ export async function GET(request: NextRequest) {
       limit,
       timeRange,
       lastUpdated: new Date().toISOString()
-    });
+    };
+
+    // Cache the first page with 10 users in Redis for 24 hours
+    if (isFirstPageWithTenUsers) {
+      try {
+        const redis = getRedisTCP();
+        if (!redis.isOpen) await redis.connect();
+        
+        const cacheKey = `rankings:first_page:${timeRange}`;
+        await redis.setEx(cacheKey, 86400, JSON.stringify(response)); // 24 hours TTL
+        console.log(`💾 Cached first page rankings in Redis for ${timeRange}`);
+      } catch (redisError) {
+        console.warn('Failed to cache in Redis:', redisError);
+      }
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Rankings API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
