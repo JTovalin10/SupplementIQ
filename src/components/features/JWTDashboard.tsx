@@ -2,14 +2,13 @@
 
 import CacheLoadingScreen from '@/components/ui/CacheLoadingScreen';
 import { getAvailableTabs } from '@/lib/auth/role-routing';
-import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import {
   BarChart3,
   Lock,
   Settings,
   Shield
 } from 'lucide-react';
-import { useState } from 'react';
 import PendingSubmissions from './dashboard/PendingSubmissions';
 import RecentActivity from './dashboard/RecentActivity';
 import UserManagement from './dashboard/UserManagement';
@@ -19,16 +18,16 @@ interface DashboardProps {
 }
 
 export default function JWTDashboard({ userRole }: DashboardProps) {
-  const { user, isAuthenticated, isLoading } = useJWTAuth();
-  const [activeTab, setActiveTab] = useState('overview');
-  const [cacheLoading, setCacheLoading] = useState(false);
+  const { user, isAuthenticated, isLoading } = useNextAuth();
+  const { state, setActiveTab, setCacheLoading } = useDashboard();
+  const { activeTab, cacheLoading } = state;
   const effectiveRole = (userRole ?? user?.role ?? 'user') as 'user' | 'moderator' | 'admin' | 'owner';
   
   // Show loading state while authentication is being checked
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-black">Loading...</div>
+        <div className="text-gray-900">Loading...</div>
       </div>
     );
   }
@@ -86,7 +85,7 @@ export default function JWTDashboard({ userRole }: DashboardProps) {
                   {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)} Dashboard
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Welcome back, {user.username}
+                  Welcome back, {(user as any).username || user.name || user.email}
                 </p>
               </div>
             </div>

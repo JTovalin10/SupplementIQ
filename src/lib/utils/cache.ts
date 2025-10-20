@@ -164,6 +164,8 @@ export const cacheKeys = {
     `rankings:transparency:${category || 'all'}`,
   costEfficiencyRankings: (category?: string) =>
     `rankings:cost:${category || 'all'}`,
+  userRankings: (timeRange: string, limit: number) =>
+    `rankings:users:${timeRange}:${limit}`,
   productStats: () => 'stats:products',
   userStats: () => 'stats:users',
 };

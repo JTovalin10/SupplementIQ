@@ -1,10 +1,48 @@
+-- =================================================================
+-- SCHEMA RESET SCRIPT
+-- This section drops all tables (except for 'users'), types, and functions
+-- to ensure a clean slate before recreating the schema.
+-- =================================================================
+SET client_min_messages TO WARNING;
+
+-- Drop all tables that depend on users, brands, or products
+DROP TABLE IF EXISTS
+    public.user_badges,
+    public.product_reviews,
+    public.product_images,
+    public.preworkout_details,
+    public.non_stim_preworkout_details,
+    public.energy_drink_details,
+    public.protein_details,
+    public.amino_acid_details,
+    public.fat_burner_details,
+    public.temporary_products,
+    public.products,
+    public.brands
+CASCADE;
+
+-- Drop all custom data types
+DROP TYPE IF EXISTS user_role CASCADE;
+DROP TYPE IF EXISTS contribution_status CASCADE;
+DROP TYPE IF EXISTS product_category CASCADE;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS public.update_product_review_stats() CASCADE;
+
+-- =================================================================
+-- SCHEMA CREATION SCRIPT
+-- This section creates the entire database schema from scratch.
+-- =================================================================
+
 -- 2) Create ENUM types
 CREATE TYPE user_role AS ENUM ('newcomer', 'contributor', 'trusted_editor', 'moderator', 'admin', 'owner');
 CREATE TYPE contribution_status AS ENUM ('pending', 'approved', 'rejected', 'needs_review');
 CREATE TYPE product_category AS ENUM ('protein', 'pre-workout', 'non-stim-pre-workout', 'energy-drink', 'bcaa', 'eaa', 'fat-burner', 'appetite-suppressant', 'creatine');
 
 -- 3) Recreate tables
-CREATE TABLE public.users (
+-- Note: 'public.users' is intentionally not dropped by the reset script.
+-- The IF NOT EXISTS clause ensures this script won't fail if 'users' already exists.
+CREATE TABLE IF NOT EXISTS public.users (
     id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
     username TEXT UNIQUE NOT NULL,
     email TEXT NOT NULL,
@@ -54,72 +92,7 @@ CREATE TABLE public.products (
     ) STORED
 );
 
--- Product reviews and community comments
-CREATE TABLE public.product_reviews (
-    id SERIAL PRIMARY KEY,
-    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
-    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-    rating DECIMAL(3,1) NOT NULL CHECK (rating BETWEEN 1.0 AND 10.0),
-    title TEXT NOT NULL,
-    comment VARCHAR(1000) NOT NULL,
-    value_for_money INTEGER CHECK (value_for_money BETWEEN 1 AND 10),
-    effectiveness INTEGER CHECK (effectiveness BETWEEN 1 AND 10),
-    safety_concerns VARHCAR(1000),
-    is_verified_purchase BOOLEAN DEFAULT FALSE,
-    helpful_votes INTEGER DEFAULT 0,
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(product_id, user_id) -- One review per user per product
-);
-
--- Indexes for reviews
-CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON public.product_reviews (product_id);
-CREATE INDEX IF NOT EXISTS idx_product_reviews_user_id ON public.product_reviews (user_id);
-CREATE INDEX IF NOT EXISTS idx_product_reviews_rating ON public.product_reviews (rating);
-
--- Product images table
-CREATE TABLE public.product_images (
-    id SERIAL PRIMARY KEY,
-    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
-    image_url TEXT NOT NULL,
-    is_primary BOOLEAN DEFAULT FALSE,
-    alt_text TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- Function to update product review statistics
-CREATE OR REPLACE FUNCTION update_product_review_stats() RETURNS TRIGGER
-LANGUAGE plpgsql AS $$
-DECLARE
-    new_avg_rating DECIMAL(3,1);
-    new_total_reviews INTEGER;
-BEGIN
-    -- Calculate new average rating and total count
-    SELECT 
-        COALESCE(AVG(rating), 0.0),
-        COUNT(*)
-    INTO new_avg_rating, new_total_reviews
-    FROM public.product_reviews 
-    WHERE product_id = COALESCE(NEW.product_id, OLD.product_id);
-    
-    -- Update the product with new statistics
-    UPDATE public.products 
-    SET 
-        community_rating = new_avg_rating,
-        total_reviews = new_total_reviews,
-        updated_at = NOW()
-    WHERE id = COALESCE(NEW.product_id, OLD.product_id);
-    
-    RETURN COALESCE(NEW, OLD);
-END;
-$$;
-
--- Trigger for INSERT, UPDATE, DELETE on product_reviews
-CREATE TRIGGER product_reviews_stats_trigger
-    AFTER INSERT OR UPDATE OR DELETE ON public.product_reviews
-    FOR EACH ROW EXECUTE FUNCTION update_product_review_stats();
-
--- Temporary products table for contribution system (identical to products table with approval flag)
+-- Temporary products table for contribution system
 CREATE TABLE public.temporary_products (
     id SERIAL PRIMARY KEY,
     brand_id INTEGER REFERENCES public.brands(id),
@@ -132,7 +105,6 @@ CREATE TABLE public.temporary_products (
     serving_size_g DECIMAL(5,2),
     dosage_rating INTEGER DEFAULT 0 CHECK (dosage_rating BETWEEN 0 AND 100),
     danger_rating INTEGER DEFAULT 0 CHECK (danger_rating BETWEEN 0 AND 100),
-    -- Approval status: 1 = approved, 0 = pending, -1 = denied
     approval_status INTEGER DEFAULT 0 CHECK (approval_status IN (1, 0, -1)),
     submitted_by UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     reviewed_by UUID REFERENCES public.users(id) ON DELETE SET NULL,
@@ -144,6 +116,35 @@ CREATE TABLE public.temporary_products (
     ) STORED
 );
 
+-- Product reviews and community comments
+CREATE TABLE public.product_reviews (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    rating DECIMAL(3,1) NOT NULL CHECK (rating BETWEEN 1.0 AND 10.0),
+    title TEXT NOT NULL,
+    comment VARCHAR(1000) NOT NULL,
+    value_for_money INTEGER CHECK (value_for_money BETWEEN 1 AND 10),
+    effectiveness INTEGER CHECK (effectiveness BETWEEN 1 AND 10),
+    safety_concerns VARCHAR(1000), -- Corrected typo from VARHCAR to VARCHAR
+    is_verified_purchase BOOLEAN DEFAULT FALSE,
+    helpful_votes INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(product_id, user_id)
+);
+
+-- Product images table
+CREATE TABLE public.product_images (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    image_url TEXT NOT NULL,
+    is_primary BOOLEAN DEFAULT FALSE,
+    alt_text TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Detail Tables
 CREATE TABLE public.preworkout_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
@@ -273,7 +274,38 @@ CREATE TABLE public.fat_burner_details (
     CONSTRAINT chk_fat_burner_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
--- 4) Create sync function in auth schema (SECURITY DEFINER) to upsert into public.users
+
+-- 4) Functions and Triggers
+CREATE OR REPLACE FUNCTION public.update_product_review_stats() RETURNS TRIGGER
+LANGUAGE plpgsql AS $$
+DECLARE
+    new_avg_rating DECIMAL(3,1);
+    new_total_reviews INTEGER;
+BEGIN
+    SELECT
+        COALESCE(AVG(rating), 0.0),
+        COUNT(*)
+    INTO new_avg_rating, new_total_reviews
+    FROM public.product_reviews
+    WHERE product_id = COALESCE(NEW.product_id, OLD.product_id);
+
+    UPDATE public.products
+    SET
+        community_rating = new_avg_rating,
+        total_reviews = new_total_reviews,
+        updated_at = NOW()
+    WHERE id = COALESCE(NEW.product_id, OLD.product_id);
+
+    RETURN COALESCE(NEW, OLD);
+END;
+$$;
+
+CREATE TRIGGER product_reviews_stats_trigger
+    AFTER INSERT OR UPDATE OR DELETE ON public.product_reviews
+    FOR EACH ROW EXECUTE FUNCTION update_product_review_stats();
+
+
+-- This function and trigger are assumed to already exist and are left untouched by the reset script.
 CREATE OR REPLACE FUNCTION auth.sync_user_to_public() RETURNS TRIGGER
 LANGUAGE plpgsql SECURITY DEFINER AS $$
 BEGIN
@@ -298,38 +330,18 @@ BEGIN
 END;
 $$;
 
--- Revoke execute for safety (the trigger will run it)
-REVOKE EXECUTE ON FUNCTION auth.sync_user_to_public() FROM PUBLIC;
-
--- 5) Create triggers on auth.users
 DROP TRIGGER IF EXISTS users_sync_trigger ON auth.users;
 CREATE TRIGGER users_sync_trigger
-AFTER INSERT OR UPDATE OR DELETE ON auth.users
-FOR EACH ROW EXECUTE FUNCTION auth.sync_user_to_public();
+    AFTER INSERT OR UPDATE OR DELETE ON auth.users
+    FOR EACH ROW EXECUTE FUNCTION auth.sync_user_to_public();
 
--- 6) Backfill public.users from existing auth.users
-INSERT INTO public.users (id, username, email, created_at, updated_at)
-SELECT id,
-       COALESCE(raw_user_meta_data ->> 'username', split_part(email, '@', 1)) AS username,
-       email,
-       created_at,
-       updated_at
-FROM auth.users
-ON CONFLICT (id) DO UPDATE SET
-    username = EXCLUDED.username,
-    email = EXCLUDED.email,
-    updated_at = NOW();
-
--- Indexes for temporary products
+-- 6) Indexes
+CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON public.product_reviews (product_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_user_id ON public.product_reviews (user_id);
+CREATE INDEX IF NOT EXISTS idx_product_reviews_rating ON public.product_reviews (rating);
 CREATE INDEX IF NOT EXISTS idx_temporary_products_approval_status ON public.temporary_products (approval_status);
 CREATE INDEX IF NOT EXISTS idx_temporary_products_submitted_by ON public.temporary_products (submitted_by);
 CREATE INDEX IF NOT EXISTS idx_temporary_products_reviewed_by ON public.temporary_products (reviewed_by);
-CREATE INDEX IF NOT EXISTS idx_temporary_products_created_at ON public.temporary_products (created_at);
 CREATE INDEX IF NOT EXISTS idx_temporary_products_search_vector ON public.temporary_products USING GIN (search_vector);
-
--- Indexes for RLS/performance
 CREATE INDEX IF NOT EXISTS idx_products_search_vector ON public.products USING GIN (search_vector);
 CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON public.user_badges (user_id);
-
--- Validate: show count placeholders (will be returned to client)
-SELECT 'tables_created' AS action, count(*) AS cnt FROM pg_tables WHERE schemaname = 'public' AND tablename IN ('users','products','brands','temporary_products');

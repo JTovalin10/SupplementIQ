@@ -1,4 +1,4 @@
-import { Crown, Key, Lock, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Crown, Key, Lock } from 'lucide-react';
 
 interface OwnerToolsProps {
   onOverridePromote: (userId: string, role: string) => void;
@@ -8,7 +8,7 @@ export default function OwnerTools({ onOverridePromote }: OwnerToolsProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       <div className="px-6 py-4 border-b">
-        <h3 className="text-lg font-semibold text-black flex items-center space-x-2">
+        <h3 className="text-lg font-semibold text-gray-900 flex items-center space-x-2">
           <Crown className="w-5 h-5 text-yellow-500" />
           <span>Owner-Only Tools</span>
         </h3>
@@ -16,8 +16,8 @@ export default function OwnerTools({ onOverridePromote }: OwnerToolsProps) {
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="space-y-4">
-            <h4 className="text-md font-medium text-black">Override Promotions</h4>
-            <p className="text-sm text-black">Bypass contribution requirements for role promotions</p>
+            <h4 className="text-md font-medium text-gray-900">Override Promotions</h4>
+            <p className="text-sm text-gray-700">Bypass contribution requirements for role promotions</p>
             <div className="space-y-2">
               <button
                 onClick={() => onOverridePromote('user123', 'moderator')}
@@ -36,8 +36,8 @@ export default function OwnerTools({ onOverridePromote }: OwnerToolsProps) {
             </div>
           </div>
           <div className="space-y-4">
-            <h4 className="text-md font-medium text-black">Platform Control</h4>
-            <p className="text-sm text-black">Ultimate platform management capabilities</p>
+            <h4 className="text-md font-medium text-gray-900">Platform Control</h4>
+            <p className="text-sm text-gray-700">Ultimate platform management capabilities</p>
             <div className="space-y-2">
               <button
                 onClick={() => console.log('Transfer ownership')}

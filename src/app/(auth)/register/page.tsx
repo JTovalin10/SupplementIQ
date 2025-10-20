@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/contexts/AuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-  const { register, isLoading } = useAuth();
+  const { signup, isLoading } = useNextAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -59,14 +59,19 @@ export default function RegisterPage() {
     }
 
     try {
-      await register(formData.username, formData.email, formData.password);
-      // Show success message
-      setSuccess(true);
+      const result = await signup(formData.email, formData.password, formData.username);
       
-      // Redirect to user dashboard after a short delay
-      setTimeout(() => {
-        router.push('/user/dashboard');
-      }, 2000);
+      if (result.success) {
+        // Show success message
+        setSuccess(true);
+        
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      } else {
+        setError(result.error || 'Registration failed');
+      }
     } catch (error) {
       console.error('Registration error:', error);
       setError(error instanceof Error ? error.message : 'An unexpected error occurred');

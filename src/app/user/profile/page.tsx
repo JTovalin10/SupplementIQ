@@ -1,11 +1,11 @@
 'use client';
 
-import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import { Award, Calendar, Edit3, Mail, User } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated } = useJWTAuth();
+  const { user, isAuthenticated } = useNextAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     bio: user?.bio || '',

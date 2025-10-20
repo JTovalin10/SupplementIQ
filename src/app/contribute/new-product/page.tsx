@@ -1,12 +1,12 @@
 'use client';
 
-import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import { AlertCircle, ArrowLeft, CheckCircle, Plus } from 'lucide-react';
 import Link from 'next/link';
 import React, { useState } from 'react';
 
 export default function NewProductPage() {
-  const { user, isAuthenticated } = useJWTAuth();
+  const { user, isAuthenticated } = useNextAuth();
   const [userProfile, setUserProfile] = useState<{ reputation_points: number; role: string } | null>(null);
   const [canSubmitImageUrl, setCanSubmitImageUrl] = useState(false);
 

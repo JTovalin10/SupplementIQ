@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Mail, User, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useJWTAuth } from '../../lib/contexts/JWTAuthContext';
+import { useNextAuth } from '../../lib/contexts/NextAuthContext';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -13,13 +13,20 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   
-  const { signup, isAuthenticated } = useJWTAuth();
+  const { signup, isAuthenticated, user } = useNextAuth();
   const router = useRouter();
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    router.push('/owner');
+    // Redirect to appropriate dashboard based on role
+    const userRole = user?.role;
+    if (userRole === 'owner') router.push('/owner');
+    else if (userRole === 'admin') router.push('/admin');
+    else if (userRole === 'moderator') router.push('/moderator');
+    else if (userRole === 'user') router.push('/user');
+    else router.push('/');
     return null;
   }
 
@@ -51,7 +58,15 @@ export default function SignupPage() {
       const result = await signup(email, password, username);
       
       if (result.success) {
-        router.push('/owner');
+        if (result.error) {
+          // This is a confirmation message, not an error
+          setShowVerificationMessage(true);
+          setError('');
+        } else {
+          // No confirmation needed, redirect to login page for proper authentication
+          // This ensures role-based routing happens after proper authentication
+          router.push('/login');
+        }
       } else {
         setError(result.error || 'Signup failed');
       }
@@ -85,6 +100,37 @@ export default function SignupPage() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           <form className="space-y-6" onSubmit={handleSubmit}>
+            {showVerificationMessage && (
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-green-800">
+                      Account Created Successfully!
+                    </h3>
+                    <div className="mt-2 text-sm text-green-700">
+                      <p>Please check your email and click the confirmation link to verify your account before signing in.</p>
+                    </div>
+                    <div className="mt-4">
+                      <div className="-mx-2 -my-1.5 flex">
+                        <button
+                          type="button"
+                          onClick={() => setShowVerificationMessage(false)}
+                          className="bg-green-50 px-2 py-1.5 rounded-md text-sm font-medium text-green-800 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-green-50 focus:ring-green-600"
+                        >
+                          Dismiss
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md">
                 {error}
@@ -104,7 +150,7 @@ export default function SignupPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Choose a username"
                 />
                 <User className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -124,7 +170,7 @@ export default function SignupPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your email"
                 />
                 <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -144,7 +190,7 @@ export default function SignupPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Create a password"
                 />
                 <Eye className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -178,7 +224,7 @@ export default function SignupPage() {
                   required
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Confirm your password"
                 />
                 <Eye className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />

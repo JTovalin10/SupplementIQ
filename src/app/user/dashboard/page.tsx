@@ -1,11 +1,11 @@
 'use client';
 
-import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import { Award, Plus, TrendingUp, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function UserDashboardPage() {
-  const { user, isAuthenticated } = useJWTAuth();
+  const { user, isAuthenticated } = useNextAuth();
 
   if (!isAuthenticated || !user) {
     return (
@@ -121,11 +121,11 @@ export default function UserDashboardPage() {
                   </span>
                 </div>
                 <div className="mt-4">
-                  <h3 className="text-lg font-medium">
+                  <h3 className="text-lg font-medium text-gray-900">
                     <span className="absolute inset-0" aria-hidden="true" />
                     Contribute Data
                   </h3>
-                  <p className="mt-2 text-sm text-black">
+                  <p className="mt-2 text-sm text-gray-600">
                     Add new products or update existing supplement information.
                   </p>
                 </div>
@@ -141,11 +141,11 @@ export default function UserDashboardPage() {
                   </span>
                 </div>
                 <div className="mt-4">
-                  <h3 className="text-lg font-medium">
+                  <h3 className="text-lg font-medium text-gray-900">
                     <span className="absolute inset-0" aria-hidden="true" />
                     Add New Product
                   </h3>
-                  <p className="mt-2 text-sm text-black">
+                  <p className="mt-2 text-sm text-gray-600">
                     Submit a completely new supplement product for review.
                   </p>
                 </div>
@@ -161,11 +161,11 @@ export default function UserDashboardPage() {
                   </span>
                 </div>
                 <div className="mt-4">
-                  <h3 className="text-lg font-medium">
+                  <h3 className="text-lg font-medium text-gray-900">
                     <span className="absolute inset-0" aria-hidden="true" />
                     View Profile
                   </h3>
-                  <p className="mt-2 text-sm text-black">
+                  <p className="mt-2 text-sm text-gray-600">
                     Manage your profile and contribution history.
                   </p>
                 </div>
@@ -181,8 +181,8 @@ export default function UserDashboardPage() {
               Recent Activity
             </h3>
             <div className="text-center py-8">
-              <p className="text-black">No recent activity yet.</p>
-              <p className="text-sm text-black mt-1">
+              <p className="text-gray-600">No recent activity yet.</p>
+              <p className="text-sm text-gray-500 mt-1">
                 Start contributing to see your activity here!
               </p>
             </div>

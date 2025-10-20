@@ -1,4 +1,4 @@
-import { Crown, Shield, Clock, Activity } from 'lucide-react';
+import { Activity, Clock, Crown, Shield } from 'lucide-react';
 
 interface DashboardHeaderProps {
   isOwner: boolean;
@@ -19,11 +19,11 @@ export default function DashboardHeader({ isOwner, cacheStatus, loading, onRefre
               ) : (
                 <Shield className="w-6 h-6 text-blue-600" />
               )}
-              <h1 className="text-2xl font-bold text-black">
+              <h1 className="text-2xl font-bold text-gray-900">
                 {isOwner ? 'Owner' : 'Admin'} Dashboard
               </h1>
             </div>
-            <p className="text-black mt-1">
+            <p className="text-gray-700 mt-1">
               {isOwner ? 'Complete platform control and management' : 'Manage products, users, and platform settings'}
             </p>
           </div>
@@ -54,7 +54,7 @@ export default function DashboardHeader({ isOwner, cacheStatus, loading, onRefre
               ) : (
                 <Shield className="w-5 h-5 text-blue-600" />
               )}
-              <span className="text-black font-medium">
+              <span className="text-gray-900 font-medium">
                 {isOwner ? 'Owner' : 'Administrator'}
               </span>
             </div>

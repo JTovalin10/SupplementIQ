@@ -1,12 +1,12 @@
 'use client';
 
-import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import { LogOut, Menu, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
 export default function Header() {
-  const { user, isAuthenticated, logout } = useJWTAuth();
+  const { user, isAuthenticated, logout } = useNextAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {

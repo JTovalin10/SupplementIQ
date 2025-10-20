@@ -4,7 +4,7 @@ import React from 'react';
 
 import Footer from '../components/layout/footer';
 import Header from '../components/layout/header';
-import { JWTAuthProvider } from '../lib/contexts/JWTAuthContext';
+import { AuthProvider } from '../lib/contexts/AuthProvider';
 
 import './globals.css';
 
@@ -43,11 +43,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <JWTAuthProvider>
+        <AuthProvider>
           <Header />
           <main>{children}</main>
           <Footer />
-        </JWTAuthProvider>
+        </AuthProvider>
       </body>
     </html>
   );

@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation'; // Correct import without NextRouter type
 import { useEffect, useState } from 'react';
-import { useJWTAuth } from '../../lib/contexts/JWTAuthContext';
+import { useNextAuth } from '../../lib/contexts/NextAuthContext';
 
 function redirectToRoleDashboard(userRole: string | undefined, router: any) {
   switch(userRole) {
@@ -31,13 +31,14 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, isAuthenticated, user } = useJWTAuth();
+  const { login, isAuthenticated, user } = useNextAuth();
   const router = useRouter();
 
   // Ensure useRouter and redirect is only used once after mount
   useEffect(() => {
-    if (isAuthenticated) {
-      setTimeout(() => redirectToRoleDashboard(user?.role, router), 0); // Ensure it runs after component mount
+    if (isAuthenticated && user?.role) {
+      console.log('Redirecting to dashboard for role:', user.role);
+      redirectToRoleDashboard(user.role, router);
     }
   }, [isAuthenticated, user?.role, router]);
 
@@ -49,9 +50,7 @@ export default function LoginPage() {
     try {
       const result = await login(email, password);
       
-      if (result.success) {
-        redirectToRoleDashboard(user?.role, router);
-      } else {
+      if (!result.success) {
         setError(result.error || 'Login failed');
       }
     } catch (err) {
@@ -103,7 +102,7 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your email"
                 />
                 <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -123,7 +122,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Enter your password"
                 />
                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />

@@ -1,6 +1,6 @@
 'use client';
 
-import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import {
   Activity,
   AlertTriangle,
@@ -61,7 +61,7 @@ interface SystemLog {
 }
 
 export default function OwnerDashboard() {
-  const { user } = useJWTAuth();
+  const { user } = useNextAuth();
   const [activeTab, setActiveTab] = useState('overview');
   // Remove dummy data
   const [stats, setStats] = useState<OwnerStats>({

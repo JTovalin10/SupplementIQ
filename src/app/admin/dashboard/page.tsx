@@ -1,13 +1,13 @@
 'use client';
 
 import JWTDashboard from '@/components/features/JWTDashboard';
-import { useJWTAuth } from '@/lib/contexts/JWTAuthContext';
+import { useNextAuth } from '@/lib/contexts/NextAuthContext';
 import { hasRoleAccess } from '@/lib/utils/role-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function AdminDashboardPage() {
-  const { user, isAuthenticated, isLoading } = useJWTAuth();
+  const { user, isAuthenticated, isLoading } = useNextAuth();
   const router = useRouter();
 
   useEffect(() => {
