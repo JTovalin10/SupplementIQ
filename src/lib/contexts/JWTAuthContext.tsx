@@ -13,6 +13,55 @@ let inflightAuthInit: Promise<void> | null = null;
 const AUTH_INIT_CACHE_KEY = 'auth:init:cache:v1';
 const AUTH_INIT_TTL_MS = 60_000; // 60s TTL to reduce chattiness but keep fresh
 
+// Role caching to reduce API calls
+const roleCache = new Map<string, { role: UserRole; timestamp: number }>();
+const ROLE_CACHE_TTL_MS = 5 * 60_000; // 5 minutes
+
+// Cached role fetching function
+const getCachedRole = async (userId: string): Promise<UserRole | null> => {
+  const cached = roleCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < ROLE_CACHE_TTL_MS) {
+    return cached.role;
+  }
+
+  try {
+    // Use Supabase client directly instead of API call
+    const { data, error } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', userId)
+      .single();
+
+    if (error || !data) {
+      console.warn('Failed to fetch user role:', error);
+      return null;
+    }
+
+    // Normalize role to UserRole type
+    const normalizedRole = normalizeRole(data.role);
+    if (normalizedRole) {
+      roleCache.set(userId, { role: normalizedRole, timestamp: Date.now() });
+    }
+    return normalizedRole;
+  } catch (err) {
+    console.error('Error fetching user role:', err);
+    return null;
+  }
+};
+
+// Normalize database role to UserRole type
+const normalizeRole = (dbRole: string): UserRole | null => {
+  const roleMap: Record<string, UserRole> = {
+    'newcomer': 'user',
+    'contributor': 'user', 
+    'trusted_editor': 'moderator',
+    'moderator': 'moderator',
+    'admin': 'admin',
+    'owner': 'owner'
+  };
+  return roleMap[dbRole] || null;
+};
+
 // Extend Supabase User with our custom fields
 interface AppUser extends User {
   username?: string;
@@ -172,27 +221,20 @@ export function JWTAuthProvider({ children }: JWTAuthProviderProps) {
 
   const fetchUserRole = async (userId: string): Promise<string> => {
     try {
-      // Check the security cache first
-      const cachedRole = getUserRole(userId);
+      // Use cached role fetching
+      const cachedRole = await getCachedRole(userId);
       if (cachedRole) {
-        return cachedRole;
+        // Map UserRole back to database role for compatibility
+        const roleMap: Record<UserRole, string> = {
+          'user': 'newcomer',
+          'moderator': 'moderator', 
+          'admin': 'admin',
+          'owner': 'owner'
+        };
+        return roleMap[cachedRole] || 'newcomer';
       }
       
-      // Fetch from database if not in cache
-      const response = await fetch(`/api/users/${userId}/role`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        const raw = data.role as string | null;
-        const allowed = ['newcomer','contributor','trusted_editor','moderator','admin','owner'];
-        const mapped = raw === 'user' ? 'newcomer' : raw; // map legacy 'user' to 'newcomer'
-        const normalized = mapped && allowed.includes(mapped) ? mapped : 'newcomer';
-        addUser(userId, normalized as UserRole); // Cache the result
-        return normalized;
-      }
-
-      // Fallback to default role if database fetch fails
-      return 'newcomer';
+      return 'newcomer'; // fallback
     } catch (error) {
       console.error('Failed to fetch user role:', error);
       return 'newcomer'; // Default role on error
