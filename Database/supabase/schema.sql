@@ -3,6 +3,18 @@
 -- This section drops all tables (except for 'users'), types, and functions
 -- to ensure a clean slate before recreating the schema.
 -- =================================================================
+
+-- LAB VERIFICATION FIELD MEANINGS:
+-- Individual lab_verified_* SMALLINT fields for each ingredient:
+-- NULL = No lab test performed for this specific ingredient
+-- 1 = Lab test shows content matches or exceeds label claims
+-- -1 = Lab test shows content significantly less than claimed
+
+-- INGREDIENT VALUE FIELD MEANINGS:
+-- For all mg/g fields with CHECK (field >= 0 OR field = -1):
+-- >=0 = Contains the specified amount (in mg/g)
+-- 0 = Not in the product (explicitly 0)
+-- -1 = Not specified or it's a blend (amount unknown)
 SET client_min_messages TO WARNING;
 
 -- Drop all tables that depend on users, brands, or products
@@ -144,7 +156,30 @@ CREATE TABLE public.product_images (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Lab verification results table for individual ingredient testing
+-- LAB VERIFICATION FIELD MEANINGS:
+-- lab_result SMALLINT field:
+-- 1 = Lab test shows content matches or exceeds label claims
+-- -1 = Lab test shows content significantly less than claimed
+CREATE TABLE public.lab_verification_results (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER REFERENCES public.products(id) ON DELETE CASCADE,
+    temp_product_id INTEGER REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    ingredient_name TEXT NOT NULL, -- e.g., 'l_citrulline_mg', 'caffeine_anhydrous_mg'
+    lab_result SMALLINT NOT NULL CHECK (lab_result IN (1, -1)), -- 1=verified, -1=failed
+    lab_report_url TEXT, -- Optional link to lab report
+    tested_at TIMESTAMPTZ DEFAULT NOW(),
+    tested_by TEXT, -- Lab name or testing organization
+    CONSTRAINT chk_lab_verification_link CHECK (num_nonnulls(product_id, temp_product_id) = 1),
+    CONSTRAINT chk_lab_verification_unique UNIQUE (COALESCE(product_id, temp_product_id), ingredient_name)
+);
+
 -- Detail Tables
+-- INGREDIENT VALUE FIELD MEANINGS:
+-- For all mg/g fields with CHECK (field >= 0 OR field = -1):
+-- >=0 = Contains the specified amount (in mg/g)
+-- 0 = Not in the product (explicitly 0)
+-- -1 = Not specified or it's a blend (amount unknown)
 CREATE TABLE public.preworkout_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
@@ -152,19 +187,32 @@ CREATE TABLE public.preworkout_details (
     serving_scoops INTEGER,
     serving_g NUMERIC(5,1),
     flavors TEXT[] DEFAULT '{}',
-    sugar_g INTEGER NOT NULL DEFAULT 0 CHECK (sugar_g >= 0 OR sugar_g = -1),
+    sugar_g INTEGER NOT NULL DEFAULT 0 CHECK (sugar_g >= 0 OR sugar_g = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
     key_features TEXT[] DEFAULT array['pump','endurance','focus','power'],
-    l_citrulline_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_citrulline_mg >= 0 OR l_citrulline_mg = -1),
-    creatine_monohydrate_mg INTEGER NOT NULL DEFAULT 0 CHECK (creatine_monohydrate_mg >= 0 OR creatine_monohydrate_mg = -1),
-    glycerpump_mg INTEGER NOT NULL DEFAULT 0 CHECK (glycerpump_mg >= 0 OR glycerpump_mg = -1),
-    betaine_anhydrous_mg INTEGER NOT NULL DEFAULT 0 CHECK (betaine_anhydrous_mg >= 0 OR betaine_anhydrous_mg = -1),
-    agmatine_sulfate_mg INTEGER NOT NULL DEFAULT 0 CHECK (agmatine_sulfate_mg >= 0 OR agmatine_sulfate_mg = -1),
-    l_tyrosine_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_tyrosine_mg >= 0 OR l_tyrosine_mg = -1),
-    caffeine_anhydrous_mg INTEGER NOT NULL DEFAULT 0 CHECK (caffeine_anhydrous_mg >= 0 OR caffeine_anhydrous_mg = -1),
-    n_phenethyl_dimethylamine_citrate_mg INTEGER NOT NULL DEFAULT 0 CHECK (n_phenethyl_dimethylamine_citrate_mg >= 0 OR n_phenethyl_dimethylamine_citrate_mg = -1),
-    kanna_extract_mg INTEGER NOT NULL DEFAULT 0 CHECK (kanna_extract_mg >= 0 OR kanna_extract_mg = -1),
-    huperzine_a_mcg INTEGER NOT NULL DEFAULT 0 CHECK (huperzine_a_mcg >= 0 OR huperzine_a_mcg = -1),
-    bioperine_mg INTEGER NOT NULL DEFAULT 0 CHECK (bioperine_mg >= 0 OR bioperine_mg = -1),
+    l_citrulline_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_citrulline_mg >= 0 OR l_citrulline_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    creatine_monohydrate_mg INTEGER NOT NULL DEFAULT 0 CHECK (creatine_monohydrate_mg >= 0 OR creatine_monohydrate_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    glycerpump_mg INTEGER NOT NULL DEFAULT 0 CHECK (glycerpump_mg >= 0 OR glycerpump_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    betaine_anhydrous_mg INTEGER NOT NULL DEFAULT 0 CHECK (betaine_anhydrous_mg >= 0 OR betaine_anhydrous_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    agmatine_sulfate_mg INTEGER NOT NULL DEFAULT 0 CHECK (agmatine_sulfate_mg >= 0 OR agmatine_sulfate_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    l_tyrosine_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_tyrosine_mg >= 0 OR l_tyrosine_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    caffeine_anhydrous_mg INTEGER NOT NULL DEFAULT 0 CHECK (caffeine_anhydrous_mg >= 0 OR caffeine_anhydrous_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    n_phenethyl_dimethylamine_citrate_mg INTEGER NOT NULL DEFAULT 0 CHECK (n_phenethyl_dimethylamine_citrate_mg >= 0 OR n_phenethyl_dimethylamine_citrate_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    kanna_extract_mg INTEGER NOT NULL DEFAULT 0 CHECK (kanna_extract_mg >= 0 OR kanna_extract_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    huperzine_a_mcg INTEGER NOT NULL DEFAULT 0 CHECK (huperzine_a_mcg >= 0 OR huperzine_a_mcg = -1), -- >=0=contains mcg, 0=not in product, -1=blend/unknown
+    bioperine_mg INTEGER NOT NULL DEFAULT 0 CHECK (bioperine_mg >= 0 OR bioperine_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    -- Individual lab verification fields for each ingredient
+    lab_verified_sugar_g SMALLINT CHECK (lab_verified_sugar_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_citrulline_mg SMALLINT CHECK (lab_verified_l_citrulline_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_creatine_monohydrate_mg SMALLINT CHECK (lab_verified_creatine_monohydrate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_glycerpump_mg SMALLINT CHECK (lab_verified_glycerpump_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_betaine_anhydrous_mg SMALLINT CHECK (lab_verified_betaine_anhydrous_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_agmatine_sulfate_mg SMALLINT CHECK (lab_verified_agmatine_sulfate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_tyrosine_mg SMALLINT CHECK (lab_verified_l_tyrosine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_caffeine_anhydrous_mg SMALLINT CHECK (lab_verified_caffeine_anhydrous_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_n_phenethyl_dimethylamine_citrate_mg SMALLINT CHECK (lab_verified_n_phenethyl_dimethylamine_citrate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_kanna_extract_mg SMALLINT CHECK (lab_verified_kanna_extract_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_huperzine_a_mcg SMALLINT CHECK (lab_verified_huperzine_a_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_bioperine_mg SMALLINT CHECK (lab_verified_bioperine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     CONSTRAINT chk_preworkout_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
@@ -176,23 +224,41 @@ CREATE TABLE public.non_stim_preworkout_details (
     serving_g NUMERIC(5,1) DEFAULT 40.2,
     flavors TEXT[] DEFAULT '{}',
     key_features TEXT[] DEFAULT array['pump','endurance','focus','power', 'non-stim'],
-    calories INTEGER NOT NULL DEFAULT 20 CHECK (calories >= 0 OR calories = -1),
-    total_carbohydrate_g INTEGER NOT NULL DEFAULT 4 CHECK (total_carbohydrate_g >= 0 OR total_carbohydrate_g = -1),
-    niacin_mg INTEGER NOT NULL DEFAULT 32 CHECK (niacin_mg >= 0 OR niacin_mg = -1),
-    vitamin_b6_mg INTEGER NOT NULL DEFAULT 20 CHECK (vitamin_b6_mg >= 0 OR vitamin_b6_mg = -1),
-    vitamin_b12_mcg INTEGER NOT NULL DEFAULT 250 CHECK (vitamin_b12_mcg >= 0 OR vitamin_b12_mcg = -1),
-    magnesium_mg INTEGER NOT NULL DEFAULT 50 CHECK (magnesium_mg >= 0 OR magnesium_mg = -1),
-    sodium_mg INTEGER NOT NULL DEFAULT 420 CHECK (sodium_mg >= 0 OR sodium_mg = -1),
-    potassium_mg INTEGER NOT NULL DEFAULT 420 CHECK (potassium_mg >= 0 OR potassium_mg = -1),
-    l_citrulline_mg INTEGER NOT NULL DEFAULT 10000 CHECK (l_citrulline_mg >= 0 OR l_citrulline_mg = -1),
-    creatine_monohydrate_mg INTEGER NOT NULL DEFAULT 5000 CHECK (creatine_monohydrate_mg >= 0 OR creatine_monohydrate_mg = -1),
-    betaine_anhydrous_mg INTEGER NOT NULL DEFAULT 4000 CHECK (betaine_anhydrous_mg >= 0 OR betaine_anhydrous_mg = -1),
-    glycerol_powder_mg INTEGER NOT NULL DEFAULT 4000 CHECK (glycerol_powder_mg >= 0 OR glycerol_powder_mg = -1),
-    malic_acid_mg INTEGER NOT NULL DEFAULT 3000 CHECK (malic_acid_mg >= 0 OR malic_acid_mg = -1),
-    taurine_mg INTEGER NOT NULL DEFAULT 3000 CHECK (taurine_mg >= 0 OR taurine_mg = -1),
-    sodium_nitrate_mg INTEGER NOT NULL DEFAULT 1500 CHECK (sodium_nitrate_mg >= 0 OR sodium_nitrate_mg = -1),
-    agmatine_sulfate_mg INTEGER NOT NULL DEFAULT 1000 CHECK (agmatine_sulfate_mg >= 0 OR agmatine_sulfate_mg = -1),
-    vasodrive_ap_mg INTEGER NOT NULL DEFAULT 508 CHECK (vasodrive_ap_mg >= 0 OR vasodrive_ap_mg = -1),
+    calories INTEGER NOT NULL DEFAULT 20 CHECK (calories >= 0 OR calories = -1), -- >=0=contains cal, 0=not in product, -1=blend/unknown
+    total_carbohydrate_g INTEGER NOT NULL DEFAULT 4 CHECK (total_carbohydrate_g >= 0 OR total_carbohydrate_g = -1), -- >=0=contains g, 0=not in product, -1=blend/unknown
+    niacin_mg INTEGER NOT NULL DEFAULT 32 CHECK (niacin_mg >= 0 OR niacin_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    vitamin_b6_mg INTEGER NOT NULL DEFAULT 20 CHECK (vitamin_b6_mg >= 0 OR vitamin_b6_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    vitamin_b12_mcg INTEGER NOT NULL DEFAULT 250 CHECK (vitamin_b12_mcg >= 0 OR vitamin_b12_mcg = -1), -- >=0=contains mcg, 0=not in product, -1=blend/unknown
+    magnesium_mg INTEGER NOT NULL DEFAULT 50 CHECK (magnesium_mg >= 0 OR magnesium_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    sodium_mg INTEGER NOT NULL DEFAULT 420 CHECK (sodium_mg >= 0 OR sodium_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    potassium_mg INTEGER NOT NULL DEFAULT 420 CHECK (potassium_mg >= 0 OR potassium_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    l_citrulline_mg INTEGER NOT NULL DEFAULT 10000 CHECK (l_citrulline_mg >= 0 OR l_citrulline_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    creatine_monohydrate_mg INTEGER NOT NULL DEFAULT 5000 CHECK (creatine_monohydrate_mg >= 0 OR creatine_monohydrate_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    betaine_anhydrous_mg INTEGER NOT NULL DEFAULT 4000 CHECK (betaine_anhydrous_mg >= 0 OR betaine_anhydrous_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    glycerol_powder_mg INTEGER NOT NULL DEFAULT 4000 CHECK (glycerol_powder_mg >= 0 OR glycerol_powder_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    malic_acid_mg INTEGER NOT NULL DEFAULT 3000 CHECK (malic_acid_mg >= 0 OR malic_acid_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    taurine_mg INTEGER NOT NULL DEFAULT 3000 CHECK (taurine_mg >= 0 OR taurine_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    sodium_nitrate_mg INTEGER NOT NULL DEFAULT 1500 CHECK (sodium_nitrate_mg >= 0 OR sodium_nitrate_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    agmatine_sulfate_mg INTEGER NOT NULL DEFAULT 1000 CHECK (agmatine_sulfate_mg >= 0 OR agmatine_sulfate_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    vasodrive_ap_mg INTEGER NOT NULL DEFAULT 508 CHECK (vasodrive_ap_mg >= 0 OR vasodrive_ap_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    -- Individual lab verification fields for each ingredient
+    lab_verified_calories SMALLINT CHECK (lab_verified_calories IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_total_carbohydrate_g SMALLINT CHECK (lab_verified_total_carbohydrate_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_niacin_mg SMALLINT CHECK (lab_verified_niacin_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_vitamin_b6_mg SMALLINT CHECK (lab_verified_vitamin_b6_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_vitamin_b12_mcg SMALLINT CHECK (lab_verified_vitamin_b12_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_magnesium_mg SMALLINT CHECK (lab_verified_magnesium_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_sodium_mg SMALLINT CHECK (lab_verified_sodium_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_potassium_mg SMALLINT CHECK (lab_verified_potassium_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_citrulline_mg SMALLINT CHECK (lab_verified_l_citrulline_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_creatine_monohydrate_mg SMALLINT CHECK (lab_verified_creatine_monohydrate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_betaine_anhydrous_mg SMALLINT CHECK (lab_verified_betaine_anhydrous_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_glycerol_powder_mg SMALLINT CHECK (lab_verified_glycerol_powder_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_malic_acid_mg SMALLINT CHECK (lab_verified_malic_acid_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_taurine_mg SMALLINT CHECK (lab_verified_taurine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_sodium_nitrate_mg SMALLINT CHECK (lab_verified_sodium_nitrate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_agmatine_sulfate_mg SMALLINT CHECK (lab_verified_agmatine_sulfate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_vasodrive_ap_mg SMALLINT CHECK (lab_verified_vasodrive_ap_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     CONSTRAINT chk_non_stim_preworkout_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
@@ -202,20 +268,34 @@ CREATE TABLE public.energy_drink_details (
     temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
     serving_size_fl_oz INTEGER,
     flavors TEXT[] DEFAULT '{}',
-    sugar_g INTEGER NOT NULL DEFAULT 0 CHECK (sugar_g >= 0 OR sugar_g = -1),
+    sugar_g INTEGER NOT NULL DEFAULT 0 CHECK (sugar_g >= 0 OR sugar_g = -1), -- >=0=contains g, 0=not in product, -1=blend/unknown
     key_features TEXT[] DEFAULT array['focus','nootropics','mental clarity','sugar-free'],
-    caffeine_mg INTEGER NOT NULL DEFAULT 0 CHECK (caffeine_mg >= 0 OR caffeine_mg = -1),
-    n_acetyl_l_tyrosine_mg INTEGER NOT NULL DEFAULT 0 CHECK (n_acetyl_l_tyrosine_mg >= 0 OR n_acetyl_l_tyrosine_mg = -1),
-    alpha_gpc_mg INTEGER NOT NULL DEFAULT 0 CHECK (alpha_gpc_mg >= 0 OR alpha_gpc_mg = -1),
-    l_theanine_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_theanine_mg >= 0 OR l_theanine_mg = -1),
-    huperzine_a_mcg INTEGER NOT NULL DEFAULT 0 CHECK (huperzine_a_mcg >= 0 OR huperzine_a_mcg = -1),
-    uridine_monophosphate_mg INTEGER NOT NULL DEFAULT 0 CHECK (uridine_monophosphate_mg >= 0 OR uridine_monophosphate_mg = -1),
-    saffron_extract_mg INTEGER NOT NULL DEFAULT 0 CHECK (saffron_extract_mg >= 0 OR saffron_extract_mg = -1),
-    vitamin_c_mg INTEGER NOT NULL DEFAULT 0 CHECK (vitamin_c_mg >= 0 OR vitamin_c_mg = -1),
-    niacin_b3_mg INTEGER NOT NULL DEFAULT 0 CHECK (niacin_b3_mg >= 0 OR niacin_b3_mg = -1),
-    vitamin_b6_mg INTEGER NOT NULL DEFAULT 0 CHECK (vitamin_b6_mg >= 0 OR vitamin_b6_mg = -1),
-    vitamin_b12_mcg INTEGER NOT NULL DEFAULT 0 CHECK (vitamin_b12_mcg >= 0 OR vitamin_b12_mcg = -1),
-    pantothenic_acid_b5_mg INTEGER NOT NULL DEFAULT 0 CHECK (pantothenic_acid_b5_mg >= 0 OR pantothenic_acid_b5_mg = -1),
+    caffeine_mg INTEGER NOT NULL DEFAULT 0 CHECK (caffeine_mg >= 0 OR caffeine_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    n_acetyl_l_tyrosine_mg INTEGER NOT NULL DEFAULT 0 CHECK (n_acetyl_l_tyrosine_mg >= 0 OR n_acetyl_l_tyrosine_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    alpha_gpc_mg INTEGER NOT NULL DEFAULT 0 CHECK (alpha_gpc_mg >= 0 OR alpha_gpc_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    l_theanine_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_theanine_mg >= 0 OR l_theanine_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    huperzine_a_mcg INTEGER NOT NULL DEFAULT 0 CHECK (huperzine_a_mcg >= 0 OR huperzine_a_mcg = -1), -- >=0=contains mcg, 0=not in product, -1=blend/unknown
+    uridine_monophosphate_mg INTEGER NOT NULL DEFAULT 0 CHECK (uridine_monophosphate_mg >= 0 OR uridine_monophosphate_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    saffron_extract_mg INTEGER NOT NULL DEFAULT 0 CHECK (saffron_extract_mg >= 0 OR saffron_extract_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    vitamin_c_mg INTEGER NOT NULL DEFAULT 0 CHECK (vitamin_c_mg >= 0 OR vitamin_c_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    niacin_b3_mg INTEGER NOT NULL DEFAULT 0 CHECK (niacin_b3_mg >= 0 OR niacin_b3_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    vitamin_b6_mg INTEGER NOT NULL DEFAULT 0 CHECK (vitamin_b6_mg >= 0 OR vitamin_b6_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    vitamin_b12_mcg INTEGER NOT NULL DEFAULT 0 CHECK (vitamin_b12_mcg >= 0 OR vitamin_b12_mcg = -1), -- >=0=contains mcg, 0=not in product, -1=blend/unknown
+    pantothenic_acid_b5_mg INTEGER NOT NULL DEFAULT 0 CHECK (pantothenic_acid_b5_mg >= 0 OR pantothenic_acid_b5_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    -- Individual lab verification fields for each ingredient
+    lab_verified_sugar_g SMALLINT CHECK (lab_verified_sugar_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_caffeine_mg SMALLINT CHECK (lab_verified_caffeine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_n_acetyl_l_tyrosine_mg SMALLINT CHECK (lab_verified_n_acetyl_l_tyrosine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_alpha_gpc_mg SMALLINT CHECK (lab_verified_alpha_gpc_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_theanine_mg SMALLINT CHECK (lab_verified_l_theanine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_huperzine_a_mcg SMALLINT CHECK (lab_verified_huperzine_a_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_uridine_monophosphate_mg SMALLINT CHECK (lab_verified_uridine_monophosphate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_saffron_extract_mg SMALLINT CHECK (lab_verified_saffron_extract_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_vitamin_c_mg SMALLINT CHECK (lab_verified_vitamin_c_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_niacin_b3_mg SMALLINT CHECK (lab_verified_niacin_b3_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_vitamin_b6_mg SMALLINT CHECK (lab_verified_vitamin_b6_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_vitamin_b12_mcg SMALLINT CHECK (lab_verified_vitamin_b12_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_pantothenic_acid_b5_mg SMALLINT CHECK (lab_verified_pantothenic_acid_b5_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     CONSTRAINT chk_energy_drink_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
@@ -227,6 +307,9 @@ CREATE TABLE public.protein_details (
     protein_claim_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (protein_claim_g >= 0 OR protein_claim_g = -1),
     effective_protein_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (effective_protein_g >= 0 OR effective_protein_g = -1),
     protein_sources JSONB,
+    -- Individual lab verification fields for each ingredient
+    lab_verified_protein_claim_g SMALLINT CHECK (lab_verified_protein_claim_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_effective_protein_g SMALLINT CHECK (lab_verified_effective_protein_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     CONSTRAINT chk_protein_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
@@ -248,7 +331,21 @@ CREATE TABLE public.amino_acid_details (
     l_methionine_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_methionine_mg >= 0 OR l_methionine_mg = -1),
     betaine_anhydrous_mg INTEGER NOT NULL DEFAULT 0 CHECK (betaine_anhydrous_mg >= 0 OR betaine_anhydrous_mg = -1),
     coconut_water_powder_mg INTEGER NOT NULL DEFAULT 0 CHECK (coconut_water_powder_mg >= 0 OR coconut_water_powder_mg = -1),
-    astragin_mg INTEGER NOT NULL DEFAULT 0 CHECK (astragin_mg >= 0 OR astragin_mg = -1),
+    astragin_mg INTEGER NOT NULL DEFAULT 0 CHECK (astragin_mg >= 0 OR astragin_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    -- Individual lab verification fields for each ingredient
+    lab_verified_total_eaas_mg SMALLINT CHECK (lab_verified_total_eaas_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_leucine_mg SMALLINT CHECK (lab_verified_l_leucine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_isoleucine_mg SMALLINT CHECK (lab_verified_l_isoleucine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_valine_mg SMALLINT CHECK (lab_verified_l_valine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_lysine_hcl_mg SMALLINT CHECK (lab_verified_l_lysine_hcl_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_threonine_mg SMALLINT CHECK (lab_verified_l_threonine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_phenylalanine_mg SMALLINT CHECK (lab_verified_l_phenylalanine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_tryptophan_mg SMALLINT CHECK (lab_verified_l_tryptophan_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_histidine_hcl_mg SMALLINT CHECK (lab_verified_l_histidine_hcl_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_l_methionine_mg SMALLINT CHECK (lab_verified_l_methionine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_betaine_anhydrous_mg SMALLINT CHECK (lab_verified_betaine_anhydrous_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_coconut_water_powder_mg SMALLINT CHECK (lab_verified_coconut_water_powder_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_astragin_mg SMALLINT CHECK (lab_verified_astragin_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     CONSTRAINT chk_amino_acid_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
@@ -270,7 +367,21 @@ CREATE TABLE public.fat_burner_details (
     caffeine_anhydrous_mg INTEGER NOT NULL DEFAULT 0 CHECK (caffeine_anhydrous_mg >= 0 OR caffeine_anhydrous_mg = -1),
     halostachine_mg INTEGER NOT NULL DEFAULT 0 CHECK (halostachine_mg >= 0 OR halostachine_mg = -1),
     rauwolscine_mcg INTEGER NOT NULL DEFAULT 0 CHECK (rauwolscine_mcg >= 0 OR rauwolscine_mcg = -1),
-    bioperine_mg INTEGER NOT NULL DEFAULT 0 CHECK (bioperine_mg >= 0 OR bioperine_mg = -1),
+    bioperine_mg INTEGER NOT NULL DEFAULT 0 CHECK (bioperine_mg >= 0 OR bioperine_mg = -1), -- >=0=contains mg, 0=not in product, -1=blend/unknown
+    -- Individual lab verification fields for each ingredient
+    lab_verified_l_carnitine_l_tartrate_mg SMALLINT CHECK (lab_verified_l_carnitine_l_tartrate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_green_tea_extract_mg SMALLINT CHECK (lab_verified_green_tea_extract_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_capsimax_mg SMALLINT CHECK (lab_verified_capsimax_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_grains_of_paradise_mg SMALLINT CHECK (lab_verified_grains_of_paradise_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_ksm66_ashwagandha_mg SMALLINT CHECK (lab_verified_ksm66_ashwagandha_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_kelp_extract_mcg SMALLINT CHECK (lab_verified_kelp_extract_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_selenium_mcg SMALLINT CHECK (lab_verified_selenium_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_zinc_picolinate_mg SMALLINT CHECK (lab_verified_zinc_picolinate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_five_htp_mg SMALLINT CHECK (lab_verified_five_htp_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_caffeine_anhydrous_mg SMALLINT CHECK (lab_verified_caffeine_anhydrous_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_halostachine_mg SMALLINT CHECK (lab_verified_halostachine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_rauwolscine_mcg SMALLINT CHECK (lab_verified_rauwolscine_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    lab_verified_bioperine_mg SMALLINT CHECK (lab_verified_bioperine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     CONSTRAINT chk_fat_burner_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
@@ -332,8 +443,8 @@ $$;
 
 DROP TRIGGER IF EXISTS users_sync_trigger ON auth.users;
 CREATE TRIGGER users_sync_trigger
-    AFTER INSERT OR UPDATE OR DELETE ON auth.users
-    FOR EACH ROW EXECUTE FUNCTION auth.sync_user_to_public();
+AFTER INSERT OR UPDATE OR DELETE ON auth.users
+FOR EACH ROW EXECUTE FUNCTION auth.sync_user_to_public();
 
 -- 6) Indexes
 CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON public.product_reviews (product_id);
