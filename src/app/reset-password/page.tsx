@@ -2,7 +2,7 @@
 
 import Button from '@/components/ui/button';
 import Input from '@/components/ui/input';
-import { supabase } from '@/lib/database/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { ArrowLeft, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';

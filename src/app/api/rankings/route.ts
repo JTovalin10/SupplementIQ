@@ -1,5 +1,5 @@
 import { getRedisTCP } from '../../../../Database/Redis/client';
-import { supabase } from '@/lib/database/supabase';
+import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Use Next.js built-in caching for better performance

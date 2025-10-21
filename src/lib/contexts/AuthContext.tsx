@@ -1,6 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/database/supabase/client';
+import { supabase } from '@/lib/supabase';
 import { Ability, AbilityBuilder } from '@casl/ability';
 import { createContextualCan } from '@casl/react';
 import type { Session, User } from '@supabase/supabase-js';

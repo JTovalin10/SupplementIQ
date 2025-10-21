@@ -79,12 +79,17 @@
    - Check cookie/session storage
    - Verify `onAuthStateChange` callback
 
-2. **Fix Redis Import Path Issues**: Correct module resolution for Redis client imports
+2. **Fix Supabase Import Path Issues**: Correct module resolution for Supabase client imports
+   - Fixed incorrect import paths in rankings, AuthContext, product-verification, and reset-password
+   - Changed from `@/lib/database/supabase` to proper `@/lib/supabase` path
+   - **Status**: ✅ FIXED
+
+3. **Fix Redis Import Path Issues**: Correct module resolution for Redis client imports
    - Fixed incorrect import paths in rankings, preworkout, and test routes
    - Changed from `@/../../Database/Redis/client` to proper relative paths
    - **Status**: ✅ FIXED
 
-3. **Implement Product Submission & Approval Process**: Create functional add new product and approval workflow
+4. **Implement Product Submission & Approval Process**: Create functional add new product and approval workflow
    - Build product submission form for users
    - Create admin approval interface
    - Implement approval/rejection workflow
@@ -92,13 +97,13 @@
    - **Status**: 🔴 HIGH PRIORITY
 
 ### Medium Priority
-4. **Complete Context Migration**: Remove old `AppContext` dependencies
-5. **Test All User Routes**: Verify `/user/dashboard`, `/user/profile` work correctly
-6. **Clean Up Debug Logs**: Remove console.log statements from production code
+5. **Complete Context Migration**: Remove old `AppContext` dependencies
+6. **Test All User Routes**: Verify `/user/dashboard`, `/user/profile` work correctly
+7. **Clean Up Debug Logs**: Remove console.log statements from production code
 
 ### Low Priority
-7. **Add Error Boundaries**: Better error handling for auth failures
-8. **Improve Loading States**: Better UX during auth checks
+8. **Add Error Boundaries**: Better error handling for auth failures
+9. **Improve Loading States**: Better UX during auth checks
 
 ## 🔍 Debugging Notes
 
