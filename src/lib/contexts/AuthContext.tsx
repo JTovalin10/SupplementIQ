@@ -184,11 +184,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
           let defaultRole = 'newcomer';
           let reputationPoints = 0;
 
+          // For now, use a temporary username - this should be set during registration
+          // TODO: Require username during signup process
+          const tempUsername = `user_${authUser.id.slice(0, 8)}`;
+          
           const defaultProfile = {
             id: authUser.id,
             email: authUser.email || '',
             role: defaultRole,
-            username: authUser.email?.split('@')[0] || 'user',
+            username: tempUsername,
             bio: '',
             reputation_points: reputationPoints,
             created_at: new Date().toISOString(),
