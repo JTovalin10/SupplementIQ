@@ -180,16 +180,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (error.code === 'PGRST116') { // No rows returned
           console.log('✅ User not found in users table, creating default profile...');
 
-          // Determine role based on email (for special accounts)
+          // Default role for new users
           let defaultRole = 'newcomer';
           let reputationPoints = 0;
-
-          // Check for owner email from environment variable
-          const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL;
-          if (ownerEmail && authUser.email === ownerEmail) {
-            defaultRole = 'owner';
-            reputationPoints = 1000;
-          }
 
           const defaultProfile = {
             id: authUser.id,
