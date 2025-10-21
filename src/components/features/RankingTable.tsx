@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 interface RankingItem {
   id: string;
@@ -28,40 +28,88 @@ export default function RankingTable({
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [timeRange, setTimeRange] = useState(initialTimeRange);
+  const fetchingRef = useRef(false);
+  const cacheRef = useRef<Map<string, any>>(new Map());
 
-  const fetchRankings = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const params = new URLSearchParams();
-      if (category) params.append('category', category);
-      params.append('sortBy', sortBy);
-      params.append('timeRange', timeRange);
-      params.append('limit', limit.toString());
-      params.append('page', currentPage.toString());
-
-      const response = await fetch(`/api/rankings?${params}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to fetch rankings');
-      }
-
-      const data = await response.json();
-      setRankings(data.rankings || []);
-      setTotalPages(data.totalPages || 1);
-      setTotalCount(data.totalCount || 0);
-    } catch (err) {
-      console.error('Error fetching rankings:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load rankings');
-    } finally {
-      setLoading(false);
-    }
+  // Memoize the cache key to avoid unnecessary re-computations
+  const cacheKey = useMemo(() => {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    params.append('sortBy', sortBy);
+    params.append('timeRange', timeRange);
+    params.append('limit', limit.toString());
+    params.append('page', currentPage.toString());
+    return params.toString();
   }, [category, sortBy, timeRange, limit, currentPage]);
 
+  // Memoize the rankings data - this will only recompute when cacheKey changes
+  const rankingsData = useMemo(() => {
+    // Check if we have cached data for this exact request
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached) {
+      console.log('🚀 Using cached rankings data');
+      return cached;
+    }
+
+    // If no cache, trigger fetch
+    if (!fetchingRef.current) {
+      console.log('🔄 Cache miss, triggering fetch');
+      fetchingRef.current = true;
+      
+      const fetchRankings = async () => {
+        try {
+          setLoading(true);
+          setError(null);
+          
+          console.log(`🔍 Fetching rankings: ${cacheKey}`);
+          const response = await fetch(`/api/rankings?${cacheKey}`);
+          
+          if (!response.ok) {
+            throw new Error('Failed to fetch rankings');
+          }
+
+          const data = await response.json();
+          console.log(`✅ Rankings fetched: ${data.rankings?.length || 0} items`);
+          
+          // Cache the result
+          cacheRef.current.set(cacheKey, data);
+          
+          setRankings(data.rankings || []);
+          setTotalPages(data.totalPages || 1);
+          setTotalCount(data.totalCount || 0);
+        } catch (err) {
+          console.error('Error fetching rankings:', err);
+          setError(err instanceof Error ? err.message : 'Failed to load rankings');
+        } finally {
+          setLoading(false);
+          fetchingRef.current = false;
+        }
+      };
+
+      fetchRankings();
+    }
+
+    // Return loading state while fetching
+    return null;
+  }, [cacheKey]);
+
+  // Update state when we have data
   useEffect(() => {
-    fetchRankings();
-  }, [fetchRankings]);
+    if (rankingsData) {
+      setRankings(rankingsData.rankings || []);
+      setTotalPages(rankingsData.totalPages || 1);
+      setTotalCount(rankingsData.totalCount || 0);
+    }
+  }, [rankingsData]);
+
+  // Retry function for error state
+  const retryFetch = () => {
+    // Clear cache and reset fetching state
+    cacheRef.current.delete(cacheKey);
+    fetchingRef.current = false;
+    setError(null);
+    setLoading(true);
+  };
 
   const getScoreColor = (score: number) => {
     if (score >= 8) return 'text-green-600';
@@ -105,7 +153,7 @@ export default function RankingTable({
           <div className="text-center">
             <p className="text-red-600 mb-4">{error}</p>
             <button
-              onClick={fetchRankings}
+              onClick={retryFetch}
               className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm"
             >
               Retry

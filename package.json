@@ -29,6 +29,7 @@
     "autoprefixer": "^10.4.21",
     "dotenv": "^17.2.3",
     "fast-levenshtein": "^3.0.0",
+    "ioredis": "^5.8.2",
     "ipaddr.js": "^2.1.0",
     "levenshtein": "^1.0.5",
     "lucide-react": "^0.460.0",

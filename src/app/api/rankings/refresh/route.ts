@@ -1,6 +1,6 @@
-import { getRedisTCP } from '../../../../../Database/Redis/client';
 import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
+import { getRedis } from '../../../../../Database/Redis/client';
 
 // Daily cache refresh endpoint
 // This can be called by a cron job or scheduled task to refresh rankings cache
@@ -81,10 +81,8 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
 // Helper function to cache data
 async function cacheData(cacheKey: string, data: any): Promise<void> {
   try {
-    const redis = getRedisTCP();
-    if (!redis.isOpen) await redis.connect();
-    
-    await redis.setEx(cacheKey, 86400, JSON.stringify(data)); // 24 hours TTL
+    const redis = getRedis();
+    await redis.setex(cacheKey, 86400, JSON.stringify(data)); // 24 hours TTL
     console.log(`💾 Cached rankings data in Redis: ${cacheKey}`);
   } catch (redisError) {
     console.warn('Failed to cache in Redis:', redisError);
@@ -102,8 +100,7 @@ export async function POST(request: NextRequest) {
     const limitPerPage = parseInt(limit, 10);
     const timeRangesToRefresh = timeRange === 'all' ? TIME_RANGES : [timeRange];
 
-    const redis = getRedisTCP();
-    if (!redis.isOpen) await redis.connect();
+    const redis = getRedis();
 
     let totalRefreshed = 0;
     const results = [];

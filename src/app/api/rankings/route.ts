@@ -1,6 +1,6 @@
-import { getRedisTCP } from '../../../../Database/Redis/client';
 import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
+import { getRedis } from '../../../../Database/Redis/client';
 
 // Cache configuration
 const CACHE_TTL = 86400; // 24 hours in seconds
@@ -88,11 +88,10 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
 // Helper function to get cached data
 async function getCachedData(cacheKey: string): Promise<any | null> {
   try {
-    const redis = getRedisTCP();
-    if (!redis.isOpen) await redis.connect();
+    const redis = getRedis();
     
     const cached = await redis.get(cacheKey);
-    if (cached && typeof cached === 'string') {
+    if (cached) {
       const cachedData = JSON.parse(cached);
       
       // Check if cache is stale
@@ -108,7 +107,7 @@ async function getCachedData(cacheKey: string): Promise<any | null> {
     console.log(`❌ Redis cache MISS for ${cacheKey}`);
     return null;
   } catch (redisError) {
-    console.warn('Redis error:', redisError);
+    console.error('Redis error:', redisError);
     return null;
   }
 }
@@ -116,10 +115,8 @@ async function getCachedData(cacheKey: string): Promise<any | null> {
 // Helper function to cache data
 async function cacheData(cacheKey: string, data: any): Promise<void> {
   try {
-    const redis = getRedisTCP();
-    if (!redis.isOpen) await redis.connect();
-    
-    await redis.setEx(cacheKey, CACHE_TTL, JSON.stringify(data));
+    const redis = getRedis();
+    await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
     console.log(`💾 Cached rankings data in Redis: ${cacheKey}`);
   } catch (redisError) {
     console.warn('Failed to cache in Redis:', redisError);

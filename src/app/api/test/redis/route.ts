@@ -1,12 +1,11 @@
-import { getRedisTCP } from '../../../../Database/Redis/client';
 import { NextRequest, NextResponse } from 'next/server';
+import { getRedis } from '../../../../../Database/Redis/client';
 
 // GET /api/test/redis
 // Performs a simple set/get roundtrip to verify Redis TCP connectivity
 export async function GET(_req: NextRequest) {
   try {
-    const redis = getRedisTCP();
-    if (!redis.isOpen) await redis.connect();
+    const redis = getRedis();
     await redis.set('foo', 'bar');
     const value = await redis.get('foo');
     return NextResponse.json({ ok: true, value });

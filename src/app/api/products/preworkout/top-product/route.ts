@@ -1,4 +1,3 @@
-import { getRedisTCP } from '../../../../../Database/Redis/client';
 import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
