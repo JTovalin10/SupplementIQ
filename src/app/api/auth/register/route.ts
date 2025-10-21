@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/lib/database/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
@@ -19,7 +19,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (username.length < 3) {
+      return NextResponse.json(
+        { error: 'Username must be at least 3 characters long' },
+        { status: 400 }
+      );
+    }
+
+    // Check if username is already taken (case-insensitive)
     const supabase = await createClient();
+    
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('username')
+      .ilike('username', username.toLowerCase())
+      .single();
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'This username is already taken. Please choose a different one' },
+        { status: 400 }
+      );
+    }
 
     const { data, error } = await supabase.auth.signUp({
       email,

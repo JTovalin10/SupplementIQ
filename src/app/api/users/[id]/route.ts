@@ -20,7 +20,6 @@ export async function GET(
         username,
         role,
         reputation_points,
-        avatar_url,
         bio,
         joined_date,
         recent_activity

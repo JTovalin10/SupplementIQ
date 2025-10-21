@@ -16,7 +16,6 @@ export interface Contribution {
   updated_at: string;
   users?: {
     full_name: string;
-    avatar_url?: string;
   };
   products?: {
     name: string;

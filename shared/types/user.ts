@@ -7,7 +7,6 @@ export interface User {
   id: string;
   email: string;
   full_name: string;
-  avatar_url?: string;
   bio?: string;
   reputation_score: number;
   created_at: string;
@@ -20,5 +19,4 @@ export interface User {
 export interface UpdateUserRequest {
   full_name?: string;
   bio?: string;
-  avatar_url?: string;
 }

@@ -1,15 +1,15 @@
 'use client';
 
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { Award, Plus, TrendingUp, User } from 'lucide-react';
 import Link from 'next/link';
 
 export default function UserDashboardPage() {
-  const { user, isAuthenticated } = useNextAuth();
+  const { isAuthenticated, user } = useAuth();
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Authentication Required
@@ -34,7 +34,7 @@ export default function UserDashboardPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user.username}!
+            Dashboard
           </h1>
           <p className="mt-2 text-black">
             Here's what's happening with your supplement contributions.

@@ -1,6 +1,6 @@
 'use client';
 
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
+import { useUser } from '@/lib/contexts/AppContext';
 import {
   Activity,
   AlertTriangle,
@@ -61,7 +61,7 @@ interface SystemLog {
 }
 
 export default function OwnerDashboard() {
-  const { user } = useNextAuth();
+  const { user } = useUser();
   const [activeTab, setActiveTab] = useState('overview');
   // Remove dummy data
   const [stats, setStats] = useState<OwnerStats>({

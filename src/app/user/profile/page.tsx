@@ -1,20 +1,19 @@
 'use client';
 
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { Award, Calendar, Edit3, Mail, User } from 'lucide-react';
 import { useState } from 'react';
 
 export default function ProfilePage() {
-  const { user, isAuthenticated } = useNextAuth();
+  const { user, isAuthenticated, updateUser } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
-    bio: user?.bio || '',
-    avatar_url: user?.avatar_url || ''
+    bio: user?.bio || ''
   });
 
   if (!isAuthenticated || !user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Authentication Required
@@ -60,8 +59,7 @@ export default function ProfilePage() {
 
   const handleCancel = () => {
     setFormData({
-      bio: user?.bio || '',
-      avatar_url: user?.avatar_url || ''
+      bio: user?.bio || ''
     });
     setIsEditing(false);
   };
@@ -75,17 +73,9 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="flex-shrink-0">
-                  {user.avatar_url ? (
-                    <img
-                      className="h-20 w-20 rounded-full"
-                      src={user.avatar_url}
-                      alt={user.username}
-                    />
-                  ) : (
-                    <div className="h-20 w-20 rounded-full bg-blue-600 flex items-center justify-center">
-                      <User className="h-10 w-10 text-white" />
-                    </div>
-                  )}
+                  <div className="h-20 w-20 rounded-full bg-blue-600 flex items-center justify-center">
+                    <User className="h-10 w-10 text-white" />
+                  </div>
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">
@@ -153,25 +143,6 @@ export default function ProfilePage() {
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Avatar URL
-                  </label>
-                  {isEditing ? (
-                    <input
-                      type="url"
-                      name="avatar_url"
-                      value={formData.avatar_url}
-                      onChange={handleInputChange}
-                      className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                      placeholder="https://example.com/avatar.jpg"
-                    />
-                  ) : (
-                    <p className="text-gray-900">
-                      {user.avatar_url || 'No avatar set.'}
-                    </p>
-                  )}
-                </div>
 
                 {isEditing && (
                   <div className="flex space-x-3 pt-4">

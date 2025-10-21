@@ -4,7 +4,7 @@ import { Filter, Grid, List, Search } from 'lucide-react';
 
 import { useState } from 'react';
 
-import { categories } from '@/lib/data/categories';
+import { categories } from '@/lib/config/data/categories';
 
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');

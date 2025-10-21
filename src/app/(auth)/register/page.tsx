@@ -1,6 +1,6 @@
 'use client';
 
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
+import { useAuth } from '@/lib/contexts/AppContext';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -18,7 +18,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const router = useRouter();
-  const { signup, isLoading } = useNextAuth();
+  const { signup, isLoading } = useAuth();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

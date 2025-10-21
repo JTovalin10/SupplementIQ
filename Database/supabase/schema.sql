@@ -28,6 +28,8 @@ DROP TABLE IF EXISTS
     public.protein_details,
     public.amino_acid_details,
     public.fat_burner_details,
+    public.creatine_details,
+    public.creatine_types,
     public.temporary_products,
     public.products,
     public.brands
@@ -50,6 +52,7 @@ DROP FUNCTION IF EXISTS public.update_product_review_stats() CASCADE;
 CREATE TYPE user_role AS ENUM ('newcomer', 'contributor', 'trusted_editor', 'moderator', 'admin', 'owner');
 CREATE TYPE contribution_status AS ENUM ('pending', 'approved', 'rejected', 'needs_review');
 CREATE TYPE product_category AS ENUM ('protein', 'pre-workout', 'non-stim-pre-workout', 'energy-drink', 'bcaa', 'eaa', 'fat-burner', 'appetite-suppressant', 'creatine');
+CREATE TYPE lab_result AS ENUM ('verified', 'failed');
 
 -- 3) Recreate tables
 -- Note: 'public.users' is intentionally not dropped by the reset script.
@@ -61,7 +64,6 @@ CREATE TABLE IF NOT EXISTS public.users (
     reputation_points INTEGER DEFAULT 0,
     role user_role DEFAULT 'newcomer',
     bio TEXT,
-    avatar_url TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -385,6 +387,25 @@ CREATE TABLE public.fat_burner_details (
     CONSTRAINT chk_fat_burner_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
 );
 
+CREATE TABLE public.creatine_details (
+    id SERIAL PRIMARY KEY,
+    product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
+    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    creatine_type_name VARCHAR(255) NOT NULL REFERENCES public.creatine_types(name),
+    flavors TEXT[] DEFAULT '{}',
+    serving_size_g DECIMAL(5,1) NOT NULL DEFAULT 0 CHECK (serving_size_g >= 0), -- Serving size in grams
+    servings_per_container INTEGER NOT NULL DEFAULT 0 CHECK (servings_per_container >= 0), -- Number of servings per container
+    -- Individual lab verification fields for each ingredient
+    lab_verified_creatine_content_g SMALLINT CHECK (lab_verified_creatine_content_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
+    CONSTRAINT chk_creatine_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+);
+
+CREATE TABLE public.creatine_types (
+    name VARCHAR(255) PRIMARY KEY,
+    category TEXT NOT NULL CHECK (category IN ('fundamental', 'salt', 'ester', 'chelate', 'processed')),
+    recommended_daily_dose_g DECIMAL(5,1) NOT NULL CHECK (recommended_daily_dose_g > 0)
+);
+
 
 -- 4) Functions and Triggers
 CREATE OR REPLACE FUNCTION public.update_product_review_stats() RETURNS TRIGGER
@@ -456,3 +477,29 @@ CREATE INDEX IF NOT EXISTS idx_temporary_products_reviewed_by ON public.temporar
 CREATE INDEX IF NOT EXISTS idx_temporary_products_search_vector ON public.temporary_products USING GIN (search_vector);
 CREATE INDEX IF NOT EXISTS idx_products_search_vector ON public.products USING GIN (search_vector);
 CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON public.user_badges (user_id);
+
+-- 7) Insert Creatine Types Data
+INSERT INTO public.creatine_types (name, category, recommended_daily_dose_g) VALUES
+('Creatine Monohydrate', 'fundamental', 5.0),
+('Creatine Anhydrous', 'fundamental', 4.5),
+('Creatine Phosphate', 'fundamental', 5.0),
+('Free Acid Creatine', 'fundamental', 4.5),
+('Creatine Hydrochloride', 'salt', 2.0),
+('Creatine Citrate', 'salt', 5.0),
+('Creatine Malate', 'salt', 5.0),
+('Creatine Pyruvate', 'salt', 5.0),
+('Creatine Nitrate', 'salt', 3.0),
+('Creatine Gluconate', 'salt', 5.0),
+('Creatine Orotate', 'salt', 5.0),
+('Creatine Alpha-Ketoglutarate', 'salt', 5.0),
+('Creatine Taurinate', 'salt', 5.0),
+('Creatine Ethyl Ester', 'ester', 3.0),
+('Creatine Ethyl Ester Malate', 'ester', 3.0),
+('Creatine Magnesium Chelate', 'chelate', 5.0),
+('Micronized Creatine', 'processed', 5.0),
+('Buffered Creatine', 'processed', 3.0),
+('Crea-Trona', 'processed', 3.0),
+('Effervescent Creatine', 'processed', 5.0),
+('Liquid Creatine', 'processed', 5.0),
+('Creatinol-O-Phosphate', 'processed', 5.0),
+('Creapure', 'processed', 5.0);

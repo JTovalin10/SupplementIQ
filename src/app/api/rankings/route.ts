@@ -1,5 +1,5 @@
 import { getRedisTCP } from '@/../../Database/Redis/client';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/database/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 
 // Use Next.js built-in caching for better performance
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
         
         // Try to get from Redis cache first
         const cached = await redis.get(cacheKey);
-        if (cached) {
+        if (cached && typeof cached === 'string') {
           try {
             const cachedData = JSON.parse(cached);
             console.log(`🚀 Redis cache HIT for ${cacheKey}`);
@@ -71,8 +71,7 @@ export async function GET(request: NextRequest) {
       .select(`
         id,
         username,
-        reputation_points,
-        avatar_url
+        reputation_points
       `, { count: 'exact' })
       .not('reputation_points', 'is', null)
       .order('reputation_points', { ascending: false })
@@ -93,7 +92,6 @@ export async function GET(request: NextRequest) {
       id: user.id,
       username: user.username,
       reputation_points: user.reputation_points || 0,
-      avatar_url: user.avatar_url,
     }));
 
     const totalPages = Math.ceil((count || 0) / limit);

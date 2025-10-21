@@ -1,13 +1,14 @@
 'use client';
 
 import JWTDashboard from '@/components/features/JWTDashboard';
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
+import { useAuth, useUser } from '@/lib/contexts/AppContext';
 import { hasRoleAccess } from '@/lib/utils/role-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function ModeratorDashboardPage() {
-  const { user, isAuthenticated, isLoading } = useNextAuth();
+  const { isAuthenticated, isLoading } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function ModeratorDashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-black">Loading...</div>
       </div>
     );
@@ -37,6 +38,6 @@ export default function ModeratorDashboardPage() {
     return null;
   }
 
-  // Use the user's actual role from Supabase auth
-  return <JWTDashboard userRole={user.role as 'moderator' | 'admin' | 'owner'} />;
+  // No need to pass userRole - it comes from context
+  return <JWTDashboard />;
 }

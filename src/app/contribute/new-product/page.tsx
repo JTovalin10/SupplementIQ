@@ -1,14 +1,31 @@
 'use client';
 
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
-import { AlertCircle, ArrowLeft, CheckCircle, Plus } from 'lucide-react';
+import Alert from '@/components/ui/alert';
+import Button from '@/components/ui/button';
+import Card from '@/components/ui/card';
+import Input from '@/components/ui/input';
+import Select from '@/components/ui/select';
+import WifiLoader from '@/components/ui/wifi-loader';
+import { categoryIngredients, creatineTypes, IngredientField, specialFields } from '@/lib/config/data/ingredients';
+import { useAuth, useUser } from '@/lib/contexts/AppContext';
+import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function NewProductPage() {
-  const { user, isAuthenticated } = useNextAuth();
+  const { isAuthenticated } = useAuth();
+  const { user } = useUser();
   const [userProfile, setUserProfile] = useState<{ reputation_points: number; role: string } | null>(null);
   const [canSubmitImageUrl, setCanSubmitImageUrl] = useState(false);
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (isAuthenticated === false) {
+      window.location.href = '/login?redirect=/contribute/new-product';
+    } else if (isAuthenticated === true) {
+      setIsCheckingAuth(false);
+    }
+  }, [isAuthenticated]);
 
   // Fetch user profile to check reputation points
   useEffect(() => {
@@ -19,11 +36,7 @@ export default function NewProductPage() {
 
   const fetchUserProfile = async () => {
     try {
-      const response = await fetch('/api/v1/users/profile', {
-        headers: {
-          'Authorization': `Bearer ${user?.token || ''}`,
-        },
-      });
+      const response = await fetch('/api/v1/users/profile');
       
       if (response.ok) {
         const data = await response.json();
@@ -40,70 +53,24 @@ export default function NewProductPage() {
     }
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Record<string, string>>({
     name: '',
     brand: '',
     category: '',
     description: '',
     imageUrl: '',
-    claimedProtein: '',
-    effectiveProtein: '',
-    ingredients: '',
-    notes: '',
-    // Complete schema fields for all categories
-    protein_claim_g: '',
-    protein_type: '',
-    effective_protein_g: '',
-    whey_isolate_mg: '',
-    whey_concentrate_mg: '',
-    pea_protein_mg: '',
-    rice_protein_mg: '',
-    hemp_protein_mg: '',
-    soy_protein_mg: '',
-    casein_mg: '',
-    egg_protein_mg: '',
-    collagen_mg: '',
-    lab_tested: '',
-    collagen: '',
-    serving_scoops: '',
-    sugar_g: '',
-    l_citrulline_mg: '',
-    creatine_monohydrate_mg: '',
-    glycerpump_mg: '',
-    caffeine_anhydrous_mg: '',
-    l_tyrosine_mg: '',
-    betaine_anhydrous_mg: '',
-    serving_size_fl_oz: '',
-    caffeine_mg: '',
-    n_acetyl_l_tyrosine_mg: '',
-    alpha_gpc_mg: '',
-    l_theanine_mg: '',
-    huperzine_a_mcg: '',
-    vitamin_c_mg: '',
-    total_eaas_mg: '',
-    l_leucine_mg: '',
-    l_isoleucine_mg: '',
-    l_valine_mg: '',
-    coconut_water_powder_mg: '',
-    l_lysine_hcl_mg: '',
-    l_threonine_mg: '',
-    l_phenylalanine_mg: '',
-    l_tryptophan_mg: '',
-    stimulant_based: '',
-    green_tea_extract_mg: '',
-    l_carnitine_l_tartrate_mg: '',
-    ksm66_ashwagandha_mg: '',
-    five_htp_mg: '',
-    saffron_extract_mg: ''
+    notes: ''
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [submitError, setSubmitError] = useState<string>('');
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const categories = [
     'protein',
-    'pre-workout', 
+    'pre-workout',
+    'non-stim-pre-workout', 
     'energy-drink',
     'bcaa',
     'eaa',
@@ -209,31 +176,32 @@ export default function NewProductPage() {
     });
   };
 
-  const renderIngredientField = (fieldName: string, label: string, placeholder: string, unit: string = 'mg') => {
-    const value = formData[fieldName as keyof typeof formData] as string;
+  const renderIngredientField = (ingredient: IngredientField) => {
+    const value = formData[ingredient.name] || '';
     const isNotInProduct = value === 'not_in_product';
     const isNotSpecified = value === 'not_specified';
     
     return (
       <div>
-        <label htmlFor={fieldName} className="block text-sm font-medium text-black mb-2">
-          {label} ({unit})
+        <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
+          {ingredient.label} ({ingredient.unit})
         </label>
         <div className="flex gap-2">
           <input
             type="number"
-            id={fieldName}
-            name={fieldName}
-            step="1"
+            id={ingredient.name}
+            name={ingredient.name}
+            step={ingredient.step || "1"}
             value={isNotInProduct || isNotSpecified ? '' : value}
             onChange={handleInputChange}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-            placeholder={placeholder}
+            placeholder={ingredient.placeholder}
             disabled={isNotInProduct || isNotSpecified}
+            required={ingredient.required}
           />
           <button
             type="button"
-            onClick={() => handleIngredientAction(fieldName, 'not_in_product')}
+            onClick={() => handleIngredientAction(ingredient.name, 'not_in_product')}
             className={`px-3 py-2 text-xs rounded-lg border ${
               isNotInProduct 
                 ? 'bg-red-100 border-red-300 text-red-700' 
@@ -244,7 +212,7 @@ export default function NewProductPage() {
           </button>
           <button
             type="button"
-            onClick={() => handleIngredientAction(fieldName, 'not_specified')}
+            onClick={() => handleIngredientAction(ingredient.name, 'not_specified')}
             className={`px-3 py-2 text-xs rounded-lg border ${
               isNotSpecified 
                 ? 'bg-yellow-100 border-yellow-300 text-yellow-700' 
@@ -254,6 +222,11 @@ export default function NewProductPage() {
             Not specified
           </button>
         </div>
+        {ingredient.description && (
+          <p className="text-sm text-gray-500 mt-1">
+            {ingredient.description}
+          </p>
+        )}
       </div>
     );
   };
@@ -291,7 +264,6 @@ export default function NewProductPage() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${user.token || ''}`,
         },
         body: JSON.stringify(submissionData),
       });
@@ -313,54 +285,7 @@ export default function NewProductPage() {
         category: '',
         description: '',
         imageUrl: '',
-        claimedProtein: '',
-        effectiveProtein: '',
-        ingredients: '',
-        notes: '',
-        protein_claim_g: '',
-        protein_type: '',
-        effective_protein_g: '',
-        whey_isolate_mg: '',
-        whey_concentrate_mg: '',
-        pea_protein_mg: '',
-        rice_protein_mg: '',
-        hemp_protein_mg: '',
-        soy_protein_mg: '',
-        casein_mg: '',
-        egg_protein_mg: '',
-        collagen_mg: '',
-        lab_tested: '',
-        collagen: '',
-        serving_scoops: '',
-        sugar_g: '',
-        l_citrulline_mg: '',
-        creatine_monohydrate_mg: '',
-        glycerpump_mg: '',
-        caffeine_anhydrous_mg: '',
-        l_tyrosine_mg: '',
-        betaine_anhydrous_mg: '',
-        serving_size_fl_oz: '',
-        caffeine_mg: '',
-        n_acetyl_l_tyrosine_mg: '',
-        alpha_gpc_mg: '',
-        l_theanine_mg: '',
-        huperzine_a_mcg: '',
-        vitamin_c_mg: '',
-        total_eaas_mg: '',
-        l_leucine_mg: '',
-        l_isoleucine_mg: '',
-        l_valine_mg: '',
-        coconut_water_powder_mg: '',
-        l_lysine_hcl_mg: '',
-        l_threonine_mg: '',
-        l_phenylalanine_mg: '',
-        l_tryptophan_mg: '',
-        stimulant_based: '',
-        green_tea_extract_mg: '',
-        l_carnitine_l_tartrate_mg: '',
-        ksm66_ashwagandha_mg: '',
-        five_htp_mg: '',
-        saffron_extract_mg: ''
+        notes: ''
       });
     } catch (error) {
       console.error('Error submitting product:', error);
@@ -370,6 +295,15 @@ export default function NewProductPage() {
       setIsSubmitting(false);
     }
   };
+
+  // Show loading screen while checking authentication
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <WifiLoader text="Checking authentication..." size="md" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -397,513 +331,156 @@ export default function NewProductPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Success Message */}
         {submitStatus === 'success' && (
-          <div className="mb-8 bg-green-50 border border-green-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <CheckCircle className="w-6 h-6 text-green-600 mr-3" />
-              <div>
-                <h3 className="text-lg font-semibold text-green-900">Product Submitted Successfully!</h3>
-                <p className="text-green-700 mt-1">
+          <div className="mb-8">
+            <Alert 
+              type="success" 
+              title="Product Submitted Successfully!"
+            >
                   Your product submission has been received and will be reviewed by our community. 
                   You'll be notified once it's approved and added to the database.
-                </p>
-              </div>
-            </div>
+            </Alert>
           </div>
         )}
 
         {/* Error Message */}
         {submitStatus === 'error' && (
-          <div className="mb-8 bg-red-50 border border-red-200 rounded-lg p-6">
-            <div className="flex items-center">
-              <AlertCircle className="w-6 h-6 text-red-600 mr-3" />
-              <div>
-                <h3 className="text-lg font-semibold text-red-900">Submission Failed</h3>
-                <p className="text-red-700 mt-1">
+          <div className="mb-8">
+            <Alert 
+              type="error" 
+              title="Submission Failed"
+            >
                   There was an error submitting your product. Please try again or contact support if the problem persists.
-                </p>
-              </div>
-            </div>
+            </Alert>
           </div>
         )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          <Card padding="lg">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Product Information</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Product Name */}
               <div className="md:col-span-2">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-                  Product Name *
-                </label>
-                <input
-                  type="text"
-                  id="name"
+                <Input
+                  label="Product Name"
                   name="name"
                   required
                   value={formData.name}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
                   placeholder="e.g., Whey Protein Isolate"
                 />
               </div>
 
               {/* Brand */}
               <div>
-                <label htmlFor="brand" className="block text-sm font-medium text-gray-700 mb-2">
-                  Brand *
-                </label>
-                <input
-                  type="text"
-                  id="brand"
+                <Input
+                  label="Brand"
                   name="brand"
                   required
                   value={formData.brand}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
                   placeholder="e.g., Optimum Nutrition"
                 />
               </div>
 
               {/* Category */}
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                  Category *
-                </label>
-                <select
-                  id="category"
+                <Select
+                  label="Category"
                   name="category"
                   required
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category} value={category}>
-                      {category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                    </option>
-                  ))}
-                </select>
+                  placeholder="Select a category"
+                  options={categories.map(category => ({
+                    value: category,
+                    label: category.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                  }))}
+                />
               </div>
 
 
               {/* Image URL - Only show if user has permission */}
               {canSubmitImageUrl ? (
                 <div className="md:col-span-2">
-                  <label htmlFor="imageUrl" className="block text-sm font-medium text-gray-700 mb-2">
-                    Official Product Image URL
-                  </label>
-                  <input
-                    type="url"
-                    id="imageUrl"
+                  <Input
+                    label="Official Product Image URL"
                     name="imageUrl"
+                    type="url"
                     value={formData.imageUrl}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
                     placeholder="https://example.com/product-image.jpg"
+                    helperText="Must be an official image from the manufacturer's website"
                   />
-                  <p className="text-sm text-gray-500 mt-1">
-                    Must be an official image from the manufacturer's website
-                  </p>
                 </div>
               ) : (
                 <div className="md:col-span-2">
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <div className="flex items-center">
-                      <AlertCircle className="h-5 w-5 text-yellow-600 mr-2" />
-                      <div>
-                        <h3 className="text-sm font-medium text-yellow-800">
-                          Image URL Submission Restricted
-                        </h3>
-                        <p className="text-sm text-yellow-700 mt-1">
+                  <Alert 
+                    type="warning" 
+                    title="Image URL Submission Restricted"
+                  >
                           Image URL submission requires 1000+ reputation points or moderator/admin/owner role.
                           {userProfile && (
                             <span className="block mt-1">
                               Current: {userProfile.reputation_points} points, {userProfile.role} role
                             </span>
                           )}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
+                  </Alert>
                 </div>
               )}
             </div>
-          </div>
+          </Card>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+          <Card padding="lg">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">
               {formData.category ? `${formData.category.charAt(0).toUpperCase() + formData.category.slice(1).replace('-', ' ')} Information` : 'Nutrition Information'}
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Dynamic Fields Based on Category - Complete Schema Implementation */}
-              
-              {/* PROTEIN PRODUCTS */}
-              {formData.category === 'protein' && (
+              {/* Dynamic Fields Based on Category */}
+              {formData.category && categoryIngredients[formData.category] && (
                 <>
-                  {renderIngredientField('whey_isolate_mg', 'Whey Isolate', '25', 'g')}
-                  {renderIngredientField('whey_concentrate_mg', 'Whey Concentrate', '24', 'g')}
-                  {renderIngredientField('pea_protein_mg', 'Pea Protein', '20', 'g')}
-                  {renderIngredientField('rice_protein_mg', 'Rice Protein', '18', 'g')}
-                  {renderIngredientField('hemp_protein_mg', 'Hemp Protein', '15', 'g')}
-                  {renderIngredientField('soy_protein_mg', 'Soy Protein', '22', 'g')}
-                  {renderIngredientField('casein_mg', 'Casein', '24', 'g')}
-                  {renderIngredientField('egg_protein_mg', 'Egg Protein', '25', 'g')}
-                  {renderIngredientField('collagen_mg', 'Collagen', '20', 'g')}
-                  <div>
-                    <label htmlFor="protein_claim_g" className="block text-sm font-medium text-black mb-2">
-                      Protein Claim (g) *
+                  {/* Render special fields first (like protein claim/effective protein) */}
+                  {specialFields[formData.category] && 
+                    specialFields[formData.category].map((field) => (
+                      <div key={field.name}>
+                        <label htmlFor={field.name} className="block text-sm font-medium text-black mb-2">
+                          {field.label} ({field.unit}){field.required && ' *'}
                     </label>
                     <input
                       type="number"
-                      id="protein_claim_g"
-                      name="protein_claim_g"
-                      required
-                      step="0.1"
-                      value={formData.protein_claim_g || ''}
+                          id={field.name}
+                          name={field.name}
+                          required={field.required}
+                          step={field.step || "0.1"}
+                          value={formData[field.name] || ''}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="25"
-                    />
-                    <p className="text-sm text-black mt-1">
-                      Amount of protein claimed on the label
-                    </p>
+                          placeholder={field.placeholder}
+                        />
+                        {field.description && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            {field.description}
+                          </p>
+                        )}
                   </div>
-                  <div>
-                    <label htmlFor="effective_protein_g" className="block text-sm font-medium text-black mb-2">
-                      Effective Protein (g)
-                    </label>
-                    <div className="flex gap-2">
-                      <input
-                        type="number"
-                        id="effective_protein_g"
-                        name="effective_protein_g"
-                        step="0.1"
-                        value={formData.effective_protein_g || ''}
-                        onChange={handleInputChange}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                        placeholder="24"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => handleIngredientAction('lab_tested', 'not_specified')}
-                        className={`px-3 py-2 text-xs rounded-lg border ${
-                          formData.lab_tested === 'not_specified' 
-                            ? 'bg-green-100 border-green-300 text-green-700' 
-                            : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-                        }`}
-                      >
-                        Lab Tested
-                      </button>
-                    </div>
-                    <p className="text-sm text-black mt-1">
-                      Bioavailable protein content (if known)
-                    </p>
-                  </div>
-                </>
-              )}
+                    ))
+                  }
 
-              {/* PRE-WORKOUT PRODUCTS */}
-              {formData.category === 'pre-workout' && (
-                <>
-                  <div>
-                    <label htmlFor="serving_scoops" className="block text-sm font-medium text-black mb-2">
-                      Serving Scoops
-                    </label>
-                    <input
-                      type="number"
-                      id="serving_scoops"
-                      name="serving_scoops"
-                      step="0.5"
-                      value={formData.serving_scoops || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="2"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="sugar_g" className="block text-sm font-medium text-black mb-2">
-                      Sugar (g)
-                    </label>
-                    <input
-                      type="number"
-                      id="sugar_g"
-                      name="sugar_g"
-                      step="0.1"
-                      value={formData.sugar_g || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="0"
-                    />
-                  </div>
-                  {renderIngredientField('l_citrulline_mg', 'L-Citrulline', '9000')}
-                  {renderIngredientField('creatine_monohydrate_mg', 'Creatine Monohydrate', '5000')}
-                  {renderIngredientField('glycerpump_mg', 'GlycerPump', '3000')}
-                  {renderIngredientField('caffeine_anhydrous_mg', 'Caffeine Anhydrous', '350')}
-                  {renderIngredientField('l_tyrosine_mg', 'L-Tyrosine', '1500')}
-                  {renderIngredientField('betaine_anhydrous_mg', 'Betaine Anhydrous', '2500')}
-                  {renderIngredientField('agmatine_sulfate_mg', 'Agmatine Sulfate', '1000')}
-                  {renderIngredientField('n_phenethyl_dimethylamine_citrate_mg', 'N-Phenethyl Dimethylamine Citrate', '350')}
-                  {renderIngredientField('kanna_extract_mg', 'Kanna Extract', '500')}
-                  {renderIngredientField('huperzine_a_mcg', 'Huperzine A', '400', 'mcg')}
-                  {renderIngredientField('bioperine_mg', 'Bioperine', '5')}
-                </>
-              )}
-
-              {/* ENERGY DRINK PRODUCTS */}
-              {formData.category === 'energy-drink' && (
-                <>
-                  <div>
-                    <label htmlFor="serving_size_fl_oz" className="block text-sm font-medium text-black mb-2">
-                      Serving Size (fl oz)
-                    </label>
-                    <input
-                      type="number"
-                      id="serving_size_fl_oz"
-                      name="serving_size_fl_oz"
-                      step="0.1"
-                      value={formData.serving_size_fl_oz || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="16"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="sugar_g" className="block text-sm font-medium text-black mb-2">
-                      Sugar (g)
-                    </label>
-                    <input
-                      type="number"
-                      id="sugar_g"
-                      name="sugar_g"
-                      step="0.1"
-                      value={formData.sugar_g || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="0"
-                    />
-                  </div>
-                  {renderIngredientField('caffeine_mg', 'Caffeine', '200')}
-                  {renderIngredientField('n_acetyl_l_tyrosine_mg', 'N-Acetyl L-Tyrosine', '1000')}
-                  {renderIngredientField('alpha_gpc_mg', 'Alpha GPC', '400')}
-                  {renderIngredientField('l_theanine_mg', 'L-Theanine', '100')}
-                  {renderIngredientField('huperzine_a_mcg', 'Huperzine A', '200', 'mcg')}
-                  {renderIngredientField('uridine_monophosphate_mg', 'Uridine Monophosphate', '200')}
-                  {renderIngredientField('saffron_extract_mg', 'Saffron Extract', '15')}
-                  {renderIngredientField('vitamin_c_mg', 'Vitamin C', '90')}
-                  {renderIngredientField('niacin_b3_mg', 'Niacin B3', '16')}
-                  {renderIngredientField('vitamin_b6_mg', 'Vitamin B6', '5')}
-                  {renderIngredientField('vitamin_b12_mcg', 'Vitamin B12', '5', 'mcg')}
-                  {renderIngredientField('pantothenic_acid_b5_mg', 'Pantothenic Acid B5', '5')}
-                </>
-              )}
-
-              {/* BCAA PRODUCTS */}
-              {formData.category === 'bcaa' && (
-                <>
-                  <div>
-                    <label htmlFor="total_eaas_mg" className="block text-sm font-medium text-black mb-2">
-                      Total EAAs (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="total_eaas_mg"
-                      name="total_eaas_mg"
-                      step="1"
-                      value={formData.total_eaas_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="10000"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_leucine_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Leucine (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_leucine_mg"
-                      name="l_leucine_mg"
-                      step="1"
-                      value={formData.l_leucine_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="3000"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_isoleucine_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Isoleucine (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_isoleucine_mg"
-                      name="l_isoleucine_mg"
-                      step="1"
-                      value={formData.l_isoleucine_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="1500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_valine_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Valine (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_valine_mg"
-                      name="l_valine_mg"
-                      step="1"
-                      value={formData.l_valine_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="1500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="betaine_anhydrous_mg" className="block text-sm font-medium text-black mb-2">
-                      Betaine Anhydrous (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="betaine_anhydrous_mg"
-                      name="betaine_anhydrous_mg"
-                      step="1"
-                      value={formData.betaine_anhydrous_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="1250"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="coconut_water_powder_mg" className="block text-sm font-medium text-black mb-2">
-                      Coconut Water Powder (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="coconut_water_powder_mg"
-                      name="coconut_water_powder_mg"
-                      step="1"
-                      value={formData.coconut_water_powder_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="250"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* EAA PRODUCTS */}
-              {formData.category === 'eaa' && (
-                <>
-                  <div>
-                    <label htmlFor="total_eaas_mg" className="block text-sm font-medium text-black mb-2">
-                      Total EAAs (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="total_eaas_mg"
-                      name="total_eaas_mg"
-                      step="1"
-                      value={formData.total_eaas_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="10000"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_leucine_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Leucine (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_leucine_mg"
-                      name="l_leucine_mg"
-                      step="1"
-                      value={formData.l_leucine_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="3000"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_lysine_hcl_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Lysine HCL (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_lysine_hcl_mg"
-                      name="l_lysine_hcl_mg"
-                      step="1"
-                      value={formData.l_lysine_hcl_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="1000"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_threonine_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Threonine (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_threonine_mg"
-                      name="l_threonine_mg"
-                      step="1"
-                      value={formData.l_threonine_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="1000"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_phenylalanine_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Phenylalanine (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_phenylalanine_mg"
-                      name="l_phenylalanine_mg"
-                      step="1"
-                      value={formData.l_phenylalanine_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="500"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_tryptophan_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Tryptophan (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_tryptophan_mg"
-                      name="l_tryptophan_mg"
-                      step="1"
-                      value={formData.l_tryptophan_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="150"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* FAT BURNER PRODUCTS */}
-              {formData.category === 'fat-burner' && (
-                <>
-                  <div>
-                    <label htmlFor="stimulant_based" className="block text-sm font-medium text-black mb-2">
-                      Stimulant Based
+                  {/* Render regular ingredient fields */}
+                  {categoryIngredients[formData.category].map((ingredient) => {
+                    // Handle special cases for dropdowns
+                    if (ingredient.name === 'stimulant_based') {
+                      return (
+                        <div key={ingredient.name}>
+                          <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
+                            {ingredient.label}
                     </label>
                     <select
-                      id="stimulant_based"
-                      name="stimulant_based"
-                      value={formData.stimulant_based || ''}
+                            id={ingredient.name}
+                            name={ingredient.name}
+                            value={formData[ingredient.name] || ''}
                       onChange={handleInputChange}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
                     >
@@ -911,293 +488,128 @@ export default function NewProductPage() {
                       <option value="true">Stimulant Based</option>
                       <option value="false">Stim-Free</option>
                     </select>
+                          {ingredient.description && (
+                            <p className="text-sm text-gray-500 mt-1">
+                              {ingredient.description}
+                            </p>
+                          )}
                   </div>
-                  <div>
-                    <label htmlFor="caffeine_anhydrous_mg" className="block text-sm font-medium text-black mb-2">
-                      Caffeine Anhydrous (mg)
+                      );
+                    }
+
+                    if (ingredient.name === 'creatine_type_name') {
+                      return (
+                        <div key={ingredient.name}>
+                          <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
+                            {ingredient.label}{ingredient.required && ' *'}
                     </label>
+                    <select
+                            id={ingredient.name}
+                            name={ingredient.name}
+                            required={ingredient.required}
+                            value={formData[ingredient.name] || ''}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
+                    >
+                      <option value="">Select creatine type</option>
+                            <option value="">No Creatine</option>
+                            {creatineTypes.map((type) => (
+                              <option key={type.value} value={type.value}>
+                                {type.label}
+                              </option>
+                            ))}
+                    </select>
+                          {ingredient.description && (
+                    <p className="text-sm text-gray-500 mt-1">
+                              {ingredient.description}
+                    </p>
+                          )}
+                  </div>
+                      );
+                    }
+
+                    if (ingredient.name === 'creatine_amount_mg') {
+                      const creatineType = formData['creatine_type_name'] || '';
+                      const isNotInProduct = formData[ingredient.name] === 'not_in_product';
+                      const isNotSpecified = formData[ingredient.name] === 'not_specified';
+                      
+                      return (
+                        <div key={ingredient.name}>
+                          <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
+                            {ingredient.label} ({ingredient.unit})
+                    </label>
+                          <div className="flex gap-2">
                     <input
                       type="number"
-                      id="caffeine_anhydrous_mg"
-                      name="caffeine_anhydrous_mg"
+                              id={ingredient.name}
+                              name={ingredient.name}
                       step="1"
-                      value={formData.caffeine_anhydrous_mg || ''}
+                              value={isNotInProduct || isNotSpecified ? '' : (formData[ingredient.name] || '')}
                       onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="200"
-                    />
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
+                              placeholder={creatineType ? ingredient.placeholder : '0'}
+                              disabled={isNotInProduct || isNotSpecified || !creatineType}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleIngredientAction(ingredient.name, 'not_in_product')}
+                              className={`px-3 py-2 text-xs rounded-lg border ${
+                                isNotInProduct 
+                                  ? 'bg-red-100 border-red-300 text-red-700' 
+                                  : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              Not in product
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleIngredientAction(ingredient.name, 'not_specified')}
+                              className={`px-3 py-2 text-xs rounded-lg border ${
+                                isNotSpecified 
+                                  ? 'bg-yellow-100 border-yellow-300 text-yellow-700' 
+                                  : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
+                              }`}
+                            >
+                              Not specified
+                            </button>
+                          </div>
+                          {ingredient.description && (
+                    <p className="text-sm text-gray-500 mt-1">
+                              {ingredient.description}
+                              {creatineType && (
+                                <span className="block mt-1">
+                                  Selected: {creatineType}
+                                </span>
+                              )}
+                            </p>
+                          )}
                   </div>
-                  <div>
-                    <label htmlFor="green_tea_extract_mg" className="block text-sm font-medium text-black mb-2">
-                      Green Tea Extract (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="green_tea_extract_mg"
-                      name="green_tea_extract_mg"
-                      step="1"
-                      value={formData.green_tea_extract_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="400"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="l_carnitine_l_tartrate_mg" className="block text-sm font-medium text-black mb-2">
-                      L-Carnitine L-Tartrate (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="l_carnitine_l_tartrate_mg"
-                      name="l_carnitine_l_tartrate_mg"
-                      step="1"
-                      value={formData.l_carnitine_l_tartrate_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="1000"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ksm66_ashwagandha_mg" className="block text-sm font-medium text-black mb-2">
-                      KSM-66 Ashwagandha (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="ksm66_ashwagandha_mg"
-                      name="ksm66_ashwagandha_mg"
-                      step="1"
-                      value={formData.ksm66_ashwagandha_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="600"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="five_htp_mg" className="block text-sm font-medium text-black mb-2">
-                      5-HTP (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="five_htp_mg"
-                      name="five_htp_mg"
-                      step="1"
-                      value={formData.five_htp_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="100"
-                    />
-                  </div>
+                      );
+                    }
+
+                    // Render regular ingredient fields
+                    return renderIngredientField(ingredient);
+                  })}
                 </>
               )}
-
-              {/* APPETITE SUPPRESSANT PRODUCTS */}
-              {formData.category === 'appetite-suppressant' && (
-                <>
-                  <div>
-                    <label htmlFor="five_htp_mg" className="block text-sm font-medium text-black mb-2">
-                      5-HTP (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="five_htp_mg"
-                      name="five_htp_mg"
-                      step="1"
-                      value={formData.five_htp_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="100"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="ksm66_ashwagandha_mg" className="block text-sm font-medium text-black mb-2">
-                      KSM-66 Ashwagandha (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="ksm66_ashwagandha_mg"
-                      name="ksm66_ashwagandha_mg"
-                      step="1"
-                      value={formData.ksm66_ashwagandha_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="600"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="saffron_extract_mg" className="block text-sm font-medium text-black mb-2">
-                      Saffron Extract (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="saffron_extract_mg"
-                      name="saffron_extract_mg"
-                      step="1"
-                      value={formData.saffron_extract_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="15"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* CREATINE PRODUCTS */}
-              {formData.category === 'creatine' && (
-                <>
-                  <div>
-                    <label htmlFor="creatine_monohydrate_mg" className="block text-sm font-medium text-black mb-2">
-                      Creatine Monohydrate (mg)
-                    </label>
-                    <input
-                      type="number"
-                      id="creatine_monohydrate_mg"
-                      name="creatine_monohydrate_mg"
-                      step="1"
-                      value={formData.creatine_monohydrate_mg || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                      placeholder="5000"
-                    />
-                  </div>
-                </>
-              )}
-
             </div>
-          </div>
-
-          <div className="bg-blue-50 rounded-lg border border-blue-200 p-8">
-            <h2 className="text-xl font-semibold text-blue-900 mb-6">How Transparency Score is Calculated</h2>
-            
-            <div className="space-y-4">
-              {formData.category === 'protein' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">Protein Products:</h3>
-                  <div className="border-l-4 border-green-500 pl-4 bg-green-50 p-3 rounded mb-4">
-                    <h4 className="font-semibold text-sm mb-1 text-green-800">Lab Tested Products:</h4>
-                    <p className="text-sm text-green-700">If product has third-party lab testing showing protein content matches or exceeds label claims → <strong>VERIFIED</strong> status (highest transparency score)</p>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-sm mb-2">Default Testing Scenarios:</h4>
-                    <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li><strong>Ingredient Disclosure (40%):</strong> Complete ingredient list with amounts</li>
-                      <li><strong>Absorption Claims (30%):</strong> How close ingredients are to what they claim (bioavailability)</li>
-                      <li><strong>Manufacturing Info (20%):</strong> Facility certifications (GMP, NSF, etc.)</li>
-                      <li><strong>Brand Transparency (10%):</strong> Open communication about sourcing and quality</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-              
-              {formData.category === 'pre-workout' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">Pre-Workout Products:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li><strong>Ingredient Transparency (60%):</strong> Complete ingredient disclosure and proprietary blend breakdown</li>
-                    <li><strong>Dosage Accuracy (40%):</strong> Clinical doses vs. underdosed ingredients</li>
-                  </ul>
-                </div>
-              )}
-              
-              {formData.category === 'energy-drink' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">Energy Drinks:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li><strong>Ingredient Transparency (60%):</strong> Complete ingredient disclosure and nootropic transparency</li>
-                    <li><strong>Dosage Accuracy (40%):</strong> Effective doses vs. underdosed ingredients</li>
-                  </ul>
-                </div>
-              )}
-              
-              {formData.category === 'bcaa' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">BCAA Products:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li><strong>Ingredient Transparency (60%):</strong> Complete ingredient disclosure and ratio accuracy</li>
-                    <li><strong>Dosage Accuracy (40%):</strong> Effective doses vs. underdosed ingredients</li>
-                  </ul>
-                </div>
-              )}
-              
-              {formData.category === 'eaa' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">EAA Products:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li><strong>Ingredient Transparency (60%):</strong> Complete ingredient disclosure and amino acid profile</li>
-                    <li><strong>Dosage Accuracy (40%):</strong> Effective doses vs. underdosed ingredients</li>
-                  </ul>
-                </div>
-              )}
-              
-              {formData.category === 'fat-burner' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">Fat Burner Products:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li><strong>Ingredient Transparency (60%):</strong> Complete ingredient disclosure and stimulant content</li>
-                    <li><strong>Dosage Accuracy (40%):</strong> Effective doses vs. underdosed ingredients</li>
-                  </ul>
-                </div>
-              )}
-              
-              {formData.category === 'appetite-suppressant' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">Appetite Suppressant Products:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li><strong>Ingredient Transparency (60%):</strong> Complete ingredient disclosure and mechanism clarity</li>
-                    <li><strong>Dosage Accuracy (40%):</strong> Effective doses vs. underdosed ingredients</li>
-                  </ul>
-                </div>
-              )}
-              
-              {formData.category === 'creatine' && (
-                <div className="text-black">
-                  <h3 className="font-semibold text-blue-800 mb-2">Creatine Products:</h3>
-                  <ul className="list-disc list-inside space-y-1 text-sm">
-                    <li><strong>Ingredient Transparency (60%):</strong> Complete ingredient disclosure and form purity</li>
-                    <li><strong>Dosage Accuracy (40%):</strong> Effective doses vs. underdosed ingredients</li>
-                  </ul>
-                </div>
-              )}
-              
-              {!formData.category && (
-                <div className="text-black">
-                  <p className="text-sm">Select a product category above to see how transparency scores are calculated for that specific type of supplement.</p>
-                </div>
-              )}
-              
-              <div className="mt-4 p-4 bg-blue-100 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Note:</strong> Transparency scores are automatically calculated based on the completeness and accuracy of the product information provided. Higher scores indicate better brand transparency and ingredient disclosure.
-                </p>
-              </div>
-            </div>
-          </div>
-
+          </Card>
 
           {/* Submit Button */}
           <div className="flex justify-end space-x-4">
-            <Link
-              href="/contribute"
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
+            <Link href="/contribute">
+              <Button variant="outline" size="lg">
               Cancel
+              </Button>
             </Link>
-            <button
+            <Button
               type="submit"
-              disabled={isSubmitting}
-              className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center"
+              loading={isSubmitting}
+              size="lg"
             >
-              {isSubmitting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Submitting...
-                </>
-              ) : (
-                <>
                   <Plus className="w-4 h-4 mr-2" />
                   Submit Product
-                </>
-              )}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

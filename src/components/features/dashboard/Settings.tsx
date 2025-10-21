@@ -1,8 +1,12 @@
+import { useUser } from '@/lib/contexts/AppContext';
+
 interface SettingsProps {
-  isOwner: boolean;
+  // No longer needed - user permissions come from context
 }
 
-export default function Settings({ isOwner }: SettingsProps) {
+export default function Settings({}: SettingsProps) {
+  const { permissions } = useUser();
+  const isOwner = permissions?.canAccessOwnerTools || false;
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       <div className="px-6 py-4 border-b">

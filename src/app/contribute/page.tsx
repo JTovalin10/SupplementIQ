@@ -12,9 +12,11 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { useAuth } from '@/lib/contexts/AppContext';
 import Link from 'next/link';
 
 export default function ContributePage() {
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'overview' | 'types' | 'transparency'>('overview');
   const [showGuidelines, setShowGuidelines] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -109,8 +111,8 @@ export default function ContributePage() {
 
   const guidelines = [
     {
-      title: 'Use Reliable Sources',
-      description: 'Always cite official sources like manufacturer websites, lab reports, or verified retailers. Product images should come from official manufacturer websites.'
+      title: 'Get Information from Verified Sources',
+      description: 'Get all information directly from the supplier or a verified supplier. All images of the product should also be uploaded with a direct web link from the brands website or a direct supplier.'
     },
     {
       title: 'Be Accurate',
@@ -937,12 +939,14 @@ export default function ContributePage() {
             >
               Update Existing
             </Link>
-            <Link
-              href="/register"
-              className="bg-transparent text-white px-8 py-3 rounded-lg font-semibold border border-white hover:bg-white hover:text-blue-600 transition-colors"
-            >
-              Create Account
-            </Link>
+            {!isAuthenticated && (
+              <Link
+                href="/register"
+                className="bg-transparent text-white px-8 py-3 rounded-lg font-semibold border border-white hover:bg-white hover:text-blue-600 transition-colors"
+              >
+                Create Account
+              </Link>
+            )}
           </div>
         </div>
       </section>

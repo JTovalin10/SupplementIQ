@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Mail, User, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useNextAuth } from '../../lib/contexts/NextAuthContext';
+import { useAuth, useUser } from '../../lib/contexts/AppContext';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -15,7 +15,8 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [showVerificationMessage, setShowVerificationMessage] = useState(false);
   
-  const { signup, isAuthenticated, user } = useNextAuth();
+  const { signup, isAuthenticated } = useAuth();
+  const { user } = useUser();
   const router = useRouter();
 
   // Redirect if already authenticated

@@ -1,10 +1,10 @@
 'use client';
 
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
+import { useUser } from '@/lib/contexts/AppContext';
 import { useState } from 'react';
 
 export default function UpdateRolePage() {
-  const { user } = useNextAuth();
+  const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 

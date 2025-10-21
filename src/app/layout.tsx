@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import React from 'react';
 
+import { AppProvider } from '@/lib/contexts/AppContext';
 import Footer from '../components/layout/footer';
 import Header from '../components/layout/header';
-import { AuthProvider } from '../lib/contexts/AuthProvider';
 
 import './globals.css';
 
@@ -43,11 +43,11 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AuthProvider>
+        <AppProvider>
           <Header />
           <main>{children}</main>
           <Footer />
-        </AuthProvider>
+        </AppProvider>
       </body>
     </html>
   );

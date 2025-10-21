@@ -18,7 +18,6 @@ export interface User {
   reputation_points: number;
   role: UserRole;
   bio?: string;
-  avatar_url?: string;
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
 }
@@ -100,7 +99,7 @@ export interface ProductReview {
   created_at: string; // TIMESTAMPTZ
   updated_at: string; // TIMESTAMPTZ
   // Relations
-  user?: Pick<User, 'username' | 'reputation_points' | 'role' | 'avatar_url'>;
+  user?: Pick<User, 'username' | 'reputation_points' | 'role'>;
 }
 
 // Category-specific detail types (these would be in separate tables like protein_details, preworkout_details, etc.)

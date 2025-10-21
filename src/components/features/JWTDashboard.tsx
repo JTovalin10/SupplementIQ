@@ -2,7 +2,7 @@
 
 import CacheLoadingScreen from '@/components/ui/CacheLoadingScreen';
 import { getAvailableTabs } from '@/lib/auth/role-routing';
-import { useNextAuth } from '@/lib/contexts/NextAuthContext';
+import { useAuth, useDashboard, useUser } from '@/lib/contexts/AppContext';
 import {
   BarChart3,
   Lock,
@@ -14,14 +14,15 @@ import RecentActivity from './dashboard/RecentActivity';
 import UserManagement from './dashboard/UserManagement';
 
 interface DashboardProps {
-  userRole?: 'user' | 'moderator' | 'admin' | 'owner';
+  // No longer needed - user role comes from context
 }
 
-export default function JWTDashboard({ userRole }: DashboardProps) {
-  const { user, isAuthenticated, isLoading } = useNextAuth();
+export default function JWTDashboard({}: DashboardProps) {
+  const { isAuthenticated, isLoading } = useAuth();
+  const { user, permissions } = useUser();
   const { state, setActiveTab, setCacheLoading } = useDashboard();
   const { activeTab, cacheLoading } = state;
-  const effectiveRole = (userRole ?? user?.role ?? 'user') as 'user' | 'moderator' | 'admin' | 'owner';
+  const effectiveRole = user?.role as 'user' | 'moderator' | 'admin' | 'owner';
   
   // Show loading state while authentication is being checked
   if (isLoading) {
@@ -85,7 +86,7 @@ export default function JWTDashboard({ userRole }: DashboardProps) {
                   {effectiveRole.charAt(0).toUpperCase() + effectiveRole.slice(1)} Dashboard
                 </h1>
                 <p className="text-sm text-gray-500">
-                  Welcome back, {(user as any).username || user.name || user.email}
+                  Welcome back, {user.username || user.email}
                 </p>
               </div>
             </div>

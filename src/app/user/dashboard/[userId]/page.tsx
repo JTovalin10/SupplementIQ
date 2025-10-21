@@ -1,6 +1,7 @@
 'use client';
 
 import JWTDashboard from '@/components/features/JWTDashboard';
+import { useAuth, useUser } from '@/lib/contexts/AppContext';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -10,7 +11,6 @@ interface UserData {
   role: string;
   reputation_points: number;
   bio?: string;
-  avatar_url?: string;
   joined_date: string;
   recent_activity: string;
 }
@@ -37,6 +37,8 @@ interface Submission {
 }
 
 export default function UserDashboardPage() {
+  const { isAuthenticated } = useAuth();
+  const { user: currentUser } = useUser();
   const params = useParams();
   const userId = params.userId as string;
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -127,19 +129,11 @@ export default function UserDashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
-              {userData.avatar_url ? (
-                <img
-                  className="h-16 w-16 rounded-full mr-4"
-                  src={userData.avatar_url}
-                  alt={userData.username}
-                />
-              ) : (
-                <div className="h-16 w-16 rounded-full bg-gray-300 mr-4 flex items-center justify-center">
-                  <span className="text-xl font-medium text-gray-600">
-                    {userData.username.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-              )}
+              <div className="h-16 w-16 rounded-full bg-gray-300 mr-4 flex items-center justify-center">
+                <span className="text-xl font-medium text-gray-600">
+                  {userData.username.charAt(0).toUpperCase()}
+                </span>
+              </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">{userData.username}</h1>
                 <p className="text-gray-600 capitalize">{userData.role}</p>
@@ -233,7 +227,7 @@ export default function UserDashboardPage() {
 
       {/* Dashboard Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <JWTDashboard userRole={userData.role as any} />
+        <JWTDashboard />
       </div>
     </div>
   );

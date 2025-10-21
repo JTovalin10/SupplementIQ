@@ -95,7 +95,6 @@ export async function GET(request: NextRequest) {
  *   - full_name: User's full name
  *   - username: Username
  *   - bio: User biography
- *   - avatar_url: Avatar image URL
  * 
  * @returns 200 - Success response with updated profile
  * @returns 400 - Validation or database error
@@ -131,14 +130,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { full_name, username, bio, avatar_url } = body;
+    const { full_name, username, bio } = body;
 
     // Prepare update data
     const updateData: any = {};
     if (full_name !== undefined) updateData.full_name = full_name;
     if (username !== undefined) updateData.username = username;
     if (bio !== undefined) updateData.bio = bio;
-    if (avatar_url !== undefined) updateData.avatar_url = avatar_url;
 
     // Update user profile in database
     const { data, error } = await supabase

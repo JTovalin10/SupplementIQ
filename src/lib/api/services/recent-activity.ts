@@ -5,7 +5,7 @@ export type RecentActivityItem = {
   id: string;
   timestamp: string;
   metadata: Record<string, unknown>;
-  user: null | { id: string; username: string; avatar_url: string | null };
+  user: null | { id: string; username: string };
   product: null | { id: number; name: string; brand: null | { id: number; name: string } };
 };
 
@@ -33,7 +33,7 @@ export async function fetchRecentActivity(page: number, limit: number, opts?: { 
     .from('product_reviews')
     .select(
       `id, created_at, title, rating, comment, product_id,
-       users:user_id ( id, username, avatar_url ),
+       users:user_id ( id, username ),
        products:product_id ( id, name, brand_id, brands:brand_id ( id, name ) )`
     )
     .order('created_at', { ascending: false })
@@ -43,7 +43,7 @@ export async function fetchRecentActivity(page: number, limit: number, opts?: { 
     .select(
       `id, name, reviewed_at, submitted_by,
        brands:brand_id ( id, name ),
-       users:submitted_by ( id, username, avatar_url )`
+       users:submitted_by ( id, username )`
     )
     .eq('approval_status', 1)
     .order('reviewed_at', { ascending: false })
@@ -74,7 +74,7 @@ export async function fetchRecentActivity(page: number, limit: number, opts?: { 
       rating: r.rating,
       comment: r.comment,
     },
-    user: r.users ? { id: r.users.id, username: r.users.username, avatar_url: r.users.avatar_url } : null,
+    user: r.users ? { id: r.users.id, username: r.users.username } : null,
     product: r.products
       ? {
           id: r.products.id,
@@ -89,7 +89,7 @@ export async function fetchRecentActivity(page: number, limit: number, opts?: { 
     id: `approved_${p.id}`,
     timestamp: p.reviewed_at,
     metadata: {},
-    user: p.users ? { id: p.users.id, username: p.users.username, avatar_url: p.users.avatar_url } : null,
+    user: p.users ? { id: p.users.id, username: p.users.username } : null,
     product: {
       id: p.id,
       name: p.name,

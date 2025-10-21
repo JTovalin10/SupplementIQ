@@ -3,8 +3,8 @@
  * Checks if products already exist before submission to prevent duplicates
  */
 
+import { supabase } from '@/lib/database/supabase/client';
 import { get } from 'fast-levenshtein';
-import { supabase } from '../../supabase/client';
 
 export interface ProductSubmission {
     name: string;

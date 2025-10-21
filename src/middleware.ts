@@ -23,11 +23,15 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/v1/autocomplete') ||
     pathname.startsWith('/api/v1/products') && request.method === 'GET' ||
     pathname.startsWith('/api/health') ||
+    pathname.startsWith('/api/auth/forgot-password') ||
+    pathname.startsWith('/api/auth/reset-password') ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
     pathname === '/' ||
     pathname.startsWith('/login') ||
-    pathname.startsWith('/register')
+    pathname.startsWith('/register') ||
+    pathname.startsWith('/forgot-password') ||
+    pathname.startsWith('/reset-password')
   ) {
     return NextResponse.next();
   }

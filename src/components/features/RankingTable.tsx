@@ -6,7 +6,6 @@ interface RankingItem {
   id: string;
   username: string;
   reputation_points: number;
-  avatar_url?: string;
 }
 
 interface RankingTableProps {
@@ -190,19 +189,11 @@ export default function RankingTable({
                       onClick={() => window.location.href = `/user/dashboard/${item.id}`}
                       className="flex items-center hover:bg-gray-50 p-2 rounded-lg transition-colors w-full text-left"
                     >
-                      {item.avatar_url ? (
-                        <img
-                          className="h-10 w-10 rounded-full mr-3"
-                          src={item.avatar_url}
-                          alt={item.username}
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-gray-300 mr-3 flex items-center justify-center">
-                          <span className="text-sm font-medium text-gray-600">
-                            {item.username.charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                      )}
+                      <div className="h-10 w-10 rounded-full bg-gray-300 mr-3 flex items-center justify-center">
+                        <span className="text-sm font-medium text-gray-600">
+                          {item.username.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
                       <div>
                         <div className="font-medium text-gray-900">{item.username}</div>
                         <div className="text-sm text-gray-500">Click to view dashboard</div>

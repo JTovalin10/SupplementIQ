@@ -283,8 +283,7 @@ Get contributions with pagination.
       "rating": 5,
       "created_at": "2024-01-01T00:00:00Z",
       "users": {
-        "full_name": "John Doe",
-        "avatar_url": "https://example.com/avatar.jpg"
+        "full_name": "John Doe"
       },
       "products": {
         "name": "Whey Protein",
@@ -370,7 +369,6 @@ Get current user's profile.
     "email": "user@example.com",
     "full_name": "John Doe",
     "bio": "Supplement enthusiast",
-    "avatar_url": "https://example.com/avatar.jpg",
     "contributions": [
       {
         "id": "uuid",
@@ -397,8 +395,7 @@ Update current user's profile.
 ```json
 {
   "full_name": "John Smith",
-  "bio": "Updated bio",
-  "avatar_url": "https://example.com/new-avatar.jpg"
+  "bio": "Updated bio"
 }
 ```
 
@@ -409,8 +406,7 @@ Update current user's profile.
   "user": {
     "id": "uuid",
     "full_name": "John Smith",
-    "bio": "Updated bio",
-    "avatar_url": "https://example.com/new-avatar.jpg"
+    "bio": "Updated bio"
   }
 }
 ```

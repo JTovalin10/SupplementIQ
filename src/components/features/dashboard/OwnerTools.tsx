@@ -1,10 +1,12 @@
+import { useAdmin } from '@/lib/contexts/AppContext';
 import { AlertTriangle, Crown, Key, Lock } from 'lucide-react';
 
 interface OwnerToolsProps {
-  onOverridePromote: (userId: string, role: string) => void;
+  // No longer needed - admin functions come from context
 }
 
-export default function OwnerTools({ onOverridePromote }: OwnerToolsProps) {
+export default function OwnerTools({}: OwnerToolsProps) {
+  const { handleOverridePromote, isProcessing } = useAdmin();
   return (
     <div className="bg-white rounded-lg shadow-sm border">
       <div className="px-6 py-4 border-b">
@@ -20,15 +22,17 @@ export default function OwnerTools({ onOverridePromote }: OwnerToolsProps) {
             <p className="text-sm text-gray-700">Bypass contribution requirements for role promotions</p>
             <div className="space-y-2">
               <button
-                onClick={() => onOverridePromote('user123', 'moderator')}
-                className="w-full px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 flex items-center space-x-2"
+                onClick={() => handleOverridePromote('user123', 'moderator')}
+                disabled={isProcessing}
+                className="w-full px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 flex items-center space-x-2 disabled:opacity-50"
               >
                 <Key className="w-4 h-4" />
-                <span>Override Promote to Moderator</span>
+                <span>{isProcessing ? 'Processing...' : 'Override Promote to Moderator'}</span>
               </button>
               <button
-                onClick={() => onOverridePromote('user123', 'admin')}
-                className="w-full px-4 py-2 text-sm font-medium bg-purple-100 text-purple-800 rounded hover:bg-purple-200 flex items-center space-x-2"
+                onClick={() => handleOverridePromote('user123', 'admin')}
+                disabled={isProcessing}
+                className="w-full px-4 py-2 text-sm font-medium bg-purple-100 text-purple-800 rounded hover:bg-purple-200 flex items-center space-x-2 disabled:opacity-50"
               >
                 <Crown className="w-4 h-4" />
                 <span>Override Promote to Admin</span>

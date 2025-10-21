@@ -3,7 +3,7 @@
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useRouter } from 'next/navigation'; // Correct import without NextRouter type
 import { useEffect, useState } from 'react';
-import { useNextAuth } from '../../lib/contexts/NextAuthContext';
+import { useAuth } from '../../lib/contexts/AuthContext';
 
 function redirectToRoleDashboard(userRole: string | undefined, router: any) {
   switch(userRole) {
@@ -31,7 +31,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   
-  const { login, isAuthenticated, user } = useNextAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const router = useRouter();
 
   // Ensure useRouter and redirect is only used once after mount
@@ -154,7 +154,7 @@ export default function LoginPage() {
               </div>
 
               <div className="text-sm">
-                <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
+                <a href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
                   Forgot your password?
                 </a>
               </div>

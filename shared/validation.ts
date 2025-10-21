@@ -67,7 +67,6 @@ export const userValidations = {
   updateProfile: [
     body('full_name').optional().trim().isLength({ min: 2 }).withMessage('Full name must be at least 2 characters'),
     body('bio').optional().isString(),
-    body('avatar_url').optional().isURL().withMessage('Avatar URL must be valid'),
   ],
 };
 
