@@ -1,4 +1,4 @@
-import { getRedisTCP } from '@/../../Database/Redis/client';
+import { getRedisTCP } from '../../../../Database/Redis/client';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/test/redis
