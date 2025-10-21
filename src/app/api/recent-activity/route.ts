@@ -1,4 +1,4 @@
-import { fetchRecentActivity } from '@/lib/services/recent-activity';
+import { fetchRecentActivity } from '@/lib/api/services/recent-activity';
 import { NextResponse } from 'next/server';
 
 // GET /api/recent-activity

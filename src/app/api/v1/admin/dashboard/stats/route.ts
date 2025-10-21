@@ -1,43 +1,60 @@
 import { protectRoute } from '@/lib/auth/jwt-middleware';
+import { supabase } from '@/lib/supabase';
 import { NextResponse } from 'next/server';
-
-// Mock dashboard stats data
-const mockStats = {
-  users: { total: 1250 },
-  pendingSubmissions: [
-    { id: '1', title: 'New Protein Powder', type: 'product' },
-    { id: '2', title: 'Updated Creatine Info', type: 'edit' }
-  ],
-  pendingEdits: [
-    { id: '3', title: 'Vitamin D3 Update', type: 'edit' }
-  ],
-  products: { total: 847 },
-  activity: { recentCount: 23 },
-  systemHealth: {
-    memoryUsage: { heapUsed: 45.2 },
-    cpuUsage: 23.1,
-    uptime: '15 days'
-  }
-};
 
 export const GET = protectRoute(['moderator', 'admin', 'owner'])(
   async (request, user) => {
     try {
       console.log(`[DASHBOARD_STATS] User ${user.userId} (${user.role}) accessing stats`);
 
+      // Fetch real stats from database
+      const [
+        usersResult,
+        pendingSubmissionsResult,
+        productsResult,
+        recentActivityResult
+      ] = await Promise.all([
+        // Total users count
+        supabase
+          .from('users')
+          .select('id', { count: 'exact', head: true }),
+        
+        // Pending submissions count
+        supabase
+          .from('temporary_products')
+          .select('id', { count: 'exact', head: true })
+          .eq('approval_status', 0),
+        
+        // Total products count
+        supabase
+          .from('products')
+          .select('id', { count: 'exact', head: true }),
+        
+        // Recent activity count (last 24 hours)
+        supabase
+          .from('temporary_products')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+      ]);
+
+      const totalUsers = usersResult.count || 0;
+      const pendingSubmissions = pendingSubmissionsResult.count || 0;
+      const totalProducts = productsResult.count || 0;
+      const recentActivity = recentActivityResult.count || 0;
+
       // Owner gets additional system stats
       if (user.role === 'owner') {
         return NextResponse.json({
           success: true,
           data: {
-            totalUsers: mockStats.users.total,
-            pendingSubmissions: mockStats.pendingSubmissions.length,
-            pendingEdits: mockStats.pendingEdits.length,
-            totalProducts: mockStats.products.total,
-            recentActivity: mockStats.activity.recentCount,
-            systemHealth: mockStats.systemHealth.memoryUsage.heapUsed,
-            databaseSize: '2.4 GB',
-            apiCalls: 15420
+            totalUsers,
+            pendingSubmissions,
+            pendingEdits: 0, // TODO: Implement pending edits tracking
+            totalProducts,
+            recentActivity,
+            systemHealth: 95.0, // TODO: Implement real system health monitoring
+            databaseSize: 'Unknown', // TODO: Implement database size calculation
+            apiCalls: 0 // TODO: Implement API call tracking
           }
         });
       }
@@ -46,11 +63,11 @@ export const GET = protectRoute(['moderator', 'admin', 'owner'])(
       return NextResponse.json({
         success: true,
         data: {
-          totalUsers: mockStats.users.total,
-          pendingSubmissions: mockStats.pendingSubmissions.length,
-          pendingEdits: mockStats.pendingEdits.length,
-          totalProducts: mockStats.products.total,
-          recentActivity: mockStats.activity.recentCount
+          totalUsers,
+          pendingSubmissions,
+          pendingEdits: 0, // TODO: Implement pending edits tracking
+          totalProducts,
+          recentActivity
         }
       });
 

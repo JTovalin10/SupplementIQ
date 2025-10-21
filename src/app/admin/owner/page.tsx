@@ -4,7 +4,6 @@ import { useUser } from '@/lib/contexts/AppContext';
 import {
   Activity,
   AlertTriangle,
-  Ban,
   BarChart3,
   CheckCircle,
   Clock,
@@ -12,11 +11,8 @@ import {
   Database,
   FileText,
   Globe,
-  Key,
   Lock,
   Shield,
-  Trash2,
-  UserPlus,
   Users,
   XCircle,
   Zap
@@ -438,39 +434,17 @@ export default function OwnerDashboard() {
                   <div className="space-y-4">
                     <h4 className="text-md font-medium text-black">Promote Users</h4>
                     <div className="space-y-2">
-                      <button
-                        onClick={() => handlePromoteToModerator('user123')}
-                        className="w-full px-4 py-2 text-sm font-medium bg-blue-100 text-blue-800 rounded hover:bg-blue-200 flex items-center space-x-2"
-                      >
-                        <UserPlus className="w-4 h-4" />
-                        <span>Promote to Moderator</span>
-                      </button>
-                      <button
-                        onClick={() => handlePromoteToAdmin('user123')}
-                        className="w-full px-4 py-2 text-sm font-medium bg-purple-100 text-purple-800 rounded hover:bg-purple-200 flex items-center space-x-2"
-                      >
-                        <Crown className="w-4 h-4" />
-                        <span>Promote to Admin</span>
-                      </button>
+                      <p className="text-sm text-gray-600">
+                        Use the User Management component below to promote users.
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-4">
                     <h4 className="text-md font-medium text-black">User Actions</h4>
                     <div className="space-y-2">
-                      <button
-                        onClick={() => handleBanUser('user123')}
-                        className="w-full px-4 py-2 text-sm font-medium bg-red-100 text-red-800 rounded hover:bg-red-200 flex items-center space-x-2"
-                      >
-                        <Ban className="w-4 h-4" />
-                        <span>Ban User</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser('user123')}
-                        className="w-full px-4 py-2 text-sm font-medium bg-red-100 text-red-800 rounded hover:bg-red-200 flex items-center space-x-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                        <span>Delete User</span>
-                      </button>
+                      <p className="text-sm text-gray-600">
+                        Use the User Management component below to manage users.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -494,20 +468,9 @@ export default function OwnerDashboard() {
                     <h4 className="text-md font-medium text-black">Override Promotions</h4>
                     <p className="text-sm text-black">Bypass contribution requirements for role promotions</p>
                     <div className="space-y-2">
-                      <button
-                        onClick={() => handleOverridePromote('user123', 'moderator')}
-                        className="w-full px-4 py-2 text-sm font-medium bg-yellow-100 text-yellow-800 rounded hover:bg-yellow-200 flex items-center space-x-2"
-                      >
-                        <Key className="w-4 h-4" />
-                        <span>Override Promote to Moderator</span>
-                      </button>
-                      <button
-                        onClick={() => handleOverridePromote('user123', 'admin')}
-                        className="w-full px-4 py-2 text-sm font-medium bg-purple-100 text-purple-800 rounded hover:bg-purple-200 flex items-center space-x-2"
-                      >
-                        <Crown className="w-4 h-4" />
-                        <span>Override Promote to Admin</span>
-                      </button>
+                      <p className="text-sm text-gray-600">
+                        Use the User Management component below to override promote users.
+                      </p>
                     </div>
                   </div>
                   <div className="space-y-4">

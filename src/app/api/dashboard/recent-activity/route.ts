@@ -1,4 +1,4 @@
-import { fetchRecentActivity } from '@/lib/services/recent-activity';
+import { fetchRecentActivity } from '@/lib/api/services/recent-activity';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/dashboard/recent-activity?page=1&limit=10

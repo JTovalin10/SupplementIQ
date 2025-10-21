@@ -1,6 +1,6 @@
 'use client';
 
-import { UserPlus, Users } from 'lucide-react';
+import { Search, UserPlus, Users } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 interface User {
@@ -19,10 +19,12 @@ interface CreateUserData {
 
 export default function UserManagement() {
   const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
   const [createForm, setCreateForm] = useState<CreateUserData>({
     email: '',
     username: '',
@@ -33,41 +35,32 @@ export default function UserManagement() {
     fetchUsers();
   }, []);
 
+  // Filter users based on search query
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setFilteredUsers(users);
+    } else {
+      const filtered = users.filter(user => 
+        user.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    }
+  }, [users, searchQuery]);
+
   const fetchUsers = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/users');
-      // const data = await response.json();
+      const response = await fetch('/api/admin/users?page=1&limit=50');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
       
-      // Mock data for now
-      const mockUsers = [
-        {
-          id: '1',
-          email: 'admin@example.com',
-          username: 'admin_user',
-          role: 'admin',
-          createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '2',
-          email: 'mod@example.com',
-          username: 'moderator_user',
-          role: 'moderator',
-          createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: '3',
-          email: 'user@example.com',
-          username: 'regular_user',
-          role: 'user',
-          createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ];
-      
-      setUsers(mockUsers);
+      const data = await response.json();
+      setUsers(data.users || []);
     } catch (err) {
       console.error('Failed to fetch users:', err);
       setError('Failed to load users');
@@ -81,27 +74,26 @@ export default function UserManagement() {
     try {
       setCreateLoading(true);
       
-      // TODO: Replace with actual API call
-      // const response = await fetch('/api/admin/users', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify(createForm)
-      // });
+      const response = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createForm)
+      });
       
-      // Mock creation
-      const newUser = {
-        id: Date.now().toString(),
-        email: createForm.email,
-        username: createForm.username,
-        role: createForm.role,
-        createdAt: new Date().toISOString()
-      };
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create user');
+      }
       
-      setUsers(prev => [...prev, newUser]);
+      const data = await response.json();
+      
+      // Add the new user to the list
+      setUsers(prev => [data.user, ...prev]);
       setCreateForm({ email: '', username: '', role: 'moderator' });
       setShowCreateForm(false);
     } catch (err) {
       console.error('Failed to create user:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create user');
     } finally {
       setCreateLoading(false);
     }
@@ -109,18 +101,24 @@ export default function UserManagement() {
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     try {
-      // TODO: Replace with actual API call
-      // await fetch(`/api/admin/users/${userId}/role`, {
-      //   method: 'PATCH',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ role: newRole })
-      // });
+      const response = await fetch('/api/admin/update-role', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, role: newRole })
+      });
       
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update user role');
+      }
+      
+      // Update the user in the local state
       setUsers(prev => prev.map(user => 
         user.id === userId ? { ...user, role: newRole } : user
       ));
     } catch (err) {
       console.error('Failed to update user role:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update user role');
     }
   };
 
@@ -182,7 +180,7 @@ export default function UserManagement() {
   return (
     <div className="bg-white rounded-lg shadow">
       <div className="px-6 py-4 border-b">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <h3 className="text-lg font-semibold text-gray-900">User Management</h3>
           <button
             onClick={() => setShowCreateForm(!showCreateForm)}
@@ -191,6 +189,20 @@ export default function UserManagement() {
             <UserPlus className="h-4 w-4" />
             <span>Create User</span>
           </button>
+        </div>
+        
+        {/* Search Input */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search by user ID, username, or email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
         </div>
       </div>
 
@@ -218,7 +230,7 @@ export default function UserManagement() {
               <select
                 value={createForm.role}
                 onChange={(e) => setCreateForm(prev => ({ ...prev, role: e.target.value as 'moderator' | 'admin' }))}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="px-3 py-2 border border-gray-300 rounded-lg text-gray-900 bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
                 <option value="moderator">Moderator</option>
                 <option value="admin">Admin</option>
@@ -245,9 +257,16 @@ export default function UserManagement() {
       )}
 
       <div className="p-6">
-        {users.length > 0 ? (
+        {/* Search Results Counter */}
+        {searchQuery.trim() && (
+          <div className="mb-4 text-sm text-gray-600">
+            Found {filteredUsers.length} user{filteredUsers.length !== 1 ? 's' : ''} matching "{searchQuery}"
+          </div>
+        )}
+        
+        {filteredUsers.length > 0 ? (
           <div className="space-y-4">
-            {users.map((user) => (
+            {filteredUsers.map((user) => (
               <div key={user.id} className="border rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -268,7 +287,7 @@ export default function UserManagement() {
                       <select
                         value={user.role}
                         onChange={(e) => handleRoleChange(user.id, e.target.value)}
-                        className="px-2 py-1 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500"
+                        className="px-2 py-1 border border-gray-300 rounded text-sm text-gray-900 bg-white focus:ring-2 focus:ring-blue-500"
                       >
                         <option value="user">User</option>
                         <option value="moderator">Moderator</option>
@@ -281,7 +300,23 @@ export default function UserManagement() {
             ))}
           </div>
         ) : (
-          <p className="text-gray-500">No users found</p>
+          <div className="text-center py-8">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-500">
+              {searchQuery.trim() 
+                ? `No users found matching "${searchQuery}"` 
+                : 'No users found'
+              }
+            </p>
+            {searchQuery.trim() && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="mt-2 text-blue-600 hover:text-blue-700 text-sm"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>
