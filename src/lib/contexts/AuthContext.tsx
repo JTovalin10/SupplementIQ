@@ -184,7 +184,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
           let defaultRole = 'newcomer';
           let reputationPoints = 0;
 
-          if (authUser.email === 'jtovalin10@gmail.com') {
+          // Check for owner email from environment variable
+          const ownerEmail = process.env.NEXT_PUBLIC_OWNER_EMAIL;
+          if (ownerEmail && authUser.email === ownerEmail) {
             defaultRole = 'owner';
             reputationPoints = 1000;
           }
