@@ -62,7 +62,10 @@ export default function RankingTable({
           setError(null);
           
           console.log(`🔍 Fetching rankings: ${cacheKey}`);
-          const response = await fetch(`/api/rankings?${cacheKey}`);
+          const baseUrl = typeof window !== 'undefined' 
+            ? window.location.origin 
+            : process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+          const response = await fetch(`${baseUrl}/api/rankings?${cacheKey}`);
           
           if (!response.ok) {
             throw new Error('Failed to fetch rankings');

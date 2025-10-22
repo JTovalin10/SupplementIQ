@@ -26,8 +26,8 @@ export default function Home() {
               <span className='text-blue-600'>IQ</span>
             </h1>
             <p className='text-xl text-gray-600 mb-8 max-w-3xl mx-auto'>
-              The transparency engine for the supplement industry. Discover real
-              protein content, transparency scores, and make informed supplement
+              The comprehensive supplement database platform. Discover real
+              protein content, ingredient details, and make informed supplement
               choices.
             </p>
             <div className='flex flex-col sm:flex-row gap-4 justify-center'>
@@ -67,10 +67,10 @@ export default function Home() {
                 <Shield className='w-8 h-8 text-blue-600' />
               </div>
               <h3 className='text-xl font-semibold text-gray-900 mb-2'>
-                Transparency First
+                Accurate Information
               </h3>
               <p className='text-gray-600'>
-                Get real protein content and bioavailability scores, not just
+                Get real protein content and ingredient details, not just
                 marketing claims.
               </p>
             </div>
@@ -93,10 +93,10 @@ export default function Home() {
                 <TrendingUp className='w-8 h-8 text-purple-600' />
               </div>
               <h3 className='text-xl font-semibold text-gray-900 mb-2'>
-                Cost Efficiency
+                Value Comparison
               </h3>
               <p className='text-gray-600'>
-                Compare products by cost per effective gram of protein, not just
+                Compare products by value and effectiveness, not just
                 price.
               </p>
             </div>

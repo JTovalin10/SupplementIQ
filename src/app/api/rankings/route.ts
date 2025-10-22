@@ -44,13 +44,14 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
   const offset = (page - 1) * limit;
   const dateFilter = getDateFilter(timeRange);
 
+  // Optimize query - remove exact count for better performance
   let query = supabase
     .from('users')
     .select(`
       id,
       username,
       reputation_points
-    `, { count: 'exact' })
+    `)
     .not('reputation_points', 'is', null)
     .order('reputation_points', { ascending: false })
     .range(offset, offset + limit - 1);
@@ -59,7 +60,7 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
     query = query.gte('created_at', dateFilter.toISOString());
   }
 
-  const { data, error, count } = await query;
+  const { data, error } = await query;
 
   if (error) {
     throw new Error(`Database error: ${error.message}`);
@@ -71,11 +72,13 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
     reputation_points: user.reputation_points || 0,
   }));
 
-  const totalPages = Math.ceil((count || 0) / limit);
+  // Estimate total count for pagination (faster than exact count)
+  const estimatedTotal = rankings.length < limit ? offset + rankings.length : (offset + limit) * 2;
+  const totalPages = Math.ceil(estimatedTotal / limit);
 
   return {
     rankings,
-    totalCount: count || 0,
+    totalCount: estimatedTotal,
     totalPages,
     currentPage: page,
     limit,
@@ -85,12 +88,25 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
   };
 }
 
-// Helper function to get cached data
+// Helper function to get cached data with proper Redis connection
 async function getCachedData(cacheKey: string): Promise<any | null> {
   try {
     const redis = getRedis();
     
+    // Redis should already be connected at startup, but handle edge cases
+    if (redis.status === 'connecting') {
+      console.log(`⏳ Redis connecting, waiting...`);
+      // Wait for connection to complete
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    if (redis.status !== 'ready') {
+      console.log(`❌ Redis not ready (${redis.status}) for ${cacheKey}`);
+      return null;
+    }
+    
     const cached = await redis.get(cacheKey);
+    
     if (cached) {
       const cachedData = JSON.parse(cached);
       
@@ -112,10 +128,17 @@ async function getCachedData(cacheKey: string): Promise<any | null> {
   }
 }
 
-// Helper function to cache data
+// Helper function to cache data with proper Redis connection
 async function cacheData(cacheKey: string, data: any): Promise<void> {
   try {
     const redis = getRedis();
+    
+    // Redis should already be connected at startup
+    if (redis.status !== 'ready') {
+      console.log(`❌ Redis not ready (${redis.status}) for caching ${cacheKey}`);
+      return;
+    }
+    
     await redis.setex(cacheKey, CACHE_TTL, JSON.stringify(data));
     console.log(`💾 Cached rankings data in Redis: ${cacheKey}`);
   } catch (redisError) {
@@ -133,20 +156,37 @@ export async function GET(request: NextRequest) {
     // Generate cache key
     const cacheKey = getCacheKey(timeRange, page, limit);
 
-    // Try to get from cache first
+    // Try to get from cache first (fast path)
     const cachedData = await getCachedData(cacheKey);
     if (cachedData) {
-      return NextResponse.json(cachedData);
+      const response = NextResponse.json(cachedData);
+      // Add cache headers for browser caching
+      response.headers.set('Cache-Control', 'public, max-age=300'); // 5 minutes
+      response.headers.set('X-Cache', 'HIT');
+      return response;
     }
 
-    // Cache miss or stale - fetch from database
+    // Cache miss - fetch from database
     console.log(`🔄 Fetching fresh rankings data from database for ${timeRange}`);
+    const startTime = Date.now();
     const freshData = await fetchRankingsFromDB(timeRange, page, limit);
+    const dbTime = Date.now() - startTime;
+    console.log(`📊 Database query took ${dbTime}ms`);
 
-    // Cache the fresh data
-    await cacheData(cacheKey, freshData);
+    // Cache the fresh data (async, don't wait)
+    const cacheStartTime = Date.now();
+    cacheData(cacheKey, freshData).then(() => {
+      const cacheTime = Date.now() - cacheStartTime;
+      console.log(`💾 Cache write took ${cacheTime}ms`);
+    }).catch(err => 
+      console.warn('Failed to cache:', err)
+    );
 
-    return NextResponse.json(freshData);
+    const response = NextResponse.json(freshData);
+    // Add cache headers for fresh data
+    response.headers.set('Cache-Control', 'public, max-age=60'); // 1 minute
+    response.headers.set('X-Cache', 'MISS');
+    return response;
 
   } catch (error) {
     console.error('Rankings API error:', error);

@@ -68,18 +68,11 @@ export const categoryIngredients: CategoryIngredients = {
       description: 'L-Citrulline for nitric oxide production'
     },
     {
-      name: 'creatine_type_name',
-      label: 'Creatine Type',
-      placeholder: '',
-      unit: '',
-      description: 'Type of creatine used in the pre-workout'
-    },
-    {
-      name: 'creatine_amount_mg',
-      label: 'Creatine Amount',
+      name: 'creatine_monohydrate_mg',
+      label: 'Creatine Monohydrate',
       placeholder: '5000',
       unit: 'mg',
-      description: 'Amount of creatine per serving'
+      description: 'Creatine monohydrate for strength and power'
     },
     {
       name: 'glycerpump_mg',
@@ -227,18 +220,11 @@ export const categoryIngredients: CategoryIngredients = {
       description: 'L-Citrulline for nitric oxide'
     },
     {
-      name: 'creatine_type_name',
-      label: 'Creatine Type',
-      placeholder: '',
-      unit: '',
-      description: 'Type of creatine used in the non-stim pre-workout'
-    },
-    {
-      name: 'creatine_amount_mg',
-      label: 'Creatine Amount',
+      name: 'creatine_monohydrate_mg',
+      label: 'Creatine Monohydrate',
       placeholder: '5000',
       unit: 'mg',
-      description: 'Amount of creatine per serving'
+      description: 'Creatine monohydrate for strength and power'
     },
     {
       name: 'betaine_anhydrous_mg',
@@ -424,18 +410,32 @@ export const categoryIngredients: CategoryIngredients = {
       description: 'L-Valine for muscle metabolism'
     },
     {
-      name: 'betaine_anhydrous_mg',
-      label: 'Betaine Anhydrous',
-      placeholder: '1250',
+      name: 'l_lysine_hcl_mg',
+      label: 'L-Lysine HCL',
+      placeholder: '1000',
       unit: 'mg',
-      description: 'Betaine for power output'
+      description: 'L-Lysine for protein synthesis'
     },
     {
-      name: 'coconut_water_powder_mg',
-      label: 'Coconut Water Powder',
-      placeholder: '250',
+      name: 'l_threonine_mg',
+      label: 'L-Threonine',
+      placeholder: '1000',
       unit: 'mg',
-      description: 'Coconut water powder for electrolytes'
+      description: 'L-Threonine for protein synthesis'
+    },
+    {
+      name: 'l_phenylalanine_mg',
+      label: 'L-Phenylalanine',
+      placeholder: '500',
+      unit: 'mg',
+      description: 'L-Phenylalanine for neurotransmitter synthesis'
+    },
+    {
+      name: 'l_tryptophan_mg',
+      label: 'L-Tryptophan',
+      placeholder: '150',
+      unit: 'mg',
+      description: 'L-Tryptophan for serotonin synthesis'
     },
     {
       name: 'l_histidine_hcl_mg',
@@ -450,6 +450,20 @@ export const categoryIngredients: CategoryIngredients = {
       placeholder: '200',
       unit: 'mg',
       description: 'L-Methionine for protein synthesis'
+    },
+    {
+      name: 'betaine_anhydrous_mg',
+      label: 'Betaine Anhydrous',
+      placeholder: '1250',
+      unit: 'mg',
+      description: 'Betaine for power output'
+    },
+    {
+      name: 'coconut_water_powder_mg',
+      label: 'Coconut Water Powder',
+      placeholder: '250',
+      unit: 'mg',
+      description: 'Coconut water powder for electrolytes'
     },
     {
       name: 'astragin_mg',
@@ -563,20 +577,6 @@ export const categoryIngredients: CategoryIngredients = {
       description: 'Whether the product is stimulant-based or stim-free'
     },
     {
-      name: 'caffeine_anhydrous_mg',
-      label: 'Caffeine Anhydrous',
-      placeholder: '200',
-      unit: 'mg',
-      description: 'Caffeine for thermogenesis and energy'
-    },
-    {
-      name: 'green_tea_extract_mg',
-      label: 'Green Tea Extract',
-      placeholder: '400',
-      unit: 'mg',
-      description: 'EGCG for fat oxidation'
-    },
-    {
       name: 'l_carnitine_l_tartrate_mg',
       label: 'L-Carnitine L-Tartrate',
       placeholder: '1000',
@@ -584,18 +584,11 @@ export const categoryIngredients: CategoryIngredients = {
       description: 'L-Carnitine for fat transport'
     },
     {
-      name: 'ksm66_ashwagandha_mg',
-      label: 'KSM-66 Ashwagandha',
-      placeholder: '600',
+      name: 'green_tea_extract_mg',
+      label: 'Green Tea Extract',
+      placeholder: '400',
       unit: 'mg',
-      description: 'Ashwagandha for stress management'
-    },
-    {
-      name: 'five_htp_mg',
-      label: '5-HTP',
-      placeholder: '100',
-      unit: 'mg',
-      description: '5-HTP for appetite suppression'
+      description: 'EGCG for fat oxidation'
     },
     {
       name: 'capsimax_mg',
@@ -610,6 +603,13 @@ export const categoryIngredients: CategoryIngredients = {
       placeholder: '50',
       unit: 'mg',
       description: 'Grains of paradise for fat burning'
+    },
+    {
+      name: 'ksm66_ashwagandha_mg',
+      label: 'KSM-66 Ashwagandha',
+      placeholder: '600',
+      unit: 'mg',
+      description: 'Ashwagandha for stress management'
     },
     {
       name: 'kelp_extract_mcg',
@@ -633,6 +633,20 @@ export const categoryIngredients: CategoryIngredients = {
       description: 'Zinc for metabolism support'
     },
     {
+      name: 'five_htp_mg',
+      label: '5-HTP',
+      placeholder: '100',
+      unit: 'mg',
+      description: '5-HTP for appetite suppression'
+    },
+    {
+      name: 'caffeine_anhydrous_mg',
+      label: 'Caffeine Anhydrous',
+      placeholder: '200',
+      unit: 'mg',
+      description: 'Caffeine for thermogenesis and energy'
+    },
+    {
       name: 'halostachine_mg',
       label: 'Halostachine',
       placeholder: '50',
@@ -645,6 +659,13 @@ export const categoryIngredients: CategoryIngredients = {
       placeholder: '3',
       unit: 'mcg',
       description: 'Rauwolscine for fat burning'
+    },
+    {
+      name: 'bioperine_mg',
+      label: 'Bioperine',
+      placeholder: '5',
+      unit: 'mg',
+      description: 'Black pepper extract for absorption'
     }
   ],
 

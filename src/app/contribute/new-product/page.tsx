@@ -1,22 +1,23 @@
 'use client';
 
+import ProductFormWrapper from '@/components/forms/ProductFormWrapper';
 import Alert from '@/components/ui/alert';
 import Button from '@/components/ui/button';
 import Card from '@/components/ui/card';
 import Input from '@/components/ui/input';
 import Select from '@/components/ui/select';
 import WifiLoader from '@/components/ui/wifi-loader';
-import { categoryIngredients, creatineTypes, IngredientField, specialFields } from '@/lib/config/data/ingredients';
 import { useAuth, useUser } from '@/lib/contexts/AppContext';
 import { ArrowLeft, Plus } from 'lucide-react';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 
 export default function NewProductPage() {
   const { isAuthenticated } = useAuth();
   const { user } = useUser();
   const [userProfile, setUserProfile] = useState<{ reputation_points: number; role: string } | null>(null);
   const [canSubmitImageUrl, setCanSubmitImageUrl] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -27,14 +28,7 @@ export default function NewProductPage() {
     }
   }, [isAuthenticated]);
 
-  // Fetch user profile to check reputation points
-  useEffect(() => {
-    if (isAuthenticated && user?.id) {
-      fetchUserProfile();
-    }
-  }, [isAuthenticated, user?.id]);
-
-  const fetchUserProfile = async () => {
+  const fetchUserProfile = useCallback(async () => {
     try {
       const response = await fetch('/api/v1/users/profile');
       
@@ -44,14 +38,26 @@ export default function NewProductPage() {
         setUserProfile(profile);
         
         // Check if user can submit image URLs (1000+ points OR admin/owner/moderator)
+        console.log('User profile:', profile);
+        console.log('User role:', profile.role);
+        console.log('Reputation points:', profile.reputation_points);
+        
         const canSubmit = profile.reputation_points >= 1000 || 
           ['admin', 'owner', 'moderator'].includes(profile.role);
+        console.log('Can submit image URL:', canSubmit);
         setCanSubmitImageUrl(canSubmit);
       }
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
     }
-  };
+  }, []);
+
+  // Fetch user profile to check reputation points
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      fetchUserProfile();
+    }
+  }, [isAuthenticated, user?.id, fetchUserProfile]);
 
   const [formData, setFormData] = useState<Record<string, string>>({
     name: '',
@@ -65,7 +71,6 @@ export default function NewProductPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [submitError, setSubmitError] = useState<string>('');
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   const categories = [
     'protein',
@@ -176,60 +181,10 @@ export default function NewProductPage() {
     });
   };
 
-  const renderIngredientField = (ingredient: IngredientField) => {
-    const value = formData[ingredient.name] || '';
-    const isNotInProduct = value === 'not_in_product';
-    const isNotSpecified = value === 'not_specified';
-    
-    return (
-      <div>
-        <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
-          {ingredient.label} ({ingredient.unit})
-        </label>
-        <div className="flex gap-2">
-          <input
-            type="number"
-            id={ingredient.name}
-            name={ingredient.name}
-            step={ingredient.step || "1"}
-            value={isNotInProduct || isNotSpecified ? '' : value}
-            onChange={handleInputChange}
-            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-            placeholder={ingredient.placeholder}
-            disabled={isNotInProduct || isNotSpecified}
-            required={ingredient.required}
-          />
-          <button
-            type="button"
-            onClick={() => handleIngredientAction(ingredient.name, 'not_in_product')}
-            className={`px-3 py-2 text-xs rounded-lg border ${
-              isNotInProduct 
-                ? 'bg-red-100 border-red-300 text-red-700' 
-                : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Not in product
-          </button>
-          <button
-            type="button"
-            onClick={() => handleIngredientAction(ingredient.name, 'not_specified')}
-            className={`px-3 py-2 text-xs rounded-lg border ${
-              isNotSpecified 
-                ? 'bg-yellow-100 border-yellow-300 text-yellow-700' 
-                : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-            }`}
-          >
-            Not specified
-          </button>
-        </div>
-        {ingredient.description && (
-          <p className="text-sm text-gray-500 mt-1">
-            {ingredient.description}
-          </p>
-        )}
-      </div>
-    );
-  };
+  // Stabilize the callback to prevent infinite loops
+  const handleFormChange = useCallback((updatedFormData: Record<string, string>) => {
+    setFormData(prev => ({ ...prev, ...updatedFormData }));
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -359,9 +314,9 @@ export default function NewProductPage() {
           <Card padding="lg">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Product Information</h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-6 md:grid-cols-1">
               {/* Product Name */}
-              <div className="md:col-span-2">
+              <div className="col-span-2 md:col-span-1">
                 <Input
                   label="Product Name"
                   name="name"
@@ -403,7 +358,7 @@ export default function NewProductPage() {
 
               {/* Image URL - Only show if user has permission */}
               {canSubmitImageUrl ? (
-                <div className="md:col-span-2">
+                <div className="col-span-2 md:col-span-1">
                   <Input
                     label="Official Product Image URL"
                     name="imageUrl"
@@ -437,166 +392,16 @@ export default function NewProductPage() {
               {formData.category ? `${formData.category.charAt(0).toUpperCase() + formData.category.slice(1).replace('-', ' ')} Information` : 'Nutrition Information'}
             </h2>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Dynamic Fields Based on Category */}
-              {formData.category && categoryIngredients[formData.category] && (
-                <>
-                  {/* Render special fields first (like protein claim/effective protein) */}
-                  {specialFields[formData.category] && 
-                    specialFields[formData.category].map((field) => (
-                      <div key={field.name}>
-                        <label htmlFor={field.name} className="block text-sm font-medium text-black mb-2">
-                          {field.label} ({field.unit}){field.required && ' *'}
-                    </label>
-                    <input
-                      type="number"
-                          id={field.name}
-                          name={field.name}
-                          required={field.required}
-                          step={field.step || "0.1"}
-                          value={formData[field.name] || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                          placeholder={field.placeholder}
-                        />
-                        {field.description && (
-                          <p className="text-sm text-gray-500 mt-1">
-                            {field.description}
-                          </p>
-                        )}
-                  </div>
-                    ))
-                  }
-
-                  {/* Render regular ingredient fields */}
-                  {categoryIngredients[formData.category].map((ingredient) => {
-                    // Handle special cases for dropdowns
-                    if (ingredient.name === 'stimulant_based') {
-                      return (
-                        <div key={ingredient.name}>
-                          <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
-                            {ingredient.label}
-                    </label>
-                    <select
-                            id={ingredient.name}
-                            name={ingredient.name}
-                            value={formData[ingredient.name] || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                    >
-                      <option value="">Select type</option>
-                      <option value="true">Stimulant Based</option>
-                      <option value="false">Stim-Free</option>
-                    </select>
-                          {ingredient.description && (
-                            <p className="text-sm text-gray-500 mt-1">
-                              {ingredient.description}
-                            </p>
-                          )}
-                  </div>
-                      );
-                    }
-
-                    if (ingredient.name === 'creatine_type_name') {
-                      return (
-                        <div key={ingredient.name}>
-                          <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
-                            {ingredient.label}{ingredient.required && ' *'}
-                    </label>
-                    <select
-                            id={ingredient.name}
-                            name={ingredient.name}
-                            required={ingredient.required}
-                            value={formData[ingredient.name] || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black"
-                    >
-                      <option value="">Select creatine type</option>
-                            <option value="">No Creatine</option>
-                            {creatineTypes.map((type) => (
-                              <option key={type.value} value={type.value}>
-                                {type.label}
-                              </option>
-                            ))}
-                    </select>
-                          {ingredient.description && (
-                    <p className="text-sm text-gray-500 mt-1">
-                              {ingredient.description}
-                    </p>
-                          )}
-                  </div>
-                      );
-                    }
-
-                    if (ingredient.name === 'creatine_amount_mg') {
-                      const creatineType = formData['creatine_type_name'] || '';
-                      const isNotInProduct = formData[ingredient.name] === 'not_in_product';
-                      const isNotSpecified = formData[ingredient.name] === 'not_specified';
-                      
-                      return (
-                        <div key={ingredient.name}>
-                          <label htmlFor={ingredient.name} className="block text-sm font-medium text-black mb-2">
-                            {ingredient.label} ({ingredient.unit})
-                    </label>
-                          <div className="flex gap-2">
-                    <input
-                      type="number"
-                              id={ingredient.name}
-                              name={ingredient.name}
-                      step="1"
-                              value={isNotInProduct || isNotSpecified ? '' : (formData[ingredient.name] || '')}
-                      onChange={handleInputChange}
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-black placeholder:text-gray-400"
-                              placeholder={creatineType ? ingredient.placeholder : '0'}
-                              disabled={isNotInProduct || isNotSpecified || !creatineType}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleIngredientAction(ingredient.name, 'not_in_product')}
-                              className={`px-3 py-2 text-xs rounded-lg border ${
-                                isNotInProduct 
-                                  ? 'bg-red-100 border-red-300 text-red-700' 
-                                  : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              Not in product
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleIngredientAction(ingredient.name, 'not_specified')}
-                              className={`px-3 py-2 text-xs rounded-lg border ${
-                                isNotSpecified 
-                                  ? 'bg-yellow-100 border-yellow-300 text-yellow-700' 
-                                  : 'bg-gray-50 border-gray-300 text-gray-700 hover:bg-gray-100'
-                              }`}
-                            >
-                              Not specified
-                            </button>
-                          </div>
-                          {ingredient.description && (
-                    <p className="text-sm text-gray-500 mt-1">
-                              {ingredient.description}
-                              {creatineType && (
-                                <span className="block mt-1">
-                                  Selected: {creatineType}
-                                </span>
-                              )}
-                            </p>
-                          )}
-                  </div>
-                      );
-                    }
-
-                    // Render regular ingredient fields
-                    return renderIngredientField(ingredient);
-                  })}
-                </>
-              )}
-            </div>
+            {/* Use the ProductFormWrapper with reducer-based context - zero prop drilling */}
+            <ProductFormWrapper
+              category={formData.category}
+              initialFormData={formData}
+              onFormChange={handleFormChange}
+            />
           </Card>
 
           {/* Submit Button */}
-          <div className="flex justify-end space-x-4">
+          <div className="flex flex-col md:flex-row justify-end space-y-4 md:space-y-0 md:space-x-4">
             <Link href="/contribute">
               <Button variant="outline" size="lg">
               Cancel

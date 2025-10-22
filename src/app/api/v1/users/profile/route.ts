@@ -74,8 +74,14 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Add role from JWT token's app_metadata
+    const profileWithRole = {
+      ...data,
+      role: user.app_metadata?.role || data.role || 'user'
+    };
+
     return NextResponse.json({
-      profile: data,
+      profile: profileWithRole,
     });
 
   } catch (error) {

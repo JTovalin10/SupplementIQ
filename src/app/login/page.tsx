@@ -1,26 +1,20 @@
 'use client';
 
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { useRouter } from 'next/navigation'; // Correct import without NextRouter type
+import { useRouter, useSearchParams } from 'next/navigation'; // Correct import without NextRouter type
 import { useEffect, useState } from 'react';
 import { useAuth } from '../../lib/contexts/AuthContext';
 
-function redirectToRoleDashboard(userRole: string | undefined, router: any) {
-  switch(userRole) {
-    case 'owner':
-      router.push('/owner');
-      break;
-    case 'admin':
-      router.push('/admin');
-      break;
-    case 'moderator':
-      router.push('/moderator');
-      break;
-    case 'user':
-      router.push('/user');
-      break;
-    default:
-      router.push('/');
+function redirectAfterLogin(router: any, searchParams: URLSearchParams) {
+  // Check for redirect parameter in URL
+  const redirectTo = searchParams.get('redirect');
+  
+  if (redirectTo) {
+    console.log('Redirecting to:', redirectTo);
+    router.push(redirectTo);
+  } else {
+    console.log('Redirecting to home page');
+    router.push('/');
   }
 }
 
@@ -33,14 +27,14 @@ export default function LoginPage() {
   
   const { login, isAuthenticated, user } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Ensure useRouter and redirect is only used once after mount
   useEffect(() => {
     if (isAuthenticated && user?.role) {
-      console.log('Redirecting to dashboard for role:', user.role);
-      redirectToRoleDashboard(user.role, router);
+      redirectAfterLogin(router, searchParams);
     }
-  }, [isAuthenticated, user?.role, router]);
+  }, [isAuthenticated, user?.role, router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

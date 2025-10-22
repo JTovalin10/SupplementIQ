@@ -1,6 +1,6 @@
 'use client';
 
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/database/supabase/client';
 import { Ability, AbilityBuilder } from '@casl/ability';
 import { createContextualCan } from '@casl/react';
 import type { Session, User } from '@supabase/supabase-js';
@@ -134,13 +134,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔍 Auth state change:', event);
+      console.log('🔍 Auth state change:', event, 'Session:', !!session, 'User:', !!session?.user);
       
       setSession(session);
       
       if (session?.user) {
+        console.log('🔍 User authenticated, fetching profile...');
         await fetchUserProfile(session.user);
       } else {
+        console.log('🔍 User not authenticated, clearing state...');
         setUser(null);
         setAbility(defineAbilitiesFor('newcomer'));
         setIsLoading(false);
@@ -374,9 +376,34 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async (): Promise<void> => {
     try {
-      await supabase.auth.signOut();
+      console.log('🔍 Starting logout process...');
+      
+      // Sign out from Supabase - this handles all cookie cleanup automatically
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Logout error:', error);
+        throw error;
+      }
+      
+      console.log('✅ Logout completed successfully');
+      
+      // Redirect to home page
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     } catch (error) {
       console.error('Logout error:', error);
+      
+      // Even if there's an error, clear local state
+      setUser(null);
+      setSession(null);
+      setAbility(defineAbilitiesFor('newcomer'));
+      setIsLoading(false);
+      
+      if (typeof window !== 'undefined') {
+        window.location.href = '/';
+      }
     }
   };
 

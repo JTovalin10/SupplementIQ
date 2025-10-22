@@ -1,11 +1,21 @@
-import { CacheEntry } from '../types';
+/**
+ * Cache entry interface
+ */
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+  hits: number;
+}
 
 /**
- * In-memory cache implementation for SupplementIQ
- * Provides atomic operations and TTL support
+ * Enhanced in-memory cache implementation for SupplementIQ
+ * Provides atomic operations, TTL support, and dependency tracking
  */
 class SupplementIQCache {
   private cache = new Map<string, CacheEntry<any>>();
+  private dependencies = new Map<string, Set<string>>(); // key -> dependencies
+  private dependents = new Map<string, Set<string>>(); // dependency -> keys that depend on it
   private maxSize: number;
   private defaultTTL: number;
 
@@ -15,7 +25,7 @@ class SupplementIQCache {
   }
 
   /**
-   * Get value from cache
+   * Get value from cache with dependency tracking
    */
   get<T>(key: string): T | null {
     const entry = this.cache.get(key);
@@ -26,7 +36,7 @@ class SupplementIQCache {
 
     // Check if expired
     if (Date.now() - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
+      this.delete(key);
       return null;
     }
 
@@ -36,13 +46,21 @@ class SupplementIQCache {
   }
 
   /**
-   * Set value in cache
+   * Set value in cache with optional dependencies
    */
-  set<T>(key: string, data: T, ttl?: number): void {
+  set<T>(key: string, data: T, ttl?: number, dependencies: string[] = []): void {
     // Remove oldest entries if cache is full
     if (this.cache.size >= this.maxSize) {
       this.evictOldest();
     }
+
+    // Clear existing dependencies
+    this.clearDependencies(key);
+
+    // Set new dependencies
+    dependencies.forEach(dep => {
+      this.addDependency(key, dep);
+    });
 
     const entry: CacheEntry<T> = {
       data,
@@ -55,9 +73,10 @@ class SupplementIQCache {
   }
 
   /**
-   * Delete value from cache
+   * Delete value from cache and clean up dependencies
    */
   delete(key: string): boolean {
+    this.clearDependencies(key);
     return this.cache.delete(key);
   }
 
@@ -66,10 +85,67 @@ class SupplementIQCache {
    */
   clear(): void {
     this.cache.clear();
+    this.dependencies.clear();
+    this.dependents.clear();
   }
 
   /**
-   * Get cache statistics
+   * Invalidate cache entries by dependency
+   */
+  invalidateByDependency(dependency: string): number {
+    const keysToInvalidate = this.dependents.get(dependency) || new Set();
+    let invalidated = 0;
+
+    for (const key of keysToInvalidate) {
+      if (this.cache.delete(key)) {
+        invalidated++;
+      }
+    }
+
+    // Clear dependency tracking
+    this.dependents.delete(dependency);
+    
+    return invalidated;
+  }
+
+  /**
+   * Add dependency relationship
+   */
+  private addDependency(key: string, dependency: string): void {
+    // Add to dependencies map
+    if (!this.dependencies.has(key)) {
+      this.dependencies.set(key, new Set());
+    }
+    this.dependencies.get(key)!.add(dependency);
+
+    // Add to dependents map
+    if (!this.dependents.has(dependency)) {
+      this.dependents.set(dependency, new Set());
+    }
+    this.dependents.get(dependency)!.add(key);
+  }
+
+  /**
+   * Clear all dependencies for a key
+   */
+  private clearDependencies(key: string): void {
+    const deps = this.dependencies.get(key);
+    if (deps) {
+      for (const dep of deps) {
+        const dependents = this.dependents.get(dep);
+        if (dependents) {
+          dependents.delete(key);
+          if (dependents.size === 0) {
+            this.dependents.delete(dep);
+          }
+        }
+      }
+      this.dependencies.delete(key);
+    }
+  }
+
+  /**
+   * Get cache statistics with dependency information
    */
   getStats() {
     const entries = Array.from(this.cache.values());
@@ -85,6 +161,8 @@ class SupplementIQCache {
         this.cache.size > 0
           ? Math.round((totalHits / (totalHits + this.cache.size)) * 100) / 100
           : 0,
+      dependencies: this.dependencies.size,
+      dependents: this.dependents.size,
     };
   }
 
@@ -103,7 +181,7 @@ class SupplementIQCache {
     if (!entry) return false;
 
     if (Date.now() - entry.timestamp > entry.ttl) {
-      this.cache.delete(key);
+      this.delete(key);
       return false;
     }
 
@@ -125,7 +203,7 @@ class SupplementIQCache {
     }
 
     if (oldestKey) {
-      this.cache.delete(oldestKey);
+      this.delete(oldestKey);
     }
   }
 
@@ -138,7 +216,7 @@ class SupplementIQCache {
 
     for (const [key, entry] of this.cache.entries()) {
       if (now - entry.timestamp > entry.ttl) {
-        this.cache.delete(key);
+        this.delete(key);
         cleaned++;
       }
     }
@@ -171,12 +249,13 @@ export const cacheKeys = {
 };
 
 /**
- * Cache wrapper for async functions
+ * Enhanced cache wrapper for async functions with dependency tracking
  */
 export function withCache<T>(
   key: string,
   fn: () => Promise<T>,
-  ttl?: number
+  ttl?: number,
+  dependencies: string[] = []
 ): Promise<T> {
   return new Promise(async (resolve, reject) => {
     // Try to get from cache first
@@ -187,9 +266,9 @@ export function withCache<T>(
     }
 
     try {
-      // Execute function and cache result
+      // Execute function and cache result with dependencies
       const result = await fn();
-      cache.set(key, result, ttl);
+      cache.set(key, result, ttl, dependencies);
       resolve(result);
     } catch (error) {
       reject(error);
@@ -198,7 +277,7 @@ export function withCache<T>(
 }
 
 /**
- * Invalidate cache entries by pattern
+ * Enhanced cache invalidation with dependency support
  */
 export function invalidatePattern(pattern: string): number {
   const keys = cache.keys();
@@ -215,16 +294,29 @@ export function invalidatePattern(pattern: string): number {
 }
 
 /**
- * Warm cache with popular data
+ * Invalidate cache entries by dependency
+ */
+export function invalidateByDependency(dependency: string): number {
+  return cache.invalidateByDependency(dependency);
+}
+
+/**
+ * Enhanced cache warming with dependency tracking
  */
 export async function warmCache(): Promise<void> {
-  // This would be called during app startup or scheduled jobs
-  // Implementation depends on your data fetching functions
   console.log('Cache warming initiated...');
+  
+  try {
+    // Warm cache with proper dependency tracking
+    const warmingTasks = [
+      // Example: Pre-load popular products with user dependency
+      // withCache(cacheKeys.product('popular'), loadPopularProducts, 3600, ['users']),
+      // withCache(cacheKeys.ingredients(), loadAllIngredients, 7200, ['products']),
+    ];
 
-  // Example: Pre-load popular products, ingredients, etc.
-  // await loadPopularProducts();
-  // await loadAllIngredients();
-
-  console.log('Cache warming completed');
+    await Promise.all(warmingTasks);
+    console.log('Cache warming completed');
+  } catch (error) {
+    console.error('Cache warming failed:', error);
+  }
 }
