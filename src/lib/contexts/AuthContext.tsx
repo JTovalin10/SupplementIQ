@@ -21,7 +21,7 @@ interface AuthContextType {
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: UserProfile) => void;
@@ -113,6 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [ability, setAbility] = useState<Ability>(defineAbilitiesFor('newcomer'));
+  const [profileCache, setProfileCache] = useState<Map<string, UserProfile>>(new Map());
 
   const isAuthenticated = !!user && !!session;
 
@@ -134,15 +135,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('🔍 Auth state change:', event, 'Session:', !!session, 'User:', !!session?.user);
+      // Only log significant auth changes
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        console.log('🔍 Auth state change:', event, 'Session:', !!session, 'User:', !!session?.user);
+      }
       
       setSession(session);
       
       if (session?.user) {
-        console.log('🔍 User authenticated, fetching profile...');
-        await fetchUserProfile(session.user);
+        // Check if we already have user data to avoid unnecessary profile fetch
+        const existingUser = profileCache.get(session.user.id);
+        if (existingUser) {
+          setUser(existingUser);
+          setAbility(defineAbilitiesFor(existingUser.role));
+          setIsLoading(false);
+        } else {
+          await fetchUserProfile(session.user);
+        }
       } else {
-        console.log('🔍 User not authenticated, clearing state...');
         setUser(null);
         setAbility(defineAbilitiesFor('newcomer'));
         setIsLoading(false);
@@ -154,178 +164,125 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const fetchUserProfile = async (authUser: User): Promise<boolean> => {
     try {
-      console.log('🔍 Fetching profile for user:', authUser.id);
-      
-      // Use Supabase's built-in auth - it automatically handles JWT tokens
+      // Check cache first
+      const cachedProfile = profileCache.get(authUser.id);
+      if (cachedProfile) {
+        setUser(cachedProfile);
+        setAbility(defineAbilitiesFor(cachedProfile.role));
+        setIsLoading(false);
+        return true;
+      }
+
+      // Fetch user profile from database
       const { data: profile, error } = await supabase
         .from('users')
         .select('role, username, bio, reputation_points, created_at')
         .eq('id', authUser.id)
         .single();
 
-      console.log('🔍 Profile query result:', {
-        hasProfile: !!profile,
-        hasError: !!error,
-        errorCode: error?.code,
-        errorMessage: error?.message
-      });
-
       if (error) {
-        console.error('🔍 ERROR DETAILS:');
-        console.error('Message:', error.message);
-        console.error('Code:', error.code);
-        console.error('Details:', error.details);
-        console.error('Hint:', error.hint);
-        console.error('Full Error Object:', JSON.stringify(error, null, 2));
+        console.error('Profile fetch error:', error.message);
         
-        // Only handle specific "user not found" error
-        if (error.code === 'PGRST116') { // No rows returned
-          console.log('✅ User not found in users table, creating default profile...');
-
-          // Default role for new users
-          let defaultRole = 'newcomer';
-          let reputationPoints = 0;
-
-          // For now, use a temporary username - this should be set during registration
-          // TODO: Require username during signup process
-          const tempUsername = `user_${authUser.id.slice(0, 8)}`;
-          
-          const defaultProfile = {
-            id: authUser.id,
-            email: authUser.email || '',
-            role: defaultRole,
-            username: tempUsername,
-            bio: '',
-            reputation_points: reputationPoints,
-            created_at: new Date().toISOString(),
-          };
-
-          // Create user profile using Supabase's built-in auth
-          console.log('🔍 Creating user profile...');
-          
-          const { error: insertError } = await supabase
-            .from('users')
-            .insert({
-              id: authUser.id,
-              email: authUser.email,
-              username: defaultProfile.username,
-              role: defaultRole,
-              reputation_points: reputationPoints,
-            });
-
-          if (insertError) {
-            console.error('❌ Error creating user profile:', {
-              message: insertError.message,
-              code: insertError.code,
-              details: insertError.details,
-              hint: insertError.hint
-            });
-            // Use default profile even if insert fails
-            setUser(defaultProfile);
-            setAbility(defineAbilitiesFor(defaultRole));
-            return true; // Profile created successfully
-          } else {
-            console.log('✅ User profile created successfully');
-            setUser(defaultProfile);
-            setAbility(defineAbilitiesFor(defaultRole));
-            return true; // Profile created successfully
-          }
-        } else {
-          // Other errors - log and fail gracefully
-          console.error('❌ This is not a "user not found" error, failing authentication');
-          
-          // Don't create a default profile for other errors
+        // If user not found, return false - profile should only be created during signup
+        if (error.code === 'PGRST116') {
+          console.error('❌ User profile not found in database. User must sign up first.');
           setUser(null);
           setAbility(defineAbilitiesFor('newcomer'));
-          return false; // Profile fetch failed
+          setIsLoading(false);
+          return false;
         }
-      } else if (profile) {
-        // Profile found successfully
-        const userProfile = {
-          id: authUser.id,
-          email: authUser.email || '',
-          role: profile.role,
-          username: profile.username,
-          bio: profile.bio,
-          reputation_points: profile.reputation_points,
-          created_at: profile.created_at,
-        };
+        
+        // For other database errors, also fail
+        console.error('❌ Database error during profile fetch:', error);
+        setUser(null);
+        setAbility(defineAbilitiesFor('newcomer'));
+        setIsLoading(false);
+        return false;
+      }
 
-        setUser(userProfile);
-        setAbility(defineAbilitiesFor(profile.role));
-        return true; // Profile fetched successfully
+      // Profile found successfully
+      const userProfile = {
+        id: authUser.id,
+        email: authUser.email || '',
+        role: profile.role,
+        username: profile.username,
+        bio: profile.bio,
+        reputation_points: profile.reputation_points,
+        created_at: profile.created_at
+      };
+
+      setUser(userProfile);
+      setAbility(defineAbilitiesFor(userProfile.role));
+      setIsLoading(false);
+      profileCache.set(authUser.id, userProfile);
+      return true;
+    } catch (error) {
+      console.error('❌ Unexpected error in fetchUserProfile:', error);
+      
+      // More detailed error logging
+      if (error instanceof Error) {
+        console.error('Error message:', error.message);
+        console.error('Error stack:', error.stack);
+      } else {
+        console.error('Non-Error object:', error);
       }
       
-      return false; // No profile found
-    } catch (error) {
-      console.error('❌ Unexpected error in fetchUserProfile:', {
-        message: error instanceof Error ? error.message : 'Unknown error',
-        stack: error instanceof Error ? error.stack : undefined,
-        fullError: JSON.stringify(error, null, 2)
-      });
-      // Fallback to default profile
+      // Fallback to default profile with newcomer role
       const defaultProfile = {
         id: authUser.id,
         email: authUser.email || '',
-        role: 'newcomer',
+        role: 'newcomer', // Safe default role
         username: authUser.email?.split('@')[0] || 'user',
         bio: '',
-        reputation_points: 0,
+        reputation_points: 0, // Safe default reputation
         created_at: new Date().toISOString(),
       };
+      
+      console.log('🔧 Using fallback profile with newcomer role');
       setUser(defaultProfile);
       setAbility(defineAbilitiesFor('newcomer'));
+      
+      // Cache the fallback profile
+      setProfileCache(prev => new Map(prev).set(authUser.id, defaultProfile));
+      
       return false; // Profile fetch failed
     } finally {
       setIsLoading(false);
     }
   };
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string, rememberMe: boolean = false): Promise<{ success: boolean; error?: string }> => {
     try {
+      console.log('🔍 Login attempt with rememberMe:', rememberMe);
+      
+      // If user is already logged in and trying to log in with different credentials,
+      // sign them out first to ensure clean state
+      if (session?.user && session.user.email !== email.toLowerCase().trim()) {
+        console.log('🔍 Different user detected, signing out current session first...');
+        await supabase.auth.signOut({ scope: 'local' });
+      }
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.toLowerCase().trim(),
         password,
       });
 
       if (error) {
+        console.error('🔍 Login error:', error.message);
+        
+        // Handle specific authentication errors with user-friendly messages
+        if (error.message.includes('Invalid login credentials') || 
+            error.message.includes('Email not confirmed') ||
+            error.message.includes('User not found')) {
+          return { success: false, error: 'Invalid email or password. Please check your credentials or sign up if you don\'t have an account.' };
+        }
+        
         return { success: false, error: error.message };
       }
 
-      // Wait for the auth state change to complete and profile to be fetched
-      return new Promise((resolve) => {
-        const timeout = setTimeout(() => {
-          resolve({ success: false, error: 'Login timeout - please try again' });
-        }, 10000); // 10 second timeout
-
-        // Listen for auth state change
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (event === 'SIGNED_IN' && session?.user) {
-            try {
-              // Wait for profile to be fetched
-              const profileSuccess = await fetchUserProfile(session.user);
-              
-              clearTimeout(timeout);
-              subscription.unsubscribe();
-              
-              if (profileSuccess) {
-                resolve({ success: true });
-              } else {
-                resolve({ success: false, error: 'Failed to load user profile' });
-              }
-            } catch (profileError) {
-              clearTimeout(timeout);
-              subscription.unsubscribe();
-              console.error('Profile fetch error during login:', profileError);
-              resolve({ success: false, error: 'Failed to load user profile' });
-            }
-          } else if (event === 'SIGNED_OUT') {
-            clearTimeout(timeout);
-            subscription.unsubscribe();
-            resolve({ success: false, error: 'Authentication failed' });
-          }
-        });
-      });
+      // If authentication successful, let the auth state change handler deal with profile loading
+      console.log('✅ Login completed successfully');
+      return { success: true };
     } catch (error) {
       console.error('Login error:', error);
       return { success: false, error: 'Network error occurred' };
@@ -378,8 +335,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       console.log('🔍 Starting logout process...');
       
-      // Sign out from Supabase - this handles all cookie cleanup automatically
-      const { error } = await supabase.auth.signOut();
+      // Sign out from Supabase with scope 'local' to clear all sessions
+      // This ensures the user is logged out regardless of "Remember Me" setting
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
       
       if (error) {
         console.error('Logout error:', error);
@@ -387,6 +345,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       
       console.log('✅ Logout completed successfully');
+      
+      // Clear local state immediately
+      setUser(null);
+      setSession(null);
+      setAbility(defineAbilitiesFor('newcomer'));
+      setIsLoading(false);
       
       // Redirect to home page
       if (typeof window !== 'undefined') {

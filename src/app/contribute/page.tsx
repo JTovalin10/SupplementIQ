@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/contexts/AppContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { useState } from 'react';
 
 // Import new components

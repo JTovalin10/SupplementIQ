@@ -1,5 +1,4 @@
-import { protectRoute } from '@/lib/auth/jwt-middleware';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Mock pending submissions data
 const mockPendingSubmissions = [
@@ -37,10 +36,8 @@ const mockPendingSubmissions = [
   }
 ];
 
-export const GET = protectRoute(['moderator', 'admin', 'owner'])(
-  async (request, user) => {
+export async function GET(request: NextRequest) {
     try {
-      console.log(`[PENDING_SUBMISSIONS] User ${user.userId} (${user.role}) accessing pending submissions`);
 
       return NextResponse.json({
         success: true,
@@ -54,5 +51,4 @@ export const GET = protectRoute(['moderator', 'admin', 'owner'])(
         { status: 500 }
       );
     }
-  }
-);
+}

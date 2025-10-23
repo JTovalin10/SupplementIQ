@@ -9,13 +9,13 @@ const supabase = createClient(
 );
 
 /**
- * Next.js middleware for authentication and route protection
+ * Next.js proxy for authentication and route protection
  * Handles JWT token validation and role-based access control
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Skip middleware for public routes
+  // Skip proxy for public routes
   if (
     pathname.startsWith('/api/v1/auth/login') ||
     pathname.startsWith('/api/v1/auth/register') ||
@@ -87,7 +87,7 @@ export async function middleware(request: NextRequest) {
       });
 
     } catch (error) {
-      console.error('Admin middleware error:', error);
+      console.error('Admin proxy error:', error);
       return NextResponse.json(
         { error: 'Internal Server Error', message: 'Authentication failed' },
         { status: 500 }
@@ -146,7 +146,7 @@ export async function middleware(request: NextRequest) {
       });
 
     } catch (error) {
-      console.error('Owner middleware error:', error);
+      console.error('Owner proxy error:', error);
       return NextResponse.json(
         { error: 'Internal Server Error', message: 'Authentication failed' },
         { status: 500 }
@@ -202,7 +202,7 @@ export async function middleware(request: NextRequest) {
       });
 
     } catch (error) {
-      console.error('Auth middleware error:', error);
+      console.error('Auth proxy error:', error);
       return NextResponse.json(
         { error: 'Internal Server Error', message: 'Authentication failed' },
         { status: 500 }
@@ -210,12 +210,12 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Continue to the next middleware or route handler
+  // Continue to the next proxy or route handler
   return NextResponse.next();
 }
 
 /**
- * Configure which paths the middleware should run on
+ * Configure which paths the proxy should run on
  */
 export const config = {
   matcher: [

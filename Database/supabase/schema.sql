@@ -30,7 +30,7 @@ DROP TABLE IF EXISTS
     public.fat_burner_details,
     public.creatine_details,
     public.creatine_types,
-    public.temporary_products,
+    public.pending_products,
     public.products,
     public.brands
 CASCADE;
@@ -106,12 +106,12 @@ CREATE TABLE public.products (
     ) STORED
 );
 
--- Temporary products table for contribution system
-CREATE TABLE public.temporary_products (
+-- Pending products table for contribution system
+CREATE TABLE public.pending_products (
     id SERIAL PRIMARY KEY,
     brand_id INTEGER REFERENCES public.brands(id),
     category product_category NOT NULL,
-    name TEXT NOT NULL,
+    product_name TEXT NOT NULL,
     slug TEXT UNIQUE NOT NULL,
     image_url TEXT,
     description TEXT,
@@ -126,7 +126,7 @@ CREATE TABLE public.temporary_products (
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     reviewed_at TIMESTAMPTZ,
     search_vector tsvector GENERATED ALWAYS AS (
-        setweight(to_tsvector('english', coalesce(name, '')), 'A')
+        setweight(to_tsvector('english', coalesce(product_name, '')), 'A')
     ) STORED
 );
 
@@ -151,11 +151,13 @@ CREATE TABLE public.product_reviews (
 -- Product images table
 CREATE TABLE public.product_images (
     id SERIAL PRIMARY KEY,
-    product_id INTEGER NOT NULL REFERENCES public.products(id) ON DELETE CASCADE,
+    product_id INTEGER REFERENCES public.products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER REFERENCES public.pending_products(id) ON DELETE CASCADE,
     image_url TEXT NOT NULL,
     is_primary BOOLEAN DEFAULT FALSE,
     alt_text TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    CONSTRAINT chk_product_images_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 -- Lab verification results table for individual ingredient testing
@@ -166,14 +168,14 @@ CREATE TABLE public.product_images (
 CREATE TABLE public.lab_verification_results (
     id SERIAL PRIMARY KEY,
     product_id INTEGER REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER REFERENCES public.pending_products(id) ON DELETE CASCADE,
     ingredient_name TEXT NOT NULL, -- e.g., 'l_citrulline_mg', 'caffeine_anhydrous_mg'
     lab_result SMALLINT NOT NULL CHECK (lab_result IN (1, -1)), -- 1=verified, -1=failed
     lab_report_url TEXT, -- Optional link to lab report
     tested_at TIMESTAMPTZ DEFAULT NOW(),
     tested_by TEXT, -- Lab name or testing organization
-    CONSTRAINT chk_lab_verification_link CHECK (num_nonnulls(product_id, temp_product_id) = 1),
-    CONSTRAINT chk_lab_verification_unique UNIQUE (COALESCE(product_id, temp_product_id), ingredient_name)
+    CONSTRAINT chk_lab_verification_link CHECK (num_nonnulls(product_id, pending_product_id) = 1),
+    CONSTRAINT chk_lab_verification_unique UNIQUE (COALESCE(product_id, pending_product_id), ingredient_name)
 );
 
 -- Detail Tables
@@ -185,7 +187,7 @@ CREATE TABLE public.lab_verification_results (
 CREATE TABLE public.preworkout_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER UNIQUE REFERENCES public.pending_products(id) ON DELETE CASCADE,
     serving_scoops INTEGER,
     serving_g NUMERIC(5,1),
     flavors TEXT[] DEFAULT '{}',
@@ -215,13 +217,13 @@ CREATE TABLE public.preworkout_details (
     lab_verified_kanna_extract_mg SMALLINT CHECK (lab_verified_kanna_extract_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_huperzine_a_mcg SMALLINT CHECK (lab_verified_huperzine_a_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_bioperine_mg SMALLINT CHECK (lab_verified_bioperine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
-    CONSTRAINT chk_preworkout_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+    CONSTRAINT chk_preworkout_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 CREATE TABLE public.non_stim_preworkout_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER UNIQUE REFERENCES public.pending_products(id) ON DELETE CASCADE,
     serving_scoops INTEGER DEFAULT 2,
     serving_g NUMERIC(5,1) DEFAULT 40.2,
     flavors TEXT[] DEFAULT '{}',
@@ -261,13 +263,13 @@ CREATE TABLE public.non_stim_preworkout_details (
     lab_verified_sodium_nitrate_mg SMALLINT CHECK (lab_verified_sodium_nitrate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_agmatine_sulfate_mg SMALLINT CHECK (lab_verified_agmatine_sulfate_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_vasodrive_ap_mg SMALLINT CHECK (lab_verified_vasodrive_ap_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
-    CONSTRAINT chk_non_stim_preworkout_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+    CONSTRAINT chk_non_stim_preworkout_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 CREATE TABLE public.energy_drink_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER UNIQUE REFERENCES public.pending_products(id) ON DELETE CASCADE,
     serving_size_fl_oz INTEGER,
     flavors TEXT[] DEFAULT '{}',
     sugar_g INTEGER NOT NULL DEFAULT 0 CHECK (sugar_g >= 0 OR sugar_g = -1), -- >=0=contains g, 0=not in product, -1=blend/unknown
@@ -298,13 +300,13 @@ CREATE TABLE public.energy_drink_details (
     lab_verified_vitamin_b6_mg SMALLINT CHECK (lab_verified_vitamin_b6_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_vitamin_b12_mcg SMALLINT CHECK (lab_verified_vitamin_b12_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_pantothenic_acid_b5_mg SMALLINT CHECK (lab_verified_pantothenic_acid_b5_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
-    CONSTRAINT chk_energy_drink_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+    CONSTRAINT chk_energy_drink_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 CREATE TABLE public.protein_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER UNIQUE REFERENCES public.pending_products(id) ON DELETE CASCADE,
     flavors TEXT[] DEFAULT '{}',
     protein_claim_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (protein_claim_g >= 0 OR protein_claim_g = -1),
     effective_protein_g DECIMAL(5,2) NOT NULL DEFAULT 0 CHECK (effective_protein_g >= 0 OR effective_protein_g = -1),
@@ -312,13 +314,13 @@ CREATE TABLE public.protein_details (
     -- Individual lab verification fields for each ingredient
     lab_verified_protein_claim_g SMALLINT CHECK (lab_verified_protein_claim_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_effective_protein_g SMALLINT CHECK (lab_verified_effective_protein_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
-    CONSTRAINT chk_protein_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+    CONSTRAINT chk_protein_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 CREATE TABLE public.amino_acid_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER UNIQUE REFERENCES public.pending_products(id) ON DELETE CASCADE,
     flavors TEXT[] DEFAULT '{}',
     key_features TEXT[] DEFAULT array['recovery','hydration','muscle protein synthesis'],
     total_eaas_mg INTEGER NOT NULL DEFAULT 0 CHECK (total_eaas_mg >= 0 OR total_eaas_mg = -1),
@@ -348,13 +350,13 @@ CREATE TABLE public.amino_acid_details (
     lab_verified_betaine_anhydrous_mg SMALLINT CHECK (lab_verified_betaine_anhydrous_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_coconut_water_powder_mg SMALLINT CHECK (lab_verified_coconut_water_powder_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_astragin_mg SMALLINT CHECK (lab_verified_astragin_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
-    CONSTRAINT chk_amino_acid_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+    CONSTRAINT chk_amino_acid_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 CREATE TABLE public.fat_burner_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER UNIQUE REFERENCES public.pending_products(id) ON DELETE CASCADE,
     stimulant_based BOOLEAN DEFAULT TRUE,
     key_features TEXT[] DEFAULT array['thermogenesis','appetite suppression','metabolism','energy'],
     l_carnitine_l_tartrate_mg INTEGER NOT NULL DEFAULT 0 CHECK (l_carnitine_l_tartrate_mg >= 0 OR l_carnitine_l_tartrate_mg = -1),
@@ -384,20 +386,20 @@ CREATE TABLE public.fat_burner_details (
     lab_verified_halostachine_mg SMALLINT CHECK (lab_verified_halostachine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_rauwolscine_mcg SMALLINT CHECK (lab_verified_rauwolscine_mcg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
     lab_verified_bioperine_mg SMALLINT CHECK (lab_verified_bioperine_mg IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
-    CONSTRAINT chk_fat_burner_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+    CONSTRAINT chk_fat_burner_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 CREATE TABLE public.creatine_details (
     id SERIAL PRIMARY KEY,
     product_id INTEGER UNIQUE REFERENCES public.products(id) ON DELETE CASCADE,
-    temp_product_id INTEGER UNIQUE REFERENCES public.temporary_products(id) ON DELETE CASCADE,
+    pending_product_id INTEGER UNIQUE REFERENCES public.pending_products(id) ON DELETE CASCADE,
     creatine_type_name VARCHAR(255) NOT NULL REFERENCES public.creatine_types(name),
     flavors TEXT[] DEFAULT '{}',
     serving_size_g DECIMAL(5,1) NOT NULL DEFAULT 0 CHECK (serving_size_g >= 0), -- Serving size in grams
     servings_per_container INTEGER NOT NULL DEFAULT 0 CHECK (servings_per_container >= 0), -- Number of servings per container
     -- Individual lab verification fields for each ingredient
     lab_verified_creatine_content_g SMALLINT CHECK (lab_verified_creatine_content_g IN (1, -1)), -- NULL=no test, 1=verified, -1=failed
-    CONSTRAINT chk_creatine_link CHECK (num_nonnulls(product_id, temp_product_id) = 1)
+    CONSTRAINT chk_creatine_link CHECK (num_nonnulls(product_id, pending_product_id) = 1)
 );
 
 CREATE TABLE public.creatine_types (
@@ -471,10 +473,10 @@ FOR EACH ROW EXECUTE FUNCTION auth.sync_user_to_public();
 CREATE INDEX IF NOT EXISTS idx_product_reviews_product_id ON public.product_reviews (product_id);
 CREATE INDEX IF NOT EXISTS idx_product_reviews_user_id ON public.product_reviews (user_id);
 CREATE INDEX IF NOT EXISTS idx_product_reviews_rating ON public.product_reviews (rating);
-CREATE INDEX IF NOT EXISTS idx_temporary_products_approval_status ON public.temporary_products (approval_status);
-CREATE INDEX IF NOT EXISTS idx_temporary_products_submitted_by ON public.temporary_products (submitted_by);
-CREATE INDEX IF NOT EXISTS idx_temporary_products_reviewed_by ON public.temporary_products (reviewed_by);
-CREATE INDEX IF NOT EXISTS idx_temporary_products_search_vector ON public.temporary_products USING GIN (search_vector);
+CREATE INDEX IF NOT EXISTS idx_pending_products_approval_status ON public.pending_products (approval_status);
+CREATE INDEX IF NOT EXISTS idx_pending_products_submitted_by ON public.pending_products (submitted_by);
+CREATE INDEX IF NOT EXISTS idx_pending_products_reviewed_by ON public.pending_products (reviewed_by);
+CREATE INDEX IF NOT EXISTS idx_pending_products_search_vector ON public.pending_products USING GIN (search_vector);
 CREATE INDEX IF NOT EXISTS idx_products_search_vector ON public.products USING GIN (search_vector);
 CREATE INDEX IF NOT EXISTS idx_user_badges_user_id ON public.user_badges (user_id);
 
@@ -503,3 +505,153 @@ INSERT INTO public.creatine_types (name, category, recommended_daily_dose_g) VAL
 ('Liquid Creatine', 'processed', 5.0),
 ('Creatinol-O-Phosphate', 'processed', 5.0),
 ('Creapure', 'processed', 5.0);
+
+-- =================================================================
+-- VITAMINS AND MINERALS REFERENCE TABLE
+-- Comprehensive reference for all vitamins and minerals found in supplements
+-- =================================================================
+
+CREATE TABLE public.vitamins_minerals (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) UNIQUE NOT NULL,
+    display_name VARCHAR(150) NOT NULL,
+    category VARCHAR(50) NOT NULL CHECK (category IN ('vitamin', 'mineral', 'vitamin_derivative')),
+    subcategory VARCHAR(50),
+    unit VARCHAR(10) NOT NULL CHECK (unit IN ('mg', 'mcg', 'IU', 'g', 'mcg_DFE')),
+    rda_adult_male DECIMAL(10,2), -- Recommended Daily Allowance for adult males
+    rda_adult_female DECIMAL(10,2), -- Recommended Daily Allowance for adult females
+    ul_adult DECIMAL(10,2), -- Upper Limit for adults
+    description TEXT,
+    benefits TEXT[],
+    deficiency_symptoms TEXT[],
+    toxicity_symptoms TEXT[],
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Insert comprehensive vitamins and minerals data
+INSERT INTO public.vitamins_minerals (name, display_name, category, subcategory, unit, rda_adult_male, rda_adult_female, ul_adult, description, benefits, deficiency_symptoms, toxicity_symptoms) VALUES
+
+-- Water-Soluble Vitamins - B Complex
+('vitamin_b3_niacin', 'Vitamin B3 (Niacin)', 'vitamin', 'water_soluble', 'mg', 16, 14, 35, 'Essential for energy metabolism and skin health - Nicotinic acid form',
+ ARRAY['Energy production', 'Skin health', 'Cholesterol management', 'Brain function'],
+ ARRAY['Pellagra', 'Digestive issues', 'Skin problems', 'Mental confusion'],
+ ARRAY['Flushing', 'Liver damage', 'Stomach ulcers', 'Vision problems']),
+
+('vitamin_b3_niacinamide', 'Vitamin B3 (Niacinamide)', 'vitamin', 'water_soluble', 'mg', 16, 14, 35, 'Essential for energy metabolism and skin health - Niacinamide form (no flush)',
+ ARRAY['Energy production', 'Skin health', 'Cholesterol management', 'Brain function'],
+ ARRAY['Pellagra', 'Digestive issues', 'Skin problems', 'Mental confusion'],
+ ARRAY['Rare - excess excreted in urine']),
+
+('vitamin_b5_pantothenic_acid', 'Vitamin B5 (Pantothenic Acid)', 'vitamin', 'water_soluble', 'mg', 5, 5, NULL, 'Essential for energy metabolism and hormone production - D-pantothenic acid form',
+ ARRAY['Energy production', 'Hormone synthesis', 'Skin health', 'Stress management'],
+ ARRAY['Fatigue', 'Numbness', 'Burning feet', 'Digestive issues'],
+ ARRAY['Rare - excess excreted in urine']),
+
+('vitamin_b5_pantethine', 'Vitamin B5 (Pantethine)', 'vitamin', 'water_soluble', 'mg', 5, 5, NULL, 'Essential for energy metabolism and hormone production - Pantethine form (more bioavailable)',
+ ARRAY['Energy production', 'Hormone synthesis', 'Skin health', 'Stress management'],
+ ARRAY['Fatigue', 'Numbness', 'Burning feet', 'Digestive issues'],
+ ARRAY['Rare - excess excreted in urine']),
+
+('vitamin_b6_pyridoxine', 'Vitamin B6 (Pyridoxine)', 'vitamin', 'water_soluble', 'mg', 1.3, 1.3, 100, 'Important for protein metabolism and brain function - Pyridoxine hydrochloride form',
+ ARRAY['Protein metabolism', 'Brain function', 'Immune system', 'Hormone regulation'],
+ ARRAY['Depression', 'Confusion', 'Weak immune system', 'Skin problems'],
+ ARRAY['Nerve damage', 'Skin lesions', 'Photosensitivity']),
+
+('vitamin_b6_pyridoxal', 'Vitamin B6 (Pyridoxal)', 'vitamin', 'water_soluble', 'mg', 1.3, 1.3, 100, 'Important for protein metabolism and brain function - Pyridoxal form (active coenzyme)',
+ ARRAY['Protein metabolism', 'Brain function', 'Immune system', 'Hormone regulation'],
+ ARRAY['Depression', 'Confusion', 'Weak immune system', 'Skin problems'],
+ ARRAY['Nerve damage', 'Skin lesions', 'Photosensitivity']),
+
+('vitamin_b6_pyridoxamine', 'Vitamin B6 (Pyridoxamine)', 'vitamin', 'water_soluble', 'mg', 1.3, 1.3, 100, 'Important for protein metabolism and brain function - Pyridoxamine form',
+ ARRAY['Protein metabolism', 'Brain function', 'Immune system', 'Hormone regulation'],
+ ARRAY['Depression', 'Confusion', 'Weak immune system', 'Skin problems'],
+ ARRAY['Nerve damage', 'Skin lesions', 'Photosensitivity']),
+
+('vitamin_b6_plp', 'Vitamin B6 (PLP)', 'vitamin', 'water_soluble', 'mg', 1.3, 1.3, 100, 'Important for protein metabolism and brain function - Pyridoxal 5-phosphate form (most active)',
+ ARRAY['Protein metabolism', 'Brain function', 'Immune system', 'Hormone regulation'],
+ ARRAY['Depression', 'Confusion', 'Weak immune system', 'Skin problems'],
+ ARRAY['Nerve damage', 'Skin lesions', 'Photosensitivity']),
+
+('vitamin_b12_cyanocobalamin', 'Vitamin B12 (Cyanocobalamin)', 'vitamin', 'water_soluble', 'mcg', 2.4, 2.4, NULL, 'Essential for nerve function and red blood cell formation - Cyanocobalamin form (synthetic)',
+ ARRAY['Nerve function', 'Red blood cell formation', 'DNA synthesis', 'Brain health'],
+ ARRAY['Anemia', 'Nerve damage', 'Memory problems', 'Fatigue'],
+ ARRAY['Rare - excess excreted in urine']),
+
+('vitamin_b12_methylcobalamin', 'Vitamin B12 (Methylcobalamin)', 'vitamin', 'water_soluble', 'mcg', 2.4, 2.4, NULL, 'Essential for nerve function and red blood cell formation - Methylcobalamin form (active)',
+ ARRAY['Nerve function', 'Red blood cell formation', 'DNA synthesis', 'Brain health'],
+ ARRAY['Anemia', 'Nerve damage', 'Memory problems', 'Fatigue'],
+ ARRAY['Rare - excess excreted in urine']),
+
+('vitamin_b12_hydroxocobalamin', 'Vitamin B12 (Hydroxocobalamin)', 'vitamin', 'water_soluble', 'mcg', 2.4, 2.4, NULL, 'Essential for nerve function and red blood cell formation - Hydroxocobalamin form (long-acting)',
+ ARRAY['Nerve function', 'Red blood cell formation', 'DNA synthesis', 'Brain health'],
+ ARRAY['Anemia', 'Nerve damage', 'Memory problems', 'Fatigue'],
+ ARRAY['Rare - excess excreted in urine']),
+
+('vitamin_b12_adenosylcobalamin', 'Vitamin B12 (Adenosylcobalamin)', 'vitamin', 'water_soluble', 'mcg', 2.4, 2.4, NULL, 'Essential for nerve function and red blood cell formation - Adenosylcobalamin form (mitochondrial)',
+ ARRAY['Nerve function', 'Red blood cell formation', 'DNA synthesis', 'Brain health'],
+ ARRAY['Anemia', 'Nerve damage', 'Memory problems', 'Fatigue'],
+ ARRAY['Rare - excess excreted in urine']),
+
+-- Major Minerals (Macrominerals)
+('magnesium', 'Magnesium', 'mineral', 'macromineral', 'mg', 420, 320, 350, 'Essential for muscle and nerve function, bone health - Magnesium oxide/citrate form',
+ ARRAY['Muscle function', 'Nerve function', 'Bone health', 'Heart rhythm'],
+ ARRAY['Muscle cramps', 'Irregular heartbeat', 'Weakness', 'Personality changes'],
+ ARRAY['Diarrhea', 'Nausea', 'Muscle weakness', 'Low blood pressure']),
+
+('sodium', 'Sodium', 'mineral', 'electrolyte', 'mg', 2300, 2300, 2300, 'Essential for fluid balance and nerve function - Sodium chloride form',
+ ARRAY['Fluid balance', 'Nerve function', 'Muscle contraction'],
+ ARRAY['Muscle cramps', 'Headaches', 'Nausea', 'Fatigue'],
+ ARRAY['High blood pressure', 'Heart disease', 'Stroke', 'Kidney disease']),
+
+('potassium', 'Potassium', 'mineral', 'electrolyte', 'mg', 3400, 2600, NULL, 'Essential for heart rhythm and muscle function - Potassium chloride/citrate form',
+ ARRAY['Heart rhythm', 'Muscle function', 'Blood pressure', 'Nerve function'],
+ ARRAY['Muscle weakness', 'Irregular heartbeat', 'Fatigue', 'Constipation'],
+ ARRAY['Heart rhythm problems', 'Muscle weakness', 'Nausea']),
+
+-- Trace Minerals (Microminerals)
+('chromium', 'Chromium', 'mineral', 'micromineral', 'mcg', 35, 25, NULL, 'Helps regulate blood sugar levels - Chromium picolinate/polynicotinate form',
+ ARRAY['Blood sugar regulation', 'Metabolism', 'Weight management'],
+ ARRAY['Poor blood sugar control', 'Weight loss', 'Nerve problems'],
+ ARRAY['Rare - excess excreted in urine']);
+
+-- Create indexes for vitamins and minerals table
+CREATE INDEX IF NOT EXISTS idx_vitamins_minerals_name ON public.vitamins_minerals (name);
+CREATE INDEX IF NOT EXISTS idx_vitamins_minerals_category ON public.vitamins_minerals (category);
+CREATE INDEX IF NOT EXISTS idx_vitamins_minerals_subcategory ON public.vitamins_minerals (subcategory);
+CREATE INDEX IF NOT EXISTS idx_vitamins_minerals_display_name ON public.vitamins_minerals (display_name);
+
+-- Create views for easy querying
+CREATE OR REPLACE VIEW public.vitamins_by_category AS
+SELECT 
+    category,
+    subcategory,
+    COUNT(*) as count,
+    ARRAY_AGG(name ORDER BY display_name) as names,
+    ARRAY_AGG(display_name ORDER BY display_name) as display_names
+FROM public.vitamins_minerals
+GROUP BY category, subcategory
+ORDER BY category, subcategory;
+
+CREATE OR REPLACE VIEW public.vitamin_mineral_rda AS
+SELECT 
+    name,
+    display_name,
+    category,
+    unit,
+    rda_adult_male,
+    rda_adult_female,
+    ul_adult,
+    CASE 
+        WHEN ul_adult IS NOT NULL THEN 'Yes'
+        ELSE 'No'
+    END as has_upper_limit
+FROM public.vitamins_minerals
+WHERE rda_adult_male IS NOT NULL OR rda_adult_female IS NOT NULL
+ORDER BY category, display_name;
+
+-- Add comments for documentation
+COMMENT ON TABLE public.vitamins_minerals IS 'Reference table for vitamins and minerals found in workout supplements';
+COMMENT ON COLUMN public.vitamins_minerals.rda_adult_male IS 'Recommended Daily Allowance for adult males (ages 19-70)';
+COMMENT ON COLUMN public.vitamins_minerals.rda_adult_female IS 'Recommended Daily Allowance for adult females (ages 19-70)';
+COMMENT ON COLUMN public.vitamins_minerals.ul_adult IS 'Upper Limit for adults - maximum safe daily intake';

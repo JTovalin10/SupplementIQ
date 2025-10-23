@@ -1,7 +1,8 @@
 'use client';
 
 import JWTDashboard from '@/components/features/JWTDashboard';
-import { useAuth, useUser } from '@/lib/contexts/AppContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useUser } from '@/lib/contexts/UserContext';
 import { hasRoleAccess } from '@/lib/utils/role-utils';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';

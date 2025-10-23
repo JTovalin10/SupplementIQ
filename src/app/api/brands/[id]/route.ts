@@ -10,7 +10,7 @@ import { supabase } from '../../../../lib/supabase';
  * @returns {Promise<NextResponse>} JSON response with brand data or 404 if not found
  * 
  * Response includes:
- * - complete brand data with logo images from brand_logos table
+ * - complete brand data
  */
 export async function GET(
   request: NextRequest,
@@ -21,10 +21,7 @@ export async function GET(
     
     const { data: brand, error } = await supabase
       .from('brands')
-      .select(`
-        *,
-        logo:brand_logos(*)
-      `)
+      .select('*')
       .eq('id', id)
       .single();
 

@@ -2,12 +2,14 @@
 
 import CacheLoadingScreen from '@/components/ui/CacheLoadingScreen';
 import { getAvailableTabs } from '@/lib/auth/role-routing';
-import { useAuth, useDashboard, useUser } from '@/lib/contexts/AppContext';
+import { useDashboard } from '@/lib/contexts/AppContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
+import { useUser } from '@/lib/contexts/UserContext';
 import {
-  BarChart3,
-  Lock,
-  Settings,
-  Shield
+    BarChart3,
+    Lock,
+    Settings,
+    Shield
 } from 'lucide-react';
 import PendingSubmissions from './dashboard/PendingSubmissions';
 import RecentActivity from './dashboard/RecentActivity';

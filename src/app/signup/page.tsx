@@ -3,7 +3,8 @@
 import { Eye, EyeOff, Mail, User, UserPlus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { useAuth, useUser } from '../../lib/contexts/AppContext';
+import { useAuth } from '../../lib/contexts/AuthContext';
+import { useUser } from '../../lib/contexts/UserContext';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');

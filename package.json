@@ -35,7 +35,7 @@
     "js-cookie": "^3.0.5",
     "levenshtein": "^1.0.5",
     "lucide-react": "^0.460.0",
-    "next": "15.5.4",
+    "next": "^16.0.0-canary.18",
     "next-auth": "^4.24.11",
     "node-addon-api": "^8.5.0",
     "node-cron": "^4.2.1",

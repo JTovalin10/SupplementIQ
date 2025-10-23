@@ -2,20 +2,20 @@
 
 import { useUser } from '@/lib/contexts/AppContext';
 import {
-  Activity,
-  AlertTriangle,
-  BarChart3,
-  CheckCircle,
-  Clock,
-  Crown,
-  Database,
-  FileText,
-  Globe,
-  Lock,
-  Shield,
-  Users,
-  XCircle,
-  Zap
+    Activity,
+    AlertTriangle,
+    BarChart3,
+    CheckCircle,
+    Clock,
+    Crown,
+    Database,
+    FileText,
+    Globe,
+    Lock,
+    Shield,
+    Users,
+    XCircle,
+    Zap
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
@@ -169,14 +169,98 @@ export default function OwnerDashboard() {
     }
   };
 
-  const handleApproveSubmission = (submissionId: string) => {
-    console.log('Approving submission:', submissionId);
-    // TODO: Implement approval logic
+  const handleApproveSubmission = async (submissionId: string) => {
+    try {
+      const response = await fetch('/api/admin/submission-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId,
+          action: 'approve',
+          adminId: user?.id,
+          notes: 'Approved by owner'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh the pending submissions
+        const pendingResponse = await fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10');
+        if (pendingResponse.ok) {
+          const pendingJson = await pendingResponse.json();
+          const mapped = (pendingJson.submissions || []).map((s: any) => ({
+            id: String(s.id),
+            productName: s.productName ?? s.name ?? 'Unknown',
+            brandName: s.brand?.name ?? 'Unknown',
+            category: s.category ?? 'Unknown',
+            submittedBy: s.submittedBy ?? 'Unknown',
+            submittedAt: s.submittedAt,
+            status: s.status ?? 'pending',
+          }));
+          setPendingSubmissions(mapped);
+        }
+        
+        // Show success message
+        alert(`Product "${result.data.productName}" approved successfully!`);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error approving submission:', error);
+      alert('Failed to approve submission');
+    }
   };
 
-  const handleRejectSubmission = (submissionId: string) => {
-    console.log('Rejecting submission:', submissionId);
-    // TODO: Implement rejection logic
+  const handleRejectSubmission = async (submissionId: string) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) return;
+
+    try {
+      const response = await fetch('/api/admin/submission-action', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId,
+          action: 'reject',
+          adminId: user?.id,
+          reason,
+          notes: 'Rejected by owner'
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Refresh the pending submissions
+        const pendingResponse = await fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10');
+        if (pendingResponse.ok) {
+          const pendingJson = await pendingResponse.json();
+          const mapped = (pendingJson.submissions || []).map((s: any) => ({
+            id: String(s.id),
+            productName: s.productName ?? s.name ?? 'Unknown',
+            brandName: s.brand?.name ?? 'Unknown',
+            category: s.category ?? 'Unknown',
+            submittedBy: s.submittedBy ?? 'Unknown',
+            submittedAt: s.submittedAt,
+            status: s.status ?? 'pending',
+          }));
+          setPendingSubmissions(mapped);
+        }
+        
+        // Show success message
+        alert(`Product "${result.data.productName}" rejected successfully!`);
+      } else {
+        alert(`Error: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error rejecting submission:', error);
+      alert('Failed to reject submission');
+    }
   };
 
   const handlePromoteToModerator = (userId: string) => {

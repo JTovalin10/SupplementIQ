@@ -1,6 +1,8 @@
 'use client';
 
 import { withCache } from '@/lib/utils/cache';
+import { Building2, Eye, Package, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 interface Submission {
@@ -11,12 +13,19 @@ interface Submission {
   submittedBy: string;
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
+  imageUrl?: string | null;
+  brand?: {
+    id: number;
+    name: string;
+    website?: string;
+  };
 }
 
 export default function PendingSubmissions() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const hasFetchedRef = useRef(false);
   useEffect(() => {
@@ -53,11 +62,13 @@ export default function PendingSubmissions() {
       const mapped: Submission[] = (json.submissions || []).map((s: any) => ({
         id: String(s.id),
         productName: s.productName ?? s.name ?? 'Unknown',
-        brandName: s.brand?.name ?? 'Unknown',
+        brandName: s.brandName ?? 'Unknown',
         category: s.category ?? 'Unknown',
         submittedBy: s.submittedBy ?? 'Unknown',
         submittedAt: s.submittedAt ?? new Date().toISOString(),
         status: s.status ?? 'pending',
+        imageUrl: s.imageUrl ?? null,
+        brand: s.brand ?? null,
       }));
       setSubmissions(mapped);
     } catch (err) {
@@ -68,26 +79,9 @@ export default function PendingSubmissions() {
     }
   };
 
-  const handleApprove = async (submissionId: string) => {
-    try {
-      // TODO: Replace with actual API call
-      // await fetch(`/api/admin/submissions/${submissionId}/approve`, { method: 'POST' });
-      
-      setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
-    } catch (err) {
-      console.error('Failed to approve submission:', err);
-    }
-  };
 
-  const handleReject = async (submissionId: string) => {
-    try {
-      // TODO: Replace with actual API call
-      // await fetch(`/api/admin/submissions/${submissionId}/reject`, { method: 'POST' });
-      
-      setSubmissions(prev => prev.filter(sub => sub.id !== submissionId));
-    } catch (err) {
-      console.error('Failed to reject submission:', err);
-    }
+  const handleViewSubmission = (submissionId: string) => {
+    router.push(`/admin/submission/${submissionId}`);
   };
 
   const formatTimestamp = (timestamp: string) => {
@@ -163,28 +157,48 @@ export default function PendingSubmissions() {
         {submissions.length > 0 ? (
           <div className="space-y-4">
             {submissions.map((submission) => (
-              <div key={submission.id} className="border rounded-lg p-4">
+              <div key={submission.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
                 <div className="flex justify-between items-start">
-                  <div>
-                    <h4 className="font-medium text-gray-900">{submission.productName}</h4>
-                    <p className="text-sm text-gray-500">Brand: {submission.brandName} • Category: {submission.category}</p>
-                    <p className="text-sm text-gray-500">by {submission.submittedBy}</p>
-                    <p className="text-xs text-gray-400">{formatTimestamp(submission.submittedAt)}</p>
+                  <div className="flex-1">
+                    <div className="flex items-start space-x-4">
+                      {submission.imageUrl && (
+                        <img
+                          src={submission.imageUrl}
+                          alt={submission.productName}
+                          className="w-16 h-16 object-cover rounded-lg border"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <h4 className="font-bold text-gray-900 text-xl mb-2">{submission.productName}</h4>
+                        <div className="flex items-center space-x-4 text-sm text-gray-600">
+                          <div className="flex items-center space-x-1">
+                            <Building2 className="w-4 h-4 text-blue-600" />
+                            <span className="font-medium text-gray-700">{submission.brandName}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Package className="w-4 h-4 text-green-600" />
+                            <span className="capitalize">{submission.category.replace('-', ' ')}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <User className="w-4 h-4 text-purple-600" />
+                            <span>by {submission.submittedBy}</span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-2">{formatTimestamp(submission.submittedAt)}</p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${getTypeColor('product')}`}>Pending</span>
+                  <div className="flex items-center space-x-3">
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${getTypeColor('product')}`}>
+                      Pending Review
+                    </span>
                     <div className="flex space-x-2">
                       <button
-                        onClick={() => handleApprove(submission.id)}
-                        className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700"
+                        onClick={() => handleViewSubmission(submission.id)}
+                        className="flex items-center space-x-1 bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700 transition-colors"
                       >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleReject(submission.id)}
-                        className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700"
-                      >
-                        Reject
+                        <Eye className="w-4 h-4" />
+                        <span>Review</span>
                       </button>
                     </div>
                   </div>

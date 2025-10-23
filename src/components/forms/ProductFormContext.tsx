@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, ReactNode, useCallback, useContext, useReducer } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useReducer } from 'react';
 
 // Action types for the reducer
 type ProductFormAction =
@@ -95,10 +95,23 @@ export function ProductFormProvider({
   initialFormData = {},
   initialCategory = ''
 }: ProductFormProviderProps) {
+  console.log('ProductFormProvider - initialCategory:', initialCategory);
+  console.log('ProductFormProvider - initialFormData:', initialFormData);
+  
   const [state, dispatch] = useReducer(productFormReducer, {
     formData: initialFormData,
     category: initialCategory
   });
+  
+  console.log('ProductFormProvider - state after reducer:', state);
+  
+  // Update category when initialCategory changes
+  useEffect(() => {
+    if (initialCategory && initialCategory !== state.category) {
+      console.log('ProductFormProvider - updating category from', state.category, 'to', initialCategory);
+      dispatch({ type: 'SET_CATEGORY', category: initialCategory });
+    }
+  }, [initialCategory]); // Remove state.category dependency to prevent loops
 
   const setField = useCallback((field: string, value: string) => {
     dispatch({ type: 'SET_FIELD', field, value });

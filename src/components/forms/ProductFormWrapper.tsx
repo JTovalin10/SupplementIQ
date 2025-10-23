@@ -1,6 +1,5 @@
 'use client';
 
-import { CategorySync } from './CategorySync';
 import ProductForm from './ProductForm';
 import { ProductFormProvider } from './ProductFormContext';
 import { useFormAndCategorySync } from './useFormAndCategorySync';
@@ -13,17 +12,11 @@ interface ProductFormWrapperProps {
 
 /**
  * Wrapper component that handles form synchronization
- * Eliminates all prop drilling by managing state internally
+ * Simplified to reduce re-renders
  */
-function ProductFormContent({ category, onFormChange }: Omit<ProductFormWrapperProps, 'initialFormData'>) {
-  // Don't sync category changes back to parent since CategorySync handles it
+function ProductFormContent({ onFormChange }: { onFormChange: (formData: Record<string, string>) => void }) {
   useFormAndCategorySync(onFormChange);
-  return (
-    <>
-      <CategorySync category={category} />
-      <ProductForm />
-    </>
-  );
+  return <ProductForm />;
 }
 
 export default function ProductFormWrapper({ 
@@ -36,7 +29,7 @@ export default function ProductFormWrapper({
       initialFormData={initialFormData}
       initialCategory={category}
     >
-      <ProductFormContent category={category} onFormChange={onFormChange} />
+      <ProductFormContent onFormChange={onFormChange} />
     </ProductFormProvider>
   );
 }

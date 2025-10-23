@@ -1,7 +1,6 @@
 import { supabase } from '@/lib/supabase';
-import * as ipaddr from 'ipaddr.js';
+import { sanitizeHttpUrl } from '@/lib/utils/url-sanitizer';
 import { NextRequest, NextResponse } from 'next/server';
-import isURL from 'validator/lib/isURL';
 import { z } from 'zod';
 
 // Validation schemas
@@ -29,40 +28,6 @@ const ProductApprovalRequestSchema = z.object({
   status: z.enum(['approved', 'rejected']),
   reviewed_by: z.string().uuid(),
 });
-
-// URL sanitization helper (defense-in-depth against JS/data/blob/ssrf-ish inputs)
-function sanitizeHttpUrl(input: string | undefined): string | null {
-  if (!input) return null;
-  const candidate = input.trim();
-  if (candidate.length === 0 || candidate.length > 2048) return null;
-  // Quick structural check
-  if (!isURL(candidate, { protocols: ['http','https'], require_protocol: true, allow_fragment: false })) {
-    return null;
-  }
-  try {
-    const url = new URL(candidate);
-    if (url.username || url.password) return null;
-    const hostname = url.hostname;
-    // If hostname is an IP, block private/loopback/link-local
-    if (ipaddr.isValid(hostname)) {
-      const addr = ipaddr.parse(hostname);
-      if (addr.range() !== 'unicast') return null; // blocks private, loopback, link-local, etc.
-      // ipaddr.js marks RFC1918 as 'private'; also disallow 'loopback', 'linkLocal', 'uniqueLocal'
-      const rng = addr.range();
-      if (rng === 'private' || rng === 'loopback' || rng === 'linkLocal' || rng === 'uniqueLocal') return null;
-    } else {
-      // Block common local hostnames
-      const lower = hostname.toLowerCase();
-      if (lower === 'localhost' || lower.endsWith('.local') || lower.endsWith('.internal')) return null;
-    }
-    url.hash = '';
-    // Normalize stray '?'
-    if (url.search === '?') url.search = '';
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
 
 // Helper function to generate slug
 function generateSlug(name: string): string {
@@ -176,23 +141,20 @@ export async function POST(request: NextRequest) {
     const { data: pendingProduct, error: insertError } = await supabase
       .from('pending_products')
       .insert({
-        product_id: validatedData.product_id || null,
-        submitted_by: validatedData.submitted_by,
-        status: 'pending',
-        job_type: validatedData.job_type,
         brand_id: brandId,
         category: validatedData.category,
-        name: validatedData.name,
+        product_name: validatedData.name,
         slug: generateSlug(validatedData.name),
-        release_year: parseYear(validatedData.year),
         image_url: safeImageUrl,
         description: validatedData.description,
-        servings_per_container: validatedData.servings_per_container,
         price: validatedData.price,
+        currency: 'USD',
+        servings_per_container: validatedData.servings_per_container,
         serving_size_g: validatedData.serving_size_g,
-        transparency_score: validatedData.transparency_score,
-        confidence_level: validatedData.confidence_level,
-        notes: validatedData.notes,
+        dosage_rating: 0,
+        danger_rating: 0,
+        approval_status: 0, // 0 = pending
+        submitted_by: validatedData.submitted_by,
       })
       .select(`
         *,
@@ -327,32 +289,35 @@ export async function GET(request: NextRequest) {
 // Helper function to insert category-specific details
 async function insertCategorySpecificDetails(productId: number, category: string) {
   const baseDetails = {
-    product_id: productId,
+    pending_product_id: productId,
   };
 
   switch (category) {
     case 'pre-workout':
-      await supabase.from('pending_preworkout_details').insert(baseDetails);
+      await supabase.from('preworkout_details').insert(baseDetails);
       break;
     case 'non-stim-pre-workout':
-      await supabase.from('pending_non_stim_preworkout_details').insert(baseDetails);
+      await supabase.from('non_stim_preworkout_details').insert(baseDetails);
       break;
     case 'energy-drink':
-      await supabase.from('pending_energy_drink_details').insert(baseDetails);
+      await supabase.from('energy_drink_details').insert(baseDetails);
       break;
     case 'protein':
-      await supabase.from('pending_protein_details').insert(baseDetails);
+      await supabase.from('protein_details').insert(baseDetails);
       break;
     case 'bcaa':
     case 'eaa':
-      await supabase.from('pending_amino_acid_details').insert(baseDetails);
+      await supabase.from('amino_acid_details').insert(baseDetails);
       break;
     case 'fat-burner':
     case 'appetite-suppressant':
-      await supabase.from('pending_fat_burner_details').insert(baseDetails);
+      await supabase.from('fat_burner_details').insert(baseDetails);
       break;
     case 'creatine':
-      // Creatine doesn't have a specific details table
+      await supabase.from('creatine_details').insert({
+        ...baseDetails,
+        creatine_type_name: 'Creatine Monohydrate' // Default creatine type
+      });
       break;
     default:
       throw new Error(`Unsupported product category: ${category}`);

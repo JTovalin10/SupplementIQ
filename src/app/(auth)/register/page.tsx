@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/contexts/AppContext';
+import { useAuth } from '@/lib/contexts/AuthContext';
 import { AlertCircle, CheckCircle, Eye, EyeOff, Lock, Mail, User } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

@@ -1,5 +1,4 @@
-import { protectRoute } from '@/lib/auth/jwt-middleware';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Mock recent activity data
 const mockRecentActivity = [
@@ -47,10 +46,8 @@ const mockRecentActivity = [
   }
 ];
 
-export const GET = protectRoute(['moderator', 'admin', 'owner'])(
-  async (request, user) => {
+export async function GET(request: NextRequest) {
     try {
-      console.log(`[RECENT_ACTIVITY] User ${user.userId} (${user.role}) accessing recent activity`);
 
       return NextResponse.json({
         success: true,
@@ -64,5 +61,4 @@ export const GET = protectRoute(['moderator', 'admin', 'owner'])(
         { status: 500 }
       );
     }
-  }
-);
+}

@@ -18,6 +18,9 @@ export default function ProductForm() {
   const { state } = useProductForm();
   const { category } = state;
 
+  console.log('ProductForm - Current category:', category);
+  console.log('ProductForm - Full state:', state);
+
   const renderCategoryForm = () => {
     switch (category) {
       case 'pre-workout':
@@ -56,6 +59,15 @@ export default function ProductForm() {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm border">
+      <div className="mb-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <p className="text-sm text-red-800 font-medium">
+            <strong className="text-red-900">⚠️ Important:</strong> Only fill in ingredients that are present in the product. 
+            Empty fields will automatically be marked as "not in product" when you submit.
+            Use "Not specified" for proprietary blends where exact amounts aren't disclosed.
+          </p>
+        </div>
+      </div>
       {renderCategoryForm()}
     </div>
   );

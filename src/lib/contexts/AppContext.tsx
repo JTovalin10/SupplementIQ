@@ -1,10 +1,12 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { AdminProvider } from './AdminContext';
-import { AuthProvider } from './AuthContext';
-import { DashboardProvider } from './DashboardContext';
-import { UserProvider } from './UserContext';
+import {
+  AdminProvider,
+  AuthProvider,
+  DashboardProvider,
+  UserProvider
+} from './index';
 
 interface AppProviderProps {
   children: ReactNode;
@@ -31,8 +33,10 @@ export function AppProvider({ children, initialTab }: AppProviderProps) {
 }
 
 // Re-export all hooks for convenience
-export { useAdmin } from './AdminContext';
-export { useAuth } from './AuthContext';
-export { useDashboard } from './DashboardContext';
-export { useUser } from './UserContext';
+export {
+  useAdmin,
+  useAuth,
+  useDashboard,
+  useUser
+} from './index';
 

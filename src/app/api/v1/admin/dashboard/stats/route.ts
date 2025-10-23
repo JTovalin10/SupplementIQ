@@ -1,11 +1,8 @@
-import { protectRoute } from '@/lib/auth/jwt-middleware';
 import { supabase } from '@/lib/supabase';
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
-export const GET = protectRoute(['moderator', 'admin', 'owner'])(
-  async (request, user) => {
+export async function GET(request: NextRequest) {
     try {
-      console.log(`[DASHBOARD_STATS] User ${user.userId} (${user.role}) accessing stats`);
 
       // Fetch real stats from database
       const [
@@ -78,5 +75,4 @@ export const GET = protectRoute(['moderator', 'admin', 'owner'])(
         { status: 500 }
       );
     }
-  }
-);
+}
