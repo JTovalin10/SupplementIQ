@@ -2,8 +2,6 @@
 
 import * as adminService from '@/lib/api/services/adminService';
 import { supabase } from '@/lib/database/supabase/client';
-import { Ability, AbilityBuilder } from '@casl/ability';
-import { createContextualCan } from '@casl/react';
 import type { Session, User } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState } from 'react';
 
@@ -74,85 +72,26 @@ export function useAuth() {
 }
 
 // Define abilities based on user role
-function defineAbilitiesFor(role: string) {
-  const { can, cannot, build } = new AbilityBuilder(Ability);
-
-  switch (role) {
-    case 'owner':
-      can('manage', 'all'); // Owner can do everything
-      break;
-    case 'admin':
-      can('read', 'all');
-      can('create', 'all');
-      can('update', 'all');
-      can('delete', 'all');
-      cannot('manage', 'owner'); // Cannot manage owners
-      break;
-    case 'moderator':
-      can('read', 'all');
-      can('create', ['Product', 'Submission']);
-      can('update', ['Product', 'Submission']);
-      can('moderate', 'all');
-      cannot('delete', 'all');
-      cannot('manage', ['User', 'Admin']);
-      break;
-    case 'trusted_editor':
-      can('read', 'all');
-      can('create', ['Product', 'Submission']);
-      can('update', ['Product', 'Submission']);
-      can('moderate', ['Product', 'Submission']);
-      cannot('delete', 'all');
-      cannot('manage', ['User', 'Admin', 'Moderator']);
-      break;
-    case 'contributor':
-      can('read', 'all');
-      can('create', ['Submission', 'Review']);
-      can('update', ['Submission', 'Review']);
-      cannot('moderate', 'all');
-      cannot('manage', ['User', 'Admin', 'Moderator', 'TrustedEditor']);
-      break;
-    case 'newcomer':
-    case 'user':
-    default:
-      can('read', ['Product', 'Brand', 'Ingredient']);
-      can('create', ['Submission', 'Review']);
-      can('update', ['Submission', 'Review']);
-      cannot('moderate', 'all');
-      cannot('manage', ['User', 'Admin', 'Moderator', 'TrustedEditor', 'Contributor']);
-      break;
-  }
-
-  return build();
+// Simple role-based permissions
+function getUserPermissions(role: string): UserPermissions {
+  return {
+    canViewPending: ['owner', 'admin', 'moderator'].includes(role),
+    canApproveSubmissions: ['owner', 'admin', 'moderator'].includes(role),
+    canApproveEdits: ['owner', 'admin', 'moderator'].includes(role),
+    canBanUsers: ['owner', 'admin'].includes(role),
+    canRequestDeletion: ['owner', 'admin'].includes(role),
+    canDeleteDirectly: role === 'owner',
+    canAccessAdminPanel: ['owner', 'admin'].includes(role),
+    canAccessModeratorPanel: ['owner', 'admin', 'moderator'].includes(role),
+    canAccessOwnerTools: role === 'owner',
+  };
 }
 
-// Create ability context
-export const AbilityContext = createContext<Ability | undefined>(undefined);
-
-// Create contextual can function
-export const Can = createContextualCan(AbilityContext.Consumer);
-
-// Hook to use abilities
-export function useAbility() {
-  const ability = useContext(AbilityContext);
-  if (!ability) {
-    throw new Error('useAbility must be used within AbilityProvider');
-  }
-  return ability;
-}
+// Removed CASL - using simple role checks instead
 
 // Calculate permissions based on user role
 function calculatePermissions(userRole: string): UserPermissions {
-  return {
-    canViewPending: ['moderator', 'admin', 'owner'].includes(userRole),
-    canApproveSubmissions: ['moderator', 'admin', 'owner'].includes(userRole),
-    canApproveEdits: ['moderator', 'admin', 'owner'].includes(userRole),
-    canBanUsers: ['admin', 'owner'].includes(userRole),
-    canRequestDeletion: ['admin', 'owner'].includes(userRole),
-    canDeleteDirectly: ['owner'].includes(userRole),
-    canAccessAdminPanel: ['admin', 'owner'].includes(userRole),
-    canAccessModeratorPanel: ['moderator', 'admin', 'owner'].includes(userRole),
-    canAccessOwnerTools: ['owner'].includes(userRole),
-  };
+  return getUserPermissions(userRole);
 }
 
 interface AuthProviderProps {
@@ -163,7 +102,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [ability, setAbility] = useState<Ability>(defineAbilitiesFor('newcomer'));
   const [profileCache, setProfileCache] = useState<Map<string, UserProfile>>(new Map());
   const [permissions, setPermissions] = useState<UserPermissions | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -180,7 +118,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         fetchUserProfile(session.user);
       } else {
         setUser(null);
-        setAbility(defineAbilitiesFor('newcomer'));
         setPermissions(null);
         setIsLoading(false);
       }
@@ -202,14 +139,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const existingUser = profileCache.get(session.user.id);
         if (existingUser) {
           setUser(existingUser);
-          setAbility(defineAbilitiesFor(existingUser.role));
+          setPermissions(calculatePermissions(existingUser.role));
           setIsLoading(false);
         } else {
           await fetchUserProfile(session.user);
         }
       } else {
         setUser(null);
-        setAbility(defineAbilitiesFor('newcomer'));
         setPermissions(null);
         setIsLoading(false);
       }
@@ -224,7 +160,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const cachedProfile = profileCache.get(authUser.id);
       if (cachedProfile) {
         setUser(cachedProfile);
-        setAbility(defineAbilitiesFor(cachedProfile.role));
         setPermissions(calculatePermissions(cachedProfile.role));
         setIsLoading(false);
         return true;
@@ -244,7 +179,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (error.code === 'PGRST116') {
           console.error('❌ User profile not found in database. User must sign up first.');
           setUser(null);
-          setAbility(defineAbilitiesFor('newcomer'));
           setPermissions(null);
           setIsLoading(false);
           return false;
@@ -253,7 +187,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         // For other database errors, also fail
         console.error('❌ Database error during profile fetch:', error);
         setUser(null);
-        setAbility(defineAbilitiesFor('newcomer'));
         setPermissions(null);
         setIsLoading(false);
         return false;
@@ -271,7 +204,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       };
 
       setUser(userProfile);
-      setAbility(defineAbilitiesFor(userProfile.role));
       setPermissions(calculatePermissions(userProfile.role));
       setIsLoading(false);
       profileCache.set(authUser.id, userProfile);
@@ -300,7 +232,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       console.log('🔧 Using fallback profile with newcomer role');
       setUser(defaultProfile);
-      setAbility(defineAbilitiesFor('newcomer'));
+      setPermissions(calculatePermissions('newcomer'));
       
       // Cache the fallback profile
       setProfileCache(prev => new Map(prev).set(authUser.id, defaultProfile));
@@ -409,7 +341,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Clear local state immediately
       setUser(null);
       setSession(null);
-      setAbility(defineAbilitiesFor('newcomer'));
+      setPermissions(null);
       setIsLoading(false);
       
       // Redirect to home page
@@ -422,7 +354,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Even if there's an error, clear local state
       setUser(null);
       setSession(null);
-      setAbility(defineAbilitiesFor('newcomer'));
+      setPermissions(null);
       setIsLoading(false);
       
       if (typeof window !== 'undefined') {
@@ -433,7 +365,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const updateUser = (updatedUser: UserProfile) => {
     setUser(updatedUser);
-    setAbility(defineAbilitiesFor(updatedUser.role));
     setPermissions(calculatePermissions(updatedUser.role));
   };
 
@@ -448,7 +379,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Recalculate permissions if role changed
       if (updates.role) {
         setPermissions(calculatePermissions(updates.role));
-        setAbility(defineAbilitiesFor(updates.role));
       }
 
       // TODO: Make API call to update user profile
@@ -650,9 +580,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   return (
     <AuthContext.Provider value={value}>
-      <AbilityContext.Provider value={ability}>
-        {children}
-      </AbilityContext.Provider>
+      {children}
     </AuthContext.Provider>
   );
 }

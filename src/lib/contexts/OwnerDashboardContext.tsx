@@ -1,6 +1,8 @@
 'use client';
 
 import { useAuth } from '@/lib/contexts';
+
+import { supabase } from '@/lib/database/supabase/client';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 interface OwnerStats {
@@ -16,6 +18,7 @@ interface OwnerStats {
 
 interface PendingSubmission {
   id: string;
+  slug: string;
   productName: string;
   brandName: string;
   category: string;
@@ -24,18 +27,11 @@ interface PendingSubmission {
   status: 'pending' | 'approved' | 'rejected';
 }
 
-interface RecentActivity {
-  id: string;
-  type: 'submission' | 'edit' | 'approval' | 'rejection';
-  description: string;
-  user: string;
-  timestamp: string;
-}
+// RecentActivity interface removed - no longer used in Owner Dashboard
 
 interface OwnerDashboardContextType {
   stats: OwnerStats;
   pendingSubmissions: PendingSubmission[];
-  recentActivity: RecentActivity[];
   isLoading: boolean;
   error: string | null;
   
@@ -77,7 +73,6 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
     apiCalls: 0
   });
   const [pendingSubmissions, setPendingSubmissions] = useState<PendingSubmission[]>([]);
-  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const didFetchRef = useRef(false);
@@ -107,14 +102,26 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
     setError(null);
     
     try {
+      // Get the current session and access token
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !session) {
+        throw new Error('No active session found. Please log in again.');
+      }
+
       // Fetch pending submissions with pagination
-      const pendingResponse = await fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10');
+      const pendingResponse = await fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
       if (pendingResponse.ok) {
         const pendingJson = await pendingResponse.json();
         const mapped = (pendingJson.submissions || []).map((s: any) => ({
           id: String(s.id),
+          slug: s.slug ?? 'unknown-slug',
           productName: s.productName ?? s.name ?? 'Unknown',
-          brandName: s.brand?.name ?? 'Unknown',
+          brandName: s.brandName ?? 'Unknown',
           category: s.category ?? 'Unknown',
           submittedBy: s.submittedBy ?? 'Unknown',
           submittedAt: s.submittedAt,
@@ -123,24 +130,8 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
         setPendingSubmissions(mapped);
       }
 
-      // Fetch recent activity with pagination
-      const activityResponse = await fetch('/api/admin/dashboard/recent-activity?page=1&limit=10');
-      if (activityResponse.ok) {
-        const activityJson = await activityResponse.json();
-        const mapped = (activityJson.activities || []).map((a: any) => ({
-          id: a.id,
-          type: a.type,
-          description:
-            a.type === 'product_approved' && a.product?.name
-              ? `${a.product.name} approved`
-              : a.type === 'product_created' && a.product?.name
-              ? `New product: ${a.product.name}`
-              : a.metadata?.title ?? 'Activity',
-          user: a.user?.username ?? 'Unknown',
-          timestamp: a.timestamp ?? a.created_at,
-        }));
-        setRecentActivity(mapped);
-      }
+      // Recent activity is no longer used in Owner Dashboard
+      // Removed recent activity fetch to prevent unnecessary API calls
     } catch (error) {
       console.error('Failed to fetch dashboard data', error);
       setError('Failed to fetch dashboard data');
@@ -245,7 +236,6 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
   const value = useMemo(() => ({
     stats,
     pendingSubmissions,
-    recentActivity,
     isLoading,
     error,
     handleApproveSubmission,
@@ -257,7 +247,6 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
   }), [
     stats,
     pendingSubmissions,
-    recentActivity,
     isLoading,
     error,
     handleApproveSubmission,

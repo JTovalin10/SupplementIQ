@@ -30,8 +30,12 @@ const ProductApprovalRequestSchema = z.object({
 });
 
 // Helper function to generate slug
-function generateSlug(name: string): string {
-  return name
+function generateSlug(brandName: string, productName: string, year?: string): string {
+  let combined = `${brandName} ${productName}`;
+  if (year) {
+    combined += ` ${year}`;
+  }
+  return combined
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '');
@@ -121,7 +125,7 @@ export async function POST(request: NextRequest) {
         .from('brands')
         .insert({
           name: validatedData.brand_name,
-          slug: generateSlug(validatedData.brand_name),
+          slug: validatedData.brand_name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         })
         .select('id')
         .single();
@@ -144,7 +148,7 @@ export async function POST(request: NextRequest) {
         brand_id: brandId,
         category: validatedData.category,
         product_name: validatedData.name,
-        slug: generateSlug(validatedData.name),
+        slug: generateSlug(validatedData.brand_name, validatedData.name, validatedData.year),
         image_url: safeImageUrl,
         description: validatedData.description,
         price: validatedData.price,

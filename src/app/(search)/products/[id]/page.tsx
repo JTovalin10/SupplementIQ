@@ -1,11 +1,12 @@
-// Individual product detail page
-// TODO: Implement product detail view with transparency metrics
+import ProductPage from '@/components/features/dashboard/ProductPage';
 
-export default function ProductDetailPage() {
-  return (
-    <div>
-      <h1>Product Details</h1>
-      <p>Product detail view with transparency metrics coming soon...</p>
-    </div>
-  );
+interface ProductPageRouteProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
+
+export default async function ProductPageRoute({ params }: ProductPageRouteProps) {
+  const { id } = await params;
+  return <ProductPage productId={id} />;
 }

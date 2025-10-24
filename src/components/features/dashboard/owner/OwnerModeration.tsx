@@ -1,10 +1,16 @@
 'use client';
 
 import { useOwnerDashboard } from '@/lib/contexts/OwnerDashboardContext';
+import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
 export default function OwnerModeration() {
-  const { pendingSubmissions, handleApproveSubmission, handleRejectSubmission } = useOwnerDashboard();
+  const { pendingSubmissions } = useOwnerDashboard();
+  const router = useRouter();
+
+  const handleReviewProduct = (submissionSlug: string) => {
+    router.push(`/admin/products/${submissionSlug}`);
+  };
 
   // Memoize the format date function
   const formatDate = useMemo(() => (dateString: string) => {
@@ -52,22 +58,16 @@ export default function OwnerModeration() {
             {getStatusBadge(submission.status)}
             <div className="flex space-x-2">
               <button
-                onClick={() => handleApproveSubmission(submission.id)}
-                className="px-3 py-1 text-xs font-medium bg-green-100 text-green-800 rounded hover:bg-green-200"
+                onClick={() => handleReviewProduct(submission.slug)}
+                className="px-4 py-2 text-sm font-medium bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
               >
-                Approve
-              </button>
-              <button
-                onClick={() => handleRejectSubmission(submission.id)}
-                className="px-3 py-1 text-xs font-medium bg-red-100 text-red-800 rounded hover:bg-red-200"
-              >
-                Reject
+                Review Product
               </button>
             </div>
           </div>
         </div>
       </div>
-    )), [pendingSubmissions, formatDate, getStatusBadge, handleApproveSubmission, handleRejectSubmission]);
+    )), [pendingSubmissions, formatDate, getStatusBadge]);
 
   return (
     <div className="space-y-6">

@@ -1,9 +1,46 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@/lib/database/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/admin/dashboard/pending-submissions?page=1&limit=10
 export async function GET(request: NextRequest) {
   try {
+    // Create server-side Supabase client
+    const supabase = await createClient();
+
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Authorization header required' }, { status: 401 });
+    }
+
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Verify the token and get user
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Get user profile to check role
+    const { data: userProfile, error: profileError } = await supabase
+      .from('users')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError || !userProfile) {
+      return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
+    }
+
+    // Check if user has admin+ permissions
+    const allowedRoles = ['admin', 'owner'];
+    if (!allowedRoles.includes(userProfile.role)) {
+      return NextResponse.json({ 
+        error: `Insufficient permissions. Only ${allowedRoles.join(', ')} can access this data.` 
+      }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const page = Math.max(parseInt(searchParams.get('page') || '1', 10), 1);
     const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '10', 10), 1), 50);
@@ -14,6 +51,7 @@ export async function GET(request: NextRequest) {
       .from('pending_products')
       .select(`
         id,
+        slug,
         product_name,
         image_url,
         category,
@@ -31,6 +69,7 @@ export async function GET(request: NextRequest) {
 
     const submissions = (data || []).map((row: any) => ({
       id: String(row.id),
+      slug: row.slug as string,
       productName: row.product_name as string,
       brandName: row.brands?.name ?? 'Unknown',
       imageUrl: row.image_url as string | null,
