@@ -1,6 +1,158 @@
 import { createClient } from '@/lib/database/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
 
+// Separate functions for fetching dosage details by category
+async function fetchPreworkoutDetails(supabase: any, productId: number) {
+  console.log('Fetching preworkout details for product ID:', productId);
+  const { data, error } = await supabase
+    .from('preworkout_details')
+    .select('*')
+    .eq('pending_product_id', productId)
+    .single();
+  
+  if (error) {
+    console.warn('Preworkout details error:', error.message);
+    return null;
+  }
+  console.log('Preworkout details fetched:', data);
+  return data;
+}
+
+async function fetchNonStimPreworkoutDetails(supabase: any, productId: number) {
+  console.log('Fetching non-stim preworkout details for product ID:', productId);
+  const { data, error } = await supabase
+    .from('non_stim_preworkout_details')
+    .select('*')
+    .eq('pending_product_id', productId)
+    .single();
+  
+  if (error) {
+    console.warn('Non-stim preworkout details error:', error.message);
+    return null;
+  }
+  console.log('Non-stim preworkout details fetched:', data);
+  return data;
+}
+
+async function fetchEnergyDrinkDetails(supabase: any, productId: number) {
+  console.log('Fetching energy drink details for product ID:', productId);
+  const { data, error } = await supabase
+    .from('energy_drink_details')
+    .select('*')
+    .eq('pending_product_id', productId)
+    .single();
+  
+  if (error) {
+    console.warn('Energy drink details error:', error.message);
+    return null;
+  }
+  console.log('Energy drink details fetched:', data);
+  return data;
+}
+
+async function fetchProteinDetails(supabase: any, productId: number) {
+  console.log('Fetching protein details for product ID:', productId);
+  const { data, error } = await supabase
+    .from('protein_details')
+    .select('*')
+    .eq('pending_product_id', productId)
+    .single();
+  
+  if (error) {
+    console.warn('Protein details error:', error.message);
+    return null;
+  }
+  console.log('Protein details fetched:', data);
+  return data;
+}
+
+async function fetchAminoAcidDetails(supabase: any, productId: number) {
+  console.log('Fetching amino acid details for product ID:', productId);
+  const { data, error } = await supabase
+    .from('amino_acid_details')
+    .select('*')
+    .eq('pending_product_id', productId)
+    .single();
+  
+  if (error) {
+    console.warn('Amino acid details error:', error.message);
+    return null;
+  }
+  console.log('Amino acid details fetched:', data);
+  return data;
+}
+
+async function fetchFatBurnerDetails(supabase: any, productId: number) {
+  console.log('Fetching fat burner details for product ID:', productId);
+  const { data, error } = await supabase
+    .from('fat_burner_details')
+    .select('*')
+    .eq('pending_product_id', productId)
+    .single();
+  
+  if (error) {
+    console.warn('Fat burner details error:', error.message);
+    return null;
+  }
+  console.log('Fat burner details fetched:', data);
+  return data;
+}
+
+async function fetchCreatineDetails(supabase: any, productId: number) {
+  console.log('Fetching creatine details for product ID:', productId);
+  const { data, error } = await supabase
+    .from('creatine_details')
+    .select('*')
+    .eq('pending_product_id', productId)
+    .single();
+  
+  if (error) {
+    console.warn('Creatine details error:', error.message);
+    return null;
+  }
+  console.log('Creatine details fetched:', data);
+  return data;
+}
+
+// Main function to fetch dosage details based on category
+async function fetchDosageDetails(supabase: any, category: string, productId: number) {
+  console.log('Fetching dosage details for category:', category, 'product ID:', productId);
+  
+  try {
+    switch (category) {
+      case 'pre-workout':
+        return await fetchPreworkoutDetails(supabase, productId);
+        
+      case 'non-stim-pre-workout':
+        return await fetchNonStimPreworkoutDetails(supabase, productId);
+        
+      case 'energy-drink':
+        return await fetchEnergyDrinkDetails(supabase, productId);
+        
+      case 'protein':
+        return await fetchProteinDetails(supabase, productId);
+        
+      case 'bcaa':
+      case 'eaa':
+        return await fetchAminoAcidDetails(supabase, productId);
+        
+      case 'fat-burner':
+      case 'appetite-suppressant':
+        return await fetchFatBurnerDetails(supabase, productId);
+        
+      case 'creatine':
+        return await fetchCreatineDetails(supabase, productId);
+        
+      default:
+        console.warn('Unknown category for dosage details:', category);
+        return null;
+    }
+  } catch (error) {
+    console.error('Error fetching dosage details:', error);
+    return null;
+  }
+}
+
 // GET /api/admin/products/[slug] - Get detailed product information for review
 export async function GET(
   request: NextRequest,
@@ -78,79 +230,7 @@ export async function GET(
     }
 
     // Fetch dosage details based on product category
-    let dosageDetails = null;
-    try {
-      switch (product.category) {
-        case 'pre-workout':
-          const { data: preworkoutData } = await supabase
-            .from('preworkout_details')
-            .select('*')
-            .eq('pending_product_id', product.id)
-            .single();
-          dosageDetails = preworkoutData;
-          break;
-          
-        case 'non-stim-pre-workout':
-          const { data: nonStimData } = await supabase
-            .from('non_stim_preworkout_details')
-            .select('*')
-            .eq('pending_product_id', product.id)
-            .single();
-          dosageDetails = nonStimData;
-          break;
-          
-        case 'energy-drink':
-          const { data: energyData } = await supabase
-            .from('energy_drink_details')
-            .select('*')
-            .eq('pending_product_id', product.id)
-            .single();
-          dosageDetails = energyData;
-          break;
-          
-        case 'protein':
-          const { data: proteinData } = await supabase
-            .from('protein_details')
-            .select('*')
-            .eq('pending_product_id', product.id)
-            .single();
-          dosageDetails = proteinData;
-          break;
-          
-        case 'bcaa':
-        case 'eaa':
-          const { data: aminoData } = await supabase
-            .from('amino_acid_details')
-            .select('*')
-            .eq('pending_product_id', product.id)
-            .single();
-          dosageDetails = aminoData;
-          break;
-          
-        case 'fat-burner':
-        case 'appetite-suppressant':
-          const { data: fatBurnerData } = await supabase
-            .from('fat_burner_details')
-            .select('*')
-            .eq('pending_product_id', product.id)
-            .single();
-          dosageDetails = fatBurnerData;
-          break;
-          
-        case 'creatine':
-          // Creatine products might use preworkout_details or have their own table
-          const { data: creatineData } = await supabase
-            .from('preworkout_details')
-            .select('*')
-            .eq('pending_product_id', product.id)
-            .single();
-          dosageDetails = creatineData;
-          break;
-      }
-    } catch (dosageError) {
-      console.warn('Could not fetch dosage details:', dosageError);
-      // Continue without dosage details
-    }
+    const dosageDetails = await fetchDosageDetails(supabase, product.category, product.id);
 
     // Format the response
     const formattedProduct = {

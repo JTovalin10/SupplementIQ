@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import ImageManager from './components/ImageManager';
+import DosageDetails from './components/DosageDetails';
 import ProductDetails from './components/ProductDetails';
-import ProductDosageDetails from './components/ProductDosageDetails';
 import ProductHeader from './components/ProductHeader';
 import ProductImage from './components/ProductImage';
 import ProductRatings from './components/ProductRatings';
+import ProductReviewActions from './components/ProductReviewActions';
 import ProductSpecs from './components/ProductSpecs';
 import ProductSubmissionInfo from './components/ProductSubmissionInfo';
+import { ConfirmationProvider, useConfirmation } from './ConfirmationContext';
 import { ProductData, ProductMode } from './types';
 
 interface ProductDisplayProps {
@@ -17,16 +17,19 @@ interface ProductDisplayProps {
   showBackButton?: boolean;
   showSubmissionInfo?: boolean;
   className?: string;
+  productId?: string;
 }
 
-export default function ProductDisplay({
+function ProductDisplayContent({
   product,
   mode,
   showBackButton = true,
   showSubmissionInfo = true,
-  className = ''
+  className = '',
+  productId
 }: ProductDisplayProps) {
-  const [currentImageUrl, setCurrentImageUrl] = useState(product.imageUrl);
+  const { confirmedFields, totalFields } = useConfirmation();
+
   return (
     <div className={`min-h-screen bg-gray-50 ${className}`}>
       {/* Header */}
@@ -38,17 +41,32 @@ export default function ProductDisplay({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
             {/* Left Column - Product Image */}
             <ProductImage 
-              imageUrl={currentImageUrl}
+              imageUrl={product.imageUrl}
               productName={product.productName}
+              mode={mode}
             />
 
             {/* Right Column - Product Details */}
             <div className="space-y-6">
               <ProductDetails product={product} />
               
-              <ProductSpecs product={product} />
+              <ProductSpecs product={product} mode={mode} />
               
               <ProductRatings product={product} />
+              
+              {/* Show dosage details for everyone */}
+              {product.dosageDetails ? (
+                <DosageDetails 
+                  dosageDetails={product.dosageDetails}
+                  category={product.category as any}
+                  mode={mode}
+                />
+              ) : (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <p className="text-yellow-800">No dosage details available for this product.</p>
+                  <p className="text-yellow-600 text-sm">Category: {product.category}</p>
+                </div>
+              )}
               
               {showSubmissionInfo && (
                 <ProductSubmissionInfo 
@@ -57,19 +75,13 @@ export default function ProductDisplay({
                 />
               )}
               
-              {/* Show detailed dosage information in review mode */}
-              {mode === 'review' && product.dosageDetails && (
-                <ProductDosageDetails 
-                  dosageDetails={product.dosageDetails}
-                  category={product.category as any}
-                />
-              )}
-              
-              {/* Image management for review mode */}
-              {mode === 'review' && (
-                <ImageManager 
-                  currentImageUrl={currentImageUrl}
-                  onImageChange={setCurrentImageUrl}
+              {/* Review actions for review mode */}
+              {mode === 'review' && productId && (
+                <ProductReviewActions 
+                  productId={productId}
+                  productName={product.productName}
+                  confirmedFields={confirmedFields}
+                  totalFields={totalFields}
                 />
               )}
             </div>
@@ -77,5 +89,13 @@ export default function ProductDisplay({
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ProductDisplay(props: ProductDisplayProps) {
+  return (
+    <ConfirmationProvider>
+      <ProductDisplayContent {...props} />
+    </ConfirmationProvider>
   );
 }

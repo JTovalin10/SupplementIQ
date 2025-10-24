@@ -4,7 +4,7 @@
   "private": true,
   "description": "Transparency engine for supplement industry - crowdsourced data with bioavailability calculations",
   "scripts": {
-    "dev": "next dev --turbo",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -44,6 +44,7 @@
     "react-dom": "^18",
     "redis": "^5.8.3",
     "redis-errors": "^1.2.0",
+    "source-map-js": "^1.2.1",
     "styled-components": "^6.1.19",
     "tr46": "^3.0.0",
     "webidl-conversions": "^8.0.0",

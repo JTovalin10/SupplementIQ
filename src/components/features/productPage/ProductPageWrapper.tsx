@@ -58,6 +58,7 @@ export default function ProductPageWrapper({
       product={product} 
       mode={mode} 
       showSubmissionInfo={showSubmissionInfo}
+      productId={productId}
     />
   );
 }

@@ -6,6 +6,16 @@
 - **Impact**: Core feature not implemented
 - **Status**: 🔴 HIGH PRIORITY
 
+### 2. Product Configuration System Migration
+- **Issue**: Moving ingredient dosage data from code to database
+- **Impact**: Better scalability and admin management
+- **Status**: 🔴 HIGH PRIORITY
+- **Details**: 
+  - Create product_configurations table in database
+  - Store ingredient dosages, cautions, and scientific citations in DB
+  - Update dosage calculator to use database data
+  - Maintain TypeScript interfaces for type safety
+
 ## 🔧 Technical Debt
 
 ### 2. Debug Logs Cleanup

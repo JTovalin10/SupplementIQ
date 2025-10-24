@@ -206,8 +206,6 @@ export const DOSAGE_MAPPINGS: Record<string, DosageMapping> = {
   'creatine': {
     creatine_type_name: { displayName: 'Creatine Type', unit: '', category: 'info' },
     flavors: { displayName: 'Available Flavors', unit: '', category: 'info' },
-    serving_size_g: { displayName: 'Serving Size', unit: 'g', category: 'serving' },
-    servings_per_container: { displayName: 'Servings per Container', unit: 'servings', category: 'serving' },
   },
 };
 
