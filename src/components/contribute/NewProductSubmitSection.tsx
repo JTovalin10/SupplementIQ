@@ -1,7 +1,7 @@
 'use client';
 
 import Button from '@/components/ui/button';
-import { useUser } from '@/lib/contexts/UserContext';
+import { useAuth } from '@/lib/contexts';
 import { Plus } from 'lucide-react';
 import Link from 'next/link';
 
@@ -12,7 +12,7 @@ interface NewProductSubmitSectionProps {
 export default function NewProductSubmitSection({
   isSubmitting
 }: NewProductSubmitSectionProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
 
   return (
     <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 md:space-x-4">

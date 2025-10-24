@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAuth } from '@/lib/contexts';
 import { LogOut, Menu, Shield, User } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -82,7 +82,7 @@ export default function Header() {
                   Login
                 </Link>
                 <Link
-                  href='/signup'
+                  href='/register'
                   className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors'
                 >
                   Sign Up

@@ -1,6 +1,6 @@
 'use client';
 
-import { useNotifications } from '@/lib/contexts/AppStateContext';
+import { useNotifications } from '@/lib/contexts';
 import { AlertTriangle, CheckCircle, Info, X, XCircle } from 'lucide-react';
 
 const NotificationIcon = ({ type }: { type: 'success' | 'error' | 'warning' | 'info' }) => {

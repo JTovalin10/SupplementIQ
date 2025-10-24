@@ -1,27 +1,35 @@
 'use client';
 
-import { createContext, ReactNode, useContext, useEffect, useReducer } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useReducer, useState } from 'react';
 
 // Action types for user preferences reducer
 type UserPreferencesAction =
   | { type: 'SET_PREFERENCES'; preferences: UserPreferences }
   | { type: 'UPDATE_PREFERENCE'; key: string; value: any }
   | { type: 'RESET_PREFERENCES' }
-  | { type: 'SET_DASHBOARD_LAYOUT'; layout: 'grid' | 'list' | 'compact' }
-  | { type: 'SET_PRODUCTS_PER_PAGE'; count: number }
   | { type: 'SET_DEFAULT_CATEGORY'; category: string }
   | { type: 'SET_SHOW_ADVANCED_FILTERS'; show: boolean }
   | { type: 'SET_AUTO_SAVE'; enabled: boolean }
-  | { type: 'SET_NOTIFICATION_SETTINGS'; settings: NotificationSettings };
+  | { type: 'SET_NOTIFICATION_SETTINGS'; settings: NotificationSettings }
+  | { type: 'SET_LAYOUT_PREFERENCES'; layout: 'grid' | 'list' | 'compact'; productsPerPage: number };
 
 // User preferences interface
 interface UserPreferences {
-  dashboardLayout: 'grid' | 'list' | 'compact';
+  // Layout preferences (moved from dashboard-specific to general UI)
+  layout: 'grid' | 'list' | 'compact';
   productsPerPage: number;
+  
+  // Filter preferences
   defaultCategory: string;
   showAdvancedFilters: boolean;
+  
+  // General settings
   autoSave: boolean;
+  
+  // Notification preferences (settings only, not active notifications)
   notificationSettings: NotificationSettings;
+  
+  // Search & discovery
   recentSearches: string[];
   favoriteCategories: string[];
   customFilters: Record<string, any>;
@@ -38,7 +46,7 @@ interface NotificationSettings {
 
 // Initial state
 const initialPreferences: UserPreferences = {
-  dashboardLayout: 'grid',
+  layout: 'grid',
   productsPerPage: 20,
   defaultCategory: '',
   showAdvancedFilters: false,
@@ -71,23 +79,15 @@ function userPreferencesReducer(state: UserPreferences, action: UserPreferencesA
     case 'RESET_PREFERENCES':
       return initialPreferences;
     
-    case 'SET_DASHBOARD_LAYOUT':
-      return { ...state, dashboardLayout: action.layout };
-    
-    case 'SET_PRODUCTS_PER_PAGE':
-      return { ...state, productsPerPage: action.count };
-    
-    case 'SET_DEFAULT_CATEGORY':
-      return { ...state, defaultCategory: action.category };
-    
-    case 'SET_SHOW_ADVANCED_FILTERS':
-      return { ...state, showAdvancedFilters: action.show };
-    
-    case 'SET_AUTO_SAVE':
-      return { ...state, autoSave: action.enabled };
-    
     case 'SET_NOTIFICATION_SETTINGS':
       return { ...state, notificationSettings: action.settings };
+    
+    case 'SET_LAYOUT_PREFERENCES':
+      return { 
+        ...state, 
+        layout: action.layout,
+        productsPerPage: action.productsPerPage 
+      };
     
     default:
       return state;
@@ -98,8 +98,7 @@ function userPreferencesReducer(state: UserPreferences, action: UserPreferencesA
 interface UserPreferencesContextType {
   preferences: UserPreferences;
   updatePreference: (key: string, value: any) => void;
-  setDashboardLayout: (layout: 'grid' | 'list' | 'compact') => void;
-  setProductsPerPage: (count: number) => void;
+  setLayoutPreferences: (layout: 'grid' | 'list' | 'compact', productsPerPage: number) => void;
   setDefaultCategory: (category: string) => void;
   setShowAdvancedFilters: (show: boolean) => void;
   setAutoSave: (enabled: boolean) => void;
@@ -127,39 +126,64 @@ interface UserPreferencesProviderProps {
  */
 export function UserPreferencesProvider({ children, userId }: UserPreferencesProviderProps) {
   const [preferences, dispatch] = useReducer(userPreferencesReducer, initialPreferences);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Load preferences from localStorage on mount
+  // Load preferences from localStorage on mount with better error handling
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedPreferences = localStorage.getItem(`user-preferences-${userId || 'default'}`);
-      if (savedPreferences) {
-        try {
+    if (typeof window !== 'undefined' && !isInitialized) {
+      const storageKey = `user-preferences-${userId || 'default'}`;
+      try {
+        const savedPreferences = localStorage.getItem(storageKey);
+        if (savedPreferences) {
           const parsed = JSON.parse(savedPreferences);
-          dispatch({ type: 'SET_PREFERENCES', preferences: parsed });
-        } catch (error) {
-          console.error('Failed to parse saved preferences:', error);
+          // Validate the parsed preferences
+          if (parsed && typeof parsed === 'object') {
+            dispatch({ type: 'SET_PREFERENCES', preferences: parsed });
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load preferences from localStorage:', error);
+        // Clear corrupted data
+        try {
+          localStorage.removeItem(storageKey);
+        } catch (clearError) {
+          console.error('Failed to clear corrupted preferences:', clearError);
+        }
+      } finally {
+        setIsInitialized(true);
+      }
+    }
+  }, [userId, isInitialized]);
+
+  // Save preferences to localStorage with debouncing and error handling
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isInitialized) {
+      const storageKey = `user-preferences-${userId || 'default'}`;
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(preferences));
+      } catch (error) {
+        console.error('Failed to save preferences to localStorage:', error);
+        // Handle quota exceeded or other storage errors
+        if (error instanceof Error && error.name === 'QuotaExceededError') {
+          console.warn('localStorage quota exceeded, clearing old data');
+          try {
+            // Clear old preferences and try again
+            localStorage.removeItem(storageKey);
+            localStorage.setItem(storageKey, JSON.stringify(preferences));
+          } catch (retryError) {
+            console.error('Failed to retry saving preferences:', retryError);
+          }
         }
       }
     }
-  }, [userId]);
-
-  // Save preferences to localStorage whenever they change
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(`user-preferences-${userId || 'default'}`, JSON.stringify(preferences));
-    }
-  }, [preferences, userId]);
+  }, [preferences, userId, isInitialized]);
 
   const updatePreference = (key: string, value: any) => {
     dispatch({ type: 'UPDATE_PREFERENCE', key, value });
   };
 
-  const setDashboardLayout = (layout: 'grid' | 'list' | 'compact') => {
-    dispatch({ type: 'SET_DASHBOARD_LAYOUT', layout });
-  };
-
-  const setProductsPerPage = (count: number) => {
-    dispatch({ type: 'SET_PRODUCTS_PER_PAGE', count });
+  const setLayoutPreferences = (layout: 'grid' | 'list' | 'compact', productsPerPage: number) => {
+    dispatch({ type: 'SET_LAYOUT_PREFERENCES', layout, productsPerPage });
   };
 
   const setDefaultCategory = (category: string) => {
@@ -219,8 +243,7 @@ export function UserPreferencesProvider({ children, userId }: UserPreferencesPro
     <UserPreferencesContext.Provider value={{
       preferences,
       updatePreference,
-      setDashboardLayout,
-      setProductsPerPage,
+      setLayoutPreferences,
       setDefaultCategory,
       setShowAdvancedFilters,
       setAutoSave,
@@ -250,15 +273,14 @@ export function useUserPreferences() {
 }
 
 /**
- * Hook for dashboard preferences only
+ * Hook for layout preferences only
  */
-export function useDashboardPreferences() {
-  const { preferences, setDashboardLayout, setProductsPerPage } = useUserPreferences();
+export function useLayoutPreferences() {
+  const { preferences, setLayoutPreferences } = useUserPreferences();
   return {
-    layout: preferences.dashboardLayout,
+    layout: preferences.layout,
     productsPerPage: preferences.productsPerPage,
-    setLayout: setDashboardLayout,
-    setProductsPerPage
+    setLayoutPreferences
   };
 }
 

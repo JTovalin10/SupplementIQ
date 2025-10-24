@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@/lib/contexts/UserContext';
+import { useAuth } from '@/lib/contexts';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,7 +13,7 @@ export default function NewProductHeader({
   title = "Add New Product",
   description = "Submit a new supplement product to our database. All submissions are reviewed by our community."
 }: NewProductHeaderProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
 
   return (
     <div className="bg-white border-b">

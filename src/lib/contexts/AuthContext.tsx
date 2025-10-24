@@ -1,5 +1,6 @@
 'use client';
 
+import * as adminService from '@/lib/api/services/adminService';
 import { supabase } from '@/lib/database/supabase/client';
 import { Ability, AbilityBuilder } from '@casl/ability';
 import { createContextualCan } from '@casl/react';
@@ -16,15 +17,50 @@ interface UserProfile {
   created_at: string;
 }
 
+interface UserPermissions {
+  canViewPending: boolean;
+  canApproveSubmissions: boolean;
+  canApproveEdits: boolean;
+  canBanUsers: boolean;
+  canRequestDeletion: boolean;
+  canDeleteDirectly: boolean;
+  canAccessAdminPanel: boolean;
+  canAccessModeratorPanel: boolean;
+  canAccessOwnerTools: boolean;
+}
+
+interface AdminAction {
+  type: 'override_promote' | 'approve_submission' | 'reject_submission' | 'approve_product_edit' | 'reject_product_edit';
+  userId?: string;
+  targetRole?: string;
+  submissionId?: string;
+  editId?: string;
+  notes?: string;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
   session: Session | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  permissions: UserPermissions | null;
   login: (email: string, password: string, rememberMe?: boolean) => Promise<{ success: boolean; error?: string }>;
   signup: (email: string, password: string, username: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateUser: (user: UserProfile) => void;
+  updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
+  refreshUser: () => Promise<void>;
+  
+  // Admin actions
+  handleOverridePromote: (userId: string, targetRole: string) => Promise<void>;
+  handleApproveSubmission: (submissionId: string, notes?: string) => Promise<void>;
+  handleRejectSubmission: (submissionId: string, reason: string) => Promise<void>;
+  handleApproveProductEdit: (editId: string, notes?: string) => Promise<void>;
+  handleRejectProductEdit: (editId: string, reason: string) => Promise<void>;
+  
+  // Admin state
+  isProcessing: boolean;
+  lastAction: AdminAction | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,6 +140,21 @@ export function useAbility() {
   return ability;
 }
 
+// Calculate permissions based on user role
+function calculatePermissions(userRole: string): UserPermissions {
+  return {
+    canViewPending: ['moderator', 'admin', 'owner'].includes(userRole),
+    canApproveSubmissions: ['moderator', 'admin', 'owner'].includes(userRole),
+    canApproveEdits: ['moderator', 'admin', 'owner'].includes(userRole),
+    canBanUsers: ['admin', 'owner'].includes(userRole),
+    canRequestDeletion: ['admin', 'owner'].includes(userRole),
+    canDeleteDirectly: ['owner'].includes(userRole),
+    canAccessAdminPanel: ['admin', 'owner'].includes(userRole),
+    canAccessModeratorPanel: ['moderator', 'admin', 'owner'].includes(userRole),
+    canAccessOwnerTools: ['owner'].includes(userRole),
+  };
+}
+
 interface AuthProviderProps {
   children: React.ReactNode;
 }
@@ -114,6 +165,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [ability, setAbility] = useState<Ability>(defineAbilitiesFor('newcomer'));
   const [profileCache, setProfileCache] = useState<Map<string, UserProfile>>(new Map());
+  const [permissions, setPermissions] = useState<UserPermissions | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [lastAction, setLastAction] = useState<AdminAction | null>(null);
 
   const isAuthenticated = !!user && !!session;
 
@@ -127,6 +181,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         setUser(null);
         setAbility(defineAbilitiesFor('newcomer'));
+        setPermissions(null);
         setIsLoading(false);
       }
     });
@@ -155,6 +210,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         setUser(null);
         setAbility(defineAbilitiesFor('newcomer'));
+        setPermissions(null);
         setIsLoading(false);
       }
     });
@@ -169,6 +225,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (cachedProfile) {
         setUser(cachedProfile);
         setAbility(defineAbilitiesFor(cachedProfile.role));
+        setPermissions(calculatePermissions(cachedProfile.role));
         setIsLoading(false);
         return true;
       }
@@ -188,6 +245,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.error('❌ User profile not found in database. User must sign up first.');
           setUser(null);
           setAbility(defineAbilitiesFor('newcomer'));
+          setPermissions(null);
           setIsLoading(false);
           return false;
         }
@@ -196,6 +254,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error('❌ Database error during profile fetch:', error);
         setUser(null);
         setAbility(defineAbilitiesFor('newcomer'));
+        setPermissions(null);
         setIsLoading(false);
         return false;
       }
@@ -213,6 +272,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       setUser(userProfile);
       setAbility(defineAbilitiesFor(userProfile.role));
+      setPermissions(calculatePermissions(userProfile.role));
       setIsLoading(false);
       profileCache.set(authUser.id, userProfile);
       return true;
@@ -374,6 +434,197 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const updateUser = (updatedUser: UserProfile) => {
     setUser(updatedUser);
     setAbility(defineAbilitiesFor(updatedUser.role));
+    setPermissions(calculatePermissions(updatedUser.role));
+  };
+
+  const updateUserProfile = async (updates: Partial<UserProfile>) => {
+    if (!user) return;
+
+    try {
+      // Optimistically update the user state
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      
+      // Recalculate permissions if role changed
+      if (updates.role) {
+        setPermissions(calculatePermissions(updates.role));
+        setAbility(defineAbilitiesFor(updates.role));
+      }
+
+      // TODO: Make API call to update user profile
+      // await fetch(`/api/users/${user.id}`, {
+      //   method: 'PATCH',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify(updates)
+      // });
+    } catch (error) {
+      console.error('Error updating user profile:', error);
+      // Revert optimistic update
+      await fetchUserProfile(session?.user!);
+    }
+  };
+
+  const refreshUser = async () => {
+    if (session?.user) {
+      await fetchUserProfile(session.user);
+    }
+  };
+
+  // Admin action methods
+  const handleOverridePromote = async (userId: string, targetRole: string) => {
+    if (!permissions?.canAccessOwnerTools) {
+      throw new Error('Insufficient permissions for role override');
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await adminService.updateUserRole({ role: targetRole });
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update role');
+      }
+      
+      setLastAction({
+        type: 'override_promote',
+        userId,
+        targetRole,
+      });
+
+      console.log(`Override promoted user ${userId} to ${targetRole}`);
+    } catch (error) {
+      console.error('Error overriding promotion:', error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleApproveSubmission = async (submissionId: string, notes?: string) => {
+    if (!permissions?.canApproveSubmissions) {
+      throw new Error('Insufficient permissions to approve submissions');
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await adminService.approveSubmission({
+        submissionId,
+        adminId: user?.id || '',
+        adminNotes: notes
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to approve submission');
+      }
+      
+      setLastAction({
+        type: 'approve_submission',
+        submissionId,
+        notes,
+      });
+
+      console.log(`Approved submission ${submissionId}`);
+    } catch (error) {
+      console.error('Error approving submission:', error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectSubmission = async (submissionId: string, reason: string) => {
+    if (!permissions?.canApproveSubmissions) {
+      throw new Error('Insufficient permissions to reject submissions');
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await adminService.rejectSubmission({
+        submissionId,
+        adminId: user?.id || '',
+        reason
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to reject submission');
+      }
+      
+      setLastAction({
+        type: 'reject_submission',
+        submissionId,
+        notes: reason,
+      });
+
+      console.log(`Rejected submission ${submissionId} for: ${reason}`);
+    } catch (error) {
+      console.error('Error rejecting submission:', error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleApproveProductEdit = async (editId: string, notes?: string) => {
+    if (!permissions?.canApproveEdits) {
+      throw new Error('Insufficient permissions to approve edits');
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await adminService.approveProductEdit({
+        editId,
+        adminId: user?.id || '',
+        notes
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to approve product edit');
+      }
+      
+      setLastAction({
+        type: 'approve_product_edit',
+        editId,
+        notes,
+      });
+
+      console.log(`Approved product edit ${editId}`);
+    } catch (error) {
+      console.error('Error approving product edit:', error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleRejectProductEdit = async (editId: string, reason: string) => {
+    if (!permissions?.canApproveEdits) {
+      throw new Error('Insufficient permissions to reject edits');
+    }
+
+    setIsProcessing(true);
+    try {
+      const result = await adminService.rejectProductEdit({
+        editId,
+        adminId: user?.id || '',
+        reason
+      });
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to reject product edit');
+      }
+      
+      setLastAction({
+        type: 'reject_product_edit',
+        editId,
+        notes: reason,
+      });
+
+      console.log(`Rejected product edit ${editId} for: ${reason}`);
+    } catch (error) {
+      console.error('Error rejecting product edit:', error);
+      throw error;
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const value: AuthContextType = {
@@ -381,10 +632,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     session,
     isAuthenticated,
     isLoading,
+    permissions,
     login,
     signup,
     logout,
     updateUser,
+    updateUserProfile,
+    refreshUser,
+    handleOverridePromote,
+    handleApproveSubmission,
+    handleRejectSubmission,
+    handleApproveProductEdit,
+    handleRejectProductEdit,
+    isProcessing,
+    lastAction,
   };
 
   return (

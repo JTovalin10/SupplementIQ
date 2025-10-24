@@ -39,15 +39,16 @@ export default function RankingTable({
     params.append('timeRange', timeRange);
     params.append('limit', limit.toString());
     params.append('page', currentPage.toString());
+    params.append('_t', Date.now().toString()); // Add timestamp to bust cache
     return params.toString();
   }, [category, sortBy, timeRange, limit, currentPage]);
 
-  // Memoize the rankings data - this will only recompute when cacheKey changes
+  // Fetch rankings data with proper caching
   const rankingsData = useMemo(() => {
     // Check if we have cached data for this exact request
     const cached = cacheRef.current.get(cacheKey);
     if (cached) {
-      console.log('🚀 Using cached rankings data');
+      console.log('🚀 Using cached rankings data:', cached.rankings?.length || 0, 'users');
       return cached;
     }
 
@@ -73,6 +74,7 @@ export default function RankingTable({
 
           const data = await response.json();
           console.log(`✅ Rankings fetched: ${data.rankings?.length || 0} items`);
+          console.log('📊 Rankings data:', data.rankings);
           
           // Cache the result
           cacheRef.current.set(cacheKey, data);
@@ -99,6 +101,7 @@ export default function RankingTable({
   // Update state when we have data
   useEffect(() => {
     if (rankingsData) {
+      console.log('📝 Updating state with rankings data:', rankingsData.rankings?.length || 0, 'users');
       setRankings(rankingsData.rankings || []);
       setTotalPages(rankingsData.totalPages || 1);
       setTotalCount(rankingsData.totalCount || 0);

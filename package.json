@@ -35,14 +35,17 @@
     "js-cookie": "^3.0.5",
     "levenshtein": "^1.0.5",
     "lucide-react": "^0.460.0",
+    "nanoid": "^5.1.6",
     "next": "^16.0.0-canary.18",
-    "next-auth": "^4.24.11",
     "node-addon-api": "^8.5.0",
     "node-cron": "^4.2.1",
+    "picocolors": "^1.1.1",
     "react": "^18",
     "react-dom": "^18",
     "redis": "^5.8.3",
+    "redis-errors": "^1.2.0",
     "styled-components": "^6.1.19",
+    "webidl-conversions": "^8.0.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

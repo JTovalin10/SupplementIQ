@@ -2,15 +2,16 @@
 
 import CacheLoadingScreen from '@/components/ui/CacheLoadingScreen';
 import { getAvailableTabs } from '@/lib/auth/role-routing';
-import { useDashboard } from '@/lib/contexts/AppContext';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { useUser } from '@/lib/contexts/UserContext';
+import { useAuth, useDashboard } from '@/lib/contexts';
+import { OwnerDashboardProvider } from '@/lib/contexts/OwnerDashboardContext';
 import {
-    BarChart3,
-    Lock,
-    Settings,
-    Shield
+  BarChart3,
+  Lock,
+  Settings,
+  Shield
 } from 'lucide-react';
+import AdminUserManagement from './dashboard/AdminUserManagement';
+import OwnerDashboard from './dashboard/OwnerDashboard';
 import PendingSubmissions from './dashboard/PendingSubmissions';
 import RecentActivity from './dashboard/RecentActivity';
 import UserManagement from './dashboard/UserManagement';
@@ -21,7 +22,7 @@ interface DashboardProps {
 
 export default function JWTDashboard({}: DashboardProps) {
   const { isAuthenticated, isLoading } = useAuth();
-  const { user, permissions } = useUser();
+  const { user, permissions } = useAuth();
   const { state, setActiveTab, setCacheLoading } = useDashboard();
   const { activeTab, cacheLoading } = state;
   const effectiveRole = user?.role as 'user' | 'moderator' | 'admin' | 'owner';
@@ -55,7 +56,7 @@ export default function JWTDashboard({}: DashboardProps) {
               Login
             </a>
             <a
-              href="/signup"
+              href="/register"
               className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors block"
             >
               Create Account
@@ -142,29 +143,44 @@ export default function JWTDashboard({}: DashboardProps) {
 
           {/* Dashboard Content */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            {activeTab === 'overview' && (
-              <div className="space-y-8">
-                <RecentActivity />
-              </div>
+            {/* Owner-specific dashboard */}
+            {effectiveRole === 'owner' && (
+              <OwnerDashboardProvider>
+                <OwnerDashboard />
+              </OwnerDashboardProvider>
             )}
 
-            {activeTab === 'submissions' && (
-              <PendingSubmissions />
-            )}
+            {/* Regular dashboard for non-owners */}
+            {effectiveRole !== 'owner' && (
+              <>
+                {activeTab === 'overview' && (
+                  <div className="space-y-8">
+                    <RecentActivity />
+                  </div>
+                )}
 
-            {activeTab === 'users' && (
-              <UserManagement />
-            )}
+                {activeTab === 'submissions' && (
+                  <PendingSubmissions />
+                )}
 
-            {activeTab === 'settings' && (
-              <div className="bg-white rounded-lg shadow">
-                <div className="px-6 py-4 border-b">
-                  <h3 className="text-lg font-semibold text-gray-900">Settings</h3>
-                </div>
-                <div className="p-6">
-                  <p className="text-gray-500">Settings panel coming soon...</p>
-                </div>
-              </div>
+                {activeTab === 'users' && (
+                  <>
+                    {effectiveRole === 'admin' && <AdminUserManagement />}
+                    {effectiveRole === 'moderator' && <UserManagement />}
+                  </>
+                )}
+
+                {activeTab === 'settings' && (
+                  <div className="bg-white rounded-lg shadow">
+                    <div className="px-6 py-4 border-b">
+                      <h3 className="text-lg font-semibold text-gray-900">Settings</h3>
+                    </div>
+                    <div className="p-6">
+                      <p className="text-gray-500">Settings panel coming soon...</p>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>

@@ -1,4 +1,4 @@
-import { ProductCategory } from '../types';
+export type ProductCategory = 'protein' | 'pre-workout' | 'energy-drink' | 'bcaa' | 'eaa' | 'fat-burner' | 'appetite-suppressant';
 
 export interface Category {
   id: ProductCategory;

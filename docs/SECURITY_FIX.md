@@ -139,9 +139,7 @@ Body: {
 - [x] JWT token validation added
 
 ### **🔧 Required Next Steps**
-- [ ] **JWT Secret Configuration**: Set `JWT_SECRET` environment variable
-- [ ] **Token Generation**: Implement JWT token creation in auth routes
-- [ ] **Token Refresh**: Add token refresh mechanism
+- [x] **JWT Token Validation**: Using Supabase Auth (completed)
 - [ ] **Rate Limiting**: Add request rate limiting per user
 - [ ] **Audit Logging**: Log all authentication and authorization events
 
@@ -149,15 +147,16 @@ Body: {
 
 ### **1. Environment Variables**
 ```bash
-# Required for JWT validation
-JWT_SECRET=your-super-secret-jwt-key-here
-JWT_EXPIRES_IN=24h
+# Supabase Auth handles JWT tokens automatically
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 ```
 
 ### **2. Token Management**
-- Use **short-lived tokens** (24 hours max)
-- Implement **token refresh** mechanism
-- **Rotate JWT secrets** regularly
+- **Supabase Auth** handles token generation and validation
+- **Automatic token refresh** via Supabase client
+- **Short-lived tokens** managed by Supabase
 - **Invalidate tokens** on logout
 
 ### **3. Additional Security**

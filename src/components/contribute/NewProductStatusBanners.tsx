@@ -1,6 +1,6 @@
 'use client';
 
-import { useUser } from '@/lib/contexts/UserContext';
+import { useAuth } from '@/lib/contexts';
 
 interface SubmittedProduct {
   name: string;
@@ -25,7 +25,7 @@ export default function NewProductStatusBanners({
   onDismissStatus,
   showDebugBanner = false
 }: NewProductStatusBannersProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
 
   return (
     <>

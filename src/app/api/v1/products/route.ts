@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { getCachedProducts, setCachedProducts } from '../../../../lib/backend/core/cache';
 import { supabase } from '../../../../lib/backend/supabase';
-import { CACHE_PAGINATION, PAGINATION_DEFAULTS } from '../../../../lib/constants';
+import { CACHE_PAGINATION, PAGINATION_DEFAULTS } from '../../../../lib/config/constants';
 import { sanitizeInput } from '../../../../lib/middleware/validation';
 
 /**

@@ -1,8 +1,7 @@
 'use client';
 
 import JWTDashboard from '@/components/features/JWTDashboard';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { useUser } from '@/lib/contexts/UserContext';
+import { useAuth } from '@/lib/contexts';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -39,7 +38,7 @@ interface Submission {
 
 export default function UserDashboardPage() {
   const { isAuthenticated } = useAuth();
-  const { user: currentUser } = useUser();
+  const { user: currentUser } = useAuth();
   const params = useParams();
   const userId = params.userId as string;
   const [userData, setUserData] = useState<UserData | null>(null);

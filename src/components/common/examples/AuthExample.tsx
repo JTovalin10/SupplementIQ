@@ -1,6 +1,6 @@
 // Example usage of the new CASL-based auth system
 
-import { Can, useAuth } from '@/lib/contexts/AuthContext';
+import { Can, useAuth } from '@/lib/contexts';
 
 function ExampleComponent() {
   const { user, isAuthenticated } = useAuth();

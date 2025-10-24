@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAuth } from '@/lib/contexts';
 import { createTestUser } from '@/lib/create-test-user';
 import { useState } from 'react';
 

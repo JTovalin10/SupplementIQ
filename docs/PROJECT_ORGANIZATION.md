@@ -205,7 +205,6 @@ SupplementIQ/
 │   ├── check-user-role.js           # Check user role script
 │   ├── debug-auth.js                # Auth debugging script
 │   ├── fix-user-record.js           # Fix user record script
-│   ├── generate-jwt-secret.js       # JWT secret generation
 │   ├── sync-env.js                  # Environment sync
 │   └── update-user-role.js          # Update user role script
 ├── 📁 config/                       # Configuration files

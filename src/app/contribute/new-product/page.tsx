@@ -1,18 +1,17 @@
 'use client';
 
 import NewProductBasicInfo from '@/components/contribute/NewProductBasicInfo';
-import NewProductForm from '@/components/contribute/NewProductForm';
 import NewProductHeader from '@/components/contribute/NewProductHeader';
 import NewProductLoadingScreen from '@/components/contribute/NewProductLoadingScreen';
 import NewProductStatusBanners from '@/components/contribute/NewProductStatusBanners';
 import NewProductSubmitSection from '@/components/contribute/NewProductSubmitSection';
-import { useAuth } from '@/lib/contexts/AuthContext';
-import { useUser } from '@/lib/contexts/UserContext';
+import ProductFormWrapper from '@/components/forms/ProductFormWrapper';
+import Card from '@/components/ui/card';
+import { useAuth } from '@/lib/contexts';
 import React, { useEffect, useState } from 'react';
 
 export default function NewProductPage() {
-  const { isAuthenticated } = useAuth();
-  const { user } = useUser();
+  const { isAuthenticated, user } = useAuth();
   const [canSubmitImageUrl, setCanSubmitImageUrl] = useState(false);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
@@ -219,13 +218,27 @@ export default function NewProductPage() {
             canSubmitImageUrl={canSubmitImageUrl}
           />
 
-          <NewProductForm
-            category={formData.category}
-            formData={formData}
-            onFormChange={(newFormData) => {
-              setFormData(prev => ({ ...prev, ...newFormData }));
-            }}
-          />
+          <Card padding="lg">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">
+              {formData.category ? `${formData.category.charAt(0).toUpperCase() + formData.category.slice(1).replace('-', ' ')} Information` : 'Nutrition Information'}
+            </h2>
+            
+            {formData.category ? (
+              <ProductFormWrapper
+                category={formData.category}
+                initialFormData={formData}
+                onFormChange={(newFormData) => {
+                  setFormData(prev => ({ ...prev, ...newFormData }));
+                }}
+              />
+            ) : (
+              <div className="space-y-4">
+                <p className="text-gray-600">
+                  Select a category above to see ingredient fields for that product type.
+                </p>
+              </div>
+            )}
+          </Card>
 
           <NewProductSubmitSection isSubmitting={isSubmitting} />
         </form>

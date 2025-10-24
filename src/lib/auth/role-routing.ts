@@ -67,7 +67,5 @@ export function getAvailableTabs(userRole: string) {
     baseTabs.push({ id: 'system', name: 'System' });
   }
 
-  baseTabs.push({ id: 'settings', name: 'Settings' });
-
   return baseTabs;
 }

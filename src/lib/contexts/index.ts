@@ -2,20 +2,23 @@
  * Context exports - centralized exports for all context providers and hooks
  */
 
-// Export all providers
-export { AdminProvider } from './AdminContext';
-export { AuthProvider } from './AuthContext';
-export { DashboardProvider } from './DashboardContext';
-export { UserProvider } from './UserContext';
+// Export main AppStateProvider (combines Auth + Global UI + Dashboard)
+export { AppStateProvider } from './AppStateContext/index';
 
-// Export all hooks
-export { useAdmin } from './AdminContext';
-export { useAuth } from './AuthContext';
-export { useDashboard } from './DashboardContext';
-export { useUser } from './UserContext';
+// Export all hooks from AppStateContext
+export {
+    useApp,
+    useAuth,
+    useDashboard, useLoading, useNotifications, useSearch, useUI
+} from './AppStateContext/index';
 
-// Export other contexts
-export { AppStateProvider, useApp } from './AppStateContext';
+// Export OwnerDashboard context
+export { OwnerDashboardProvider, useOwnerDashboard } from './OwnerDashboardContext';
+
+// Export other specialized contexts
 export { ModalProvider, useModal } from './ModalContext';
-export { UserPreferencesProvider, useUserPreferences } from './UserPreferencesContext';
+export {
+    useLayoutPreferences,
+    useNotificationPreferences, UserPreferencesProvider, useSearchPreferences, useUserPreferences
+} from './UserPreferencesContext';
 

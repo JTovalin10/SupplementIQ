@@ -2,8 +2,7 @@ import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import React from 'react';
 
-import { AppProvider } from '@/lib/contexts/AppContext';
-import { AppProvider as AppStateProvider } from '@/lib/contexts/AppStateContext';
+import { AppStateProvider } from '@/lib/contexts/AppStateContext';
 import { ModalProvider } from '@/lib/contexts/ModalContext';
 import { UserPreferencesProvider } from '@/lib/contexts/UserPreferencesContext';
 import Footer from '../components/layout/footer';
@@ -47,18 +46,16 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <AppProvider>
-          <AppStateProvider>
-            <UserPreferencesProvider>
-              <ModalProvider>
-                <Header />
-                <main>{children}</main>
-                <Footer />
-                <NotificationContainer />
-              </ModalProvider>
-            </UserPreferencesProvider>
-          </AppStateProvider>
-        </AppProvider>
+        <AppStateProvider>
+          <UserPreferencesProvider>
+            <ModalProvider>
+              <Header />
+              <main>{children}</main>
+              <Footer />
+              <NotificationContainer />
+            </ModalProvider>
+          </UserPreferencesProvider>
+        </AppStateProvider>
       </body>
     </html>
   );

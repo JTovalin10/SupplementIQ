@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuth } from '@/lib/contexts/AuthContext';
+import { useAuth } from '@/lib/contexts';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
@@ -13,7 +13,7 @@ export default function UserPage() {
       if (isAuthenticated) {
         router.push('/');
       } else {
-        router.push('/login');
+        router.push('/auth/login');
       }
     }
   }, [isAuthenticated, isLoading, router]);

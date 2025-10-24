@@ -1,6 +1,5 @@
 'use client';
 
-import { withCache } from '@/lib/utils/cache';
 import { Building2, Eye, Package, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
@@ -56,9 +55,7 @@ export default function PendingSubmissions() {
         }
         return response.json();
       };
-      const json = page === 1
-        ? await withCache(`admin:pending-submissions:page=${page}:limit=${limit}`, fetcher, 60)
-        : await fetcher();
+      const json = await fetcher();
       const mapped: Submission[] = (json.submissions || []).map((s: any) => ({
         id: String(s.id),
         productName: s.productName ?? s.name ?? 'Unknown',

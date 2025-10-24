@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
 import { getRedis } from '../../../../Database/Redis/client';
 
@@ -43,8 +43,14 @@ function getDateFilter(timeRange: string): Date | null {
 async function fetchRankingsFromDB(timeRange: string, page: number, limit: number) {
   const offset = (page - 1) * limit;
   const dateFilter = getDateFilter(timeRange);
+  
+  // Create server-side Supabase client with service role key for full access
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
 
-  // Optimize query - remove exact count for better performance
+  // Query public.users table (all users with public profiles)
   let query = supabase
     .from('users')
     .select(`
@@ -52,7 +58,6 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
       username,
       reputation_points
     `)
-    .not('reputation_points', 'is', null)
     .order('reputation_points', { ascending: false })
     .range(offset, offset + limit - 1);
 
@@ -61,10 +66,6 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
   }
 
   const { data, error } = await query;
-
-  if (error) {
-    throw new Error(`Database error: ${error.message}`);
-  }
 
   const rankings = (data || []).map((user: any) => ({
     id: user.id,
@@ -91,6 +92,12 @@ async function fetchRankingsFromDB(timeRange: string, page: number, limit: numbe
 // Helper function to get cached data with proper Redis connection
 async function getCachedData(cacheKey: string): Promise<any | null> {
   try {
+    // Check if Redis is configured
+    if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
+      console.log(`⚠️ Redis not configured, skipping cache for ${cacheKey}`);
+      return null;
+    }
+
     const redis = getRedis();
     
     // Redis should already be connected at startup, but handle edge cases
@@ -131,6 +138,12 @@ async function getCachedData(cacheKey: string): Promise<any | null> {
 // Helper function to cache data with proper Redis connection
 async function cacheData(cacheKey: string, data: any): Promise<void> {
   try {
+    // Check if Redis is configured
+    if (!process.env.REDIS_HOST || !process.env.REDIS_PORT) {
+      console.log(`⚠️ Redis not configured, skipping cache write for ${cacheKey}`);
+      return;
+    }
+
     const redis = getRedis();
     
     // Redis should already be connected at startup

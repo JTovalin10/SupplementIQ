@@ -1,14 +1,14 @@
 'use client';
 
 import Button from '@/components/ui/button';
-import { useLoading, useNotifications } from '@/lib/contexts/AppStateContext';
+import { useLoading, useNotifications } from '@/lib/contexts';
 import { MODAL_IDS, useModal } from '@/lib/contexts/ModalContext';
 import { useUserPreferences } from '@/lib/contexts/UserPreferencesContext';
 
 export default function ContextExampleComponent() {
   const { addNotification } = useNotifications();
   const { setLoading } = useLoading();
-  const { preferences, setDashboardLayout } = useUserPreferences();
+  const { preferences, setLayoutPreferences } = useUserPreferences();
   const { openModal } = useModal();
 
   const handleTestNotification = () => {
@@ -29,9 +29,9 @@ export default function ContextExampleComponent() {
 
   const handleLayoutChange = () => {
     const layouts = ['grid', 'list', 'compact'] as const;
-    const currentIndex = layouts.indexOf(preferences.dashboardLayout);
+    const currentIndex = layouts.indexOf(preferences.layout);
     const nextLayout = layouts[(currentIndex + 1) % layouts.length];
-    setDashboardLayout(nextLayout);
+    setLayoutPreferences(nextLayout, preferences.productsPerPage);
   };
 
   return (
@@ -52,7 +52,7 @@ export default function ContextExampleComponent() {
         </Button>
         
         <Button onClick={handleLayoutChange}>
-          Change Layout ({preferences.dashboardLayout})
+          Change Layout ({preferences.layout})
         </Button>
       </div>
 

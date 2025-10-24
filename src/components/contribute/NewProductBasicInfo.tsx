@@ -2,7 +2,7 @@
 
 import Card from '@/components/ui/card';
 import Input from '@/components/ui/input';
-import { useUser } from '@/lib/contexts/UserContext';
+import { useAuth } from '@/lib/contexts';
 import React, { useEffect, useRef, useState } from 'react';
 
 interface NewProductBasicInfoProps {
@@ -28,7 +28,7 @@ export default function NewProductBasicInfo({
   onFormChange,
   canSubmitImageUrl
 }: NewProductBasicInfoProps) {
-  const { user } = useUser();
+  const { user } = useAuth();
   
   // Category dropdown state
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);

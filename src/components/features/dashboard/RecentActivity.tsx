@@ -1,6 +1,5 @@
 'use client';
 
-import { withCache } from '@/lib/utils/cache';
 import { useEffect, useRef, useState } from 'react';
 
 interface ActivityItem {
@@ -35,9 +34,7 @@ export default function RecentActivity() {
         if (!response.ok) throw new Error('Failed to load');
         return response.json();
       };
-      const json = page === 1
-        ? await withCache(`admin:recent-activity:page=${page}:limit=${limit}`, fetcher, 45)
-        : await fetcher();
+      const json = await fetcher();
       const mapped: ActivityItem[] = (json.activities || []).map((a: any) => {
         const ts = a.timestamp ?? a.created_at;
         if (a.type === 'product_approved') {

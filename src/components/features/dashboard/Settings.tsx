@@ -1,11 +1,12 @@
-import { useUser } from '@/lib/contexts/AppContext';
+
+import { useAuth } from '@/lib/contexts';
 
 interface SettingsProps {
   // No longer needed - user permissions come from context
 }
 
 export default function Settings({}: SettingsProps) {
-  const { permissions } = useUser();
+  const { permissions } = useAuth();
   const isOwner = permissions?.canAccessOwnerTools || false;
   return (
     <div className="bg-white rounded-lg shadow-sm border">
