@@ -52,7 +52,7 @@ function ProductDisplayContent({
               
               <ProductSpecs product={product} mode={mode} />
               
-              <ProductRatings product={product} />
+              <ProductRatings product={product} dosageAnalysis={product.dosageAnalysis} />
               
               {/* Show dosage details for everyone */}
               {product.dosageDetails ? (

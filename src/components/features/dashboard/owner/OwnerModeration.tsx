@@ -4,9 +4,11 @@ import { useOwnerDashboard } from '@/lib/contexts/OwnerDashboardContext';
 import { useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 
-export default function OwnerModeration() {
-  const { pendingSubmissions } = useOwnerDashboard();
+export default function ModerationDashboard() {
+  const { pendingSubmissions, isLoading, error } = useOwnerDashboard();
   const router = useRouter();
+
+  console.log('🔍 OwnerModeration state:', { isLoading, error, submissionsCount: pendingSubmissions.length });
 
   const handleReviewProduct = (submissionSlug: string) => {
     router.push(`/admin/products/${submissionSlug}`);
@@ -36,9 +38,68 @@ export default function OwnerModeration() {
     }
   }, []);
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="px-6 py-4 border-b">
+            <h3 className="text-lg font-semibold text-black">Pending Product Submissions</h3>
+          </div>
+          <div className="p-6">
+            <div className="space-y-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="border rounded-lg p-4 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
+                  <div className="flex justify-between">
+                    <div className="h-6 w-16 bg-gray-200 rounded"></div>
+                    <div className="h-8 w-20 bg-gray-200 rounded"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-white rounded-lg shadow-sm border">
+          <div className="px-6 py-4 border-b">
+            <h3 className="text-lg font-semibold text-black">Pending Product Submissions</h3>
+          </div>
+          <div className="p-6">
+            <div className="text-center">
+              <p className="text-red-600 mb-4">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Memoize the submission list to prevent unnecessary re-renders
-  const submissionList = useMemo(() => 
-    pendingSubmissions.map((submission) => (
+  const submissionList = useMemo(() => {
+    if (pendingSubmissions.length === 0) {
+      return (
+        <div className="px-6 py-8 text-center">
+          <p className="text-gray-500">No pending submissions</p>
+        </div>
+      );
+    }
+    
+    return pendingSubmissions.map((submission) => (
       <div key={submission.id} className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex-1">
@@ -67,7 +128,8 @@ export default function OwnerModeration() {
           </div>
         </div>
       </div>
-    )), [pendingSubmissions, formatDate, getStatusBadge]);
+    ));
+  }, [pendingSubmissions, formatDate, getStatusBadge]);
 
   return (
     <div className="space-y-6">

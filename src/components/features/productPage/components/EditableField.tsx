@@ -28,13 +28,14 @@ export default function EditableField({
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedValue, setEditedValue] = useState(value);
-  const { confirmedFields, confirmField, unconfirmField } = useConfirmation();
+  const [localValue, setLocalValue] = useState(value); // Track local changes
+  const { confirmedFields, confirmField, unconfirmField, updateLocalValue } = useConfirmation();
 
   const isConfirmed = confirmedFields.has(fieldId);
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditedValue(value);
+    setEditedValue(localValue); // Use local value instead of original value
     // If field was confirmed, unconfirm it when editing
     if (isConfirmed) {
       unconfirmField(fieldId);
@@ -42,28 +43,47 @@ export default function EditableField({
   };
 
   const handleSave = () => {
+    // Basic validation for numeric fields
+    if (type === 'number') {
+      const numValue = parseFloat(editedValue);
+      if (isNaN(numValue)) {
+        alert('Please enter a valid number');
+        return;
+      }
+      // Cap at $400 for supplements (nothing really goes over that)
+      if (fieldId === 'price' && numValue > 400) {
+        alert('Price cannot exceed $400');
+        return;
+      }
+    }
+    
     setIsEditing(false);
-    // Here you would typically save to the backend
-    console.log(`Saving ${fieldId}:`, editedValue);
+    setLocalValue(editedValue); // Update local state
+    updateLocalValue(fieldId, editedValue); // Update global context
+    console.log(`Field ${fieldId} updated locally to:`, editedValue);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
-    setEditedValue(value);
+    setEditedValue(localValue); // Reset to local value, not original value
   };
 
   const handleConfirm = () => {
-    confirmField(fieldId);
+    if (!isConfirmed) {
+      confirmField(fieldId, localValue); // Use local value for confirmation
+    } else {
+      unconfirmField(fieldId);
+    }
   };
 
   const getDisplayValue = () => {
-    if (Array.isArray(value) && value.length === 0) {
+    if (Array.isArray(localValue) && localValue.length === 0) {
       return 'This Product Has No Flavors';
     }
-    if (Array.isArray(value)) {
-      return value.join(', ');
+    if (Array.isArray(localValue)) {
+      return localValue.join(', ');
     }
-    return `${value}${unit}`;
+    return `${localValue}${unit}`;
   };
 
   const renderInput = () => {
@@ -83,8 +103,21 @@ export default function EditableField({
       <input
         type={type}
         value={editedValue}
-        onChange={(e) => setEditedValue(e.target.value)}
+        onChange={(e) => {
+          const value = e.target.value;
+          // Basic validation for numeric fields - just allow numbers and decimal point
+          if (type === 'number') {
+            if (!/^\d*\.?\d*$/.test(value)) return;
+            // Prevent typing values over 400 for price field
+            if (fieldId === 'price') {
+              const numValue = parseFloat(value);
+              if (value && numValue > 400) return;
+            }
+          }
+          setEditedValue(value);
+        }}
         placeholder={placeholder}
+        step={type === 'number' ? '0.01' : undefined}
         className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
         autoFocus
       />
@@ -92,8 +125,8 @@ export default function EditableField({
   };
 
   return (
-    <div className={`bg-white/80 backdrop-blur-sm border rounded-xl p-3 hover:bg-white hover:shadow-sm transition-all duration-200 ${
-      isConfirmed ? 'border-green-300/80 bg-green-50/30' : 'border-gray-200/60 hover:border-gray-300/80'
+    <div className={`bg-white border border-blue-200/60 rounded-xl p-3 hover:shadow-sm transition-all duration-200 ${
+      isConfirmed ? 'border-green-300/80 bg-green-50/30' : ''
     } ${className}`}>
       <div className="space-y-2">
         <div className="flex items-center space-x-3">

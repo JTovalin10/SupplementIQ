@@ -27,6 +27,8 @@ export interface ProductData {
   reviewedAt?: string;
   // Detailed dosage information for review - now as key-value pairs
   dosageDetails?: Record<string, any>;
+  // Enhanced dosage analysis with detailed breakdown
+  dosageAnalysis?: any;
 }
 
 // Ingredient mapping configuration for different product categories

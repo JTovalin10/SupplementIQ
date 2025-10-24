@@ -1,6 +1,6 @@
 'use client';
 
-import { AlertTriangle, ArrowLeft, Calendar, Package, Star, User } from 'lucide-react';
+import { ArrowLeft, Calendar, Package, Star, User } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export interface ProductData {
@@ -183,6 +183,14 @@ export default function ProductDisplay({
                     </p>
                   </div>
                 )}
+                {product.price && product.servingsPerContainer && (
+                  <div className="bg-gray-50 p-4 rounded-lg">
+                    <h4 className="font-semibold text-gray-900">Price per Scoop</h4>
+                    <p className="text-gray-600">
+                      {product.currency} {(product.price / product.servingsPerContainer).toFixed(2)}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Ratings */}
@@ -203,7 +211,7 @@ export default function ProductDisplay({
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-gray-900">Safety Rating</h4>
+                      <h4 className="font-semibold text-gray-900">Danger Rating</h4>
                       <div className="flex items-center">
                         <Star className="h-4 w-4 text-yellow-400 mr-1" />
                         <span className={`font-semibold ${getRatingColor(product.dangerRating)}`}>

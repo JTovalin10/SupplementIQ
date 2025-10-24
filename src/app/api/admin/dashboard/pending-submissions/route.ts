@@ -33,8 +33,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
     }
 
-    // Check if user has admin+ permissions
-    const allowedRoles = ['admin', 'owner'];
+    // Check if user has mod+ permissions
+    const allowedRoles = ['moderator', 'admin', 'owner'];
     if (!allowedRoles.includes(userProfile.role)) {
       return NextResponse.json({ 
         error: `Insufficient permissions. Only ${allowedRoles.join(', ')} can access this data.` 

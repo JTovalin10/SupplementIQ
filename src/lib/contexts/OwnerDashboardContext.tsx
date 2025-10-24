@@ -98,6 +98,7 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
     if (didFetchRef.current) return;
     didFetchRef.current = true;
     
+    console.log('🔄 Starting to fetch dashboard data...');
     setIsLoading(true);
     setError(null);
     
@@ -109,14 +110,19 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
         throw new Error('No active session found. Please log in again.');
       }
 
+      console.log('📡 Fetching pending submissions...');
       // Fetch pending submissions with pagination
       const pendingResponse = await fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10', {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
       });
+      
+      console.log('📡 Pending submissions response:', pendingResponse.status);
+      
       if (pendingResponse.ok) {
         const pendingJson = await pendingResponse.json();
+        console.log('📡 Pending submissions data:', pendingJson);
         const mapped = (pendingJson.submissions || []).map((s: any) => ({
           id: String(s.id),
           slug: s.slug ?? 'unknown-slug',
@@ -128,14 +134,20 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
           status: s.status ?? 'pending',
         }));
         setPendingSubmissions(mapped);
+        console.log('✅ Successfully loaded submissions:', mapped.length);
+      } else {
+        const errorText = await pendingResponse.text();
+        console.error('❌ Failed to fetch pending submissions:', pendingResponse.status, errorText);
+        throw new Error(`Failed to fetch pending submissions: ${pendingResponse.status}`);
       }
 
       // Recent activity is no longer used in Owner Dashboard
       // Removed recent activity fetch to prevent unnecessary API calls
     } catch (error) {
-      console.error('Failed to fetch dashboard data', error);
+      console.error('❌ Failed to fetch dashboard data', error);
       setError('Failed to fetch dashboard data');
     } finally {
+      console.log('🏁 Finished fetching dashboard data');
       setIsLoading(false);
     }
   }, []);

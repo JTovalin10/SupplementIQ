@@ -12,7 +12,7 @@ interface ProductSpecsProps {
 }
 
 export default function ProductSpecs({ product, mode = 'product', className = '' }: ProductSpecsProps) {
-  const { setTotalFields, resetTotalFields } = useConfirmation();
+  const { setTotalFields, resetTotalFields, localValues } = useConfirmation();
 
   // Set total fields count on mount
   useEffect(() => {
@@ -20,6 +20,10 @@ export default function ProductSpecs({ product, mode = 'product', className = ''
     const fieldCount = [product.servingsPerContainer, product.servingSizeG, product.price].filter(field => field !== undefined && field !== null).length;
     setTotalFields(fieldCount);
   }, [product, setTotalFields, resetTotalFields]);
+
+  // Get current values (use local values if available, otherwise use original product values)
+  const currentPrice = localValues.get('price') ?? product.price;
+  const currentServings = localValues.get('servingsPerContainer') ?? product.servingsPerContainer;
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -58,6 +62,17 @@ export default function ProductSpecs({ product, mode = 'product', className = ''
             mode={mode}
             type="number"
           />
+        )}
+        {currentPrice !== undefined && currentPrice !== null && currentServings !== undefined && currentServings !== null && (
+          <div className="bg-white border border-blue-200/60 p-4 rounded-lg">
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full"></div>
+              <h4 className="font-semibold text-gray-900">Price per Scoop</h4>
+            </div>
+            <p className="text-sm text-gray-600 ml-5">
+              {product.currency} {(currentPrice / currentServings).toFixed(2)}
+            </p>
+          </div>
         )}
       </div>
     </div>

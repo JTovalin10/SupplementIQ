@@ -34,37 +34,30 @@
    - **Status**: 🔴 HIGH PRIORITY
 
 ### Medium Priority
-2. **Test All User Routes**: Verify `/user/dashboard`, `/user/profile` work correctly
-3. **Implement Redis Caching**: Set up Redis server for production caching
-4. **Add Error Boundaries**: Better error handling for auth failures
+2. **Add Separate Dosage Ratings**: Implement min dosage and max dosage ratings for products with different serving patterns
+   - **Min Dosage Rating**: For products with 1-2 scoops, 3-6 pills, etc.
+   - **Max Dosage Rating**: For products with higher serving amounts
+   - **Purpose**: Better analysis for products with flexible serving sizes
+   - **Status**: 🟡 MEDIUM PRIORITY
+3. **Expand Dosage Analysis Page**: Enhance the analysis modal with new min/max dosage ratings
+   - **Integration**: Incorporate new rating system into existing analysis
+   - **UI Updates**: Update modal to display both ratings
+   - **Status**: 🟡 MEDIUM PRIORITY
+4. **Test All User Routes**: Verify `/user/dashboard`, `/user/profile` work correctly
+5. **Implement Redis Caching**: Set up Redis server for production caching
+6. **Add Error Boundaries**: Better error handling for auth failures
 
 ### Low Priority
-5. **Clean Up Debug Logs**: Remove console.log statements from production code
-6. **Improve Loading States**: Better UX during auth checks
-7. **Add Rate Limiting**: Implement API rate limiting
-8. **Add Monitoring**: Implement error tracking and performance monitoring
+7. **Clean Up Debug Logs**: Remove console.log statements from production code
+8. **Improve Loading States**: Better UX during auth checks
+9. **Add Rate Limiting**: Implement API rate limiting
+10. **Add Monitoring**: Implement error tracking and performance monitoring
 
-## 🔍 Debugging Notes
-
-### Auth Flow Issues
-- ~~Login API returns 200 but session doesn't persist~~ ✅ FIXED
-- User profile fetch may be failing silently
-- Role detection logic needs investigation
-- Supabase client configuration may need adjustment
-
-### Architecture Clarification
-- **Current**: Single Next.js app with API routes
-- **Documented**: Single Next.js app (updated)
-- **Status**: ✅ RESOLVED
 
 ## 📋 Next Steps
 
 ### Immediate (This Week)
-1. ~~Fix session persistence in AuthContext~~ ✅ COMPLETED
-2. ~~Remove unused JWT utilities~~ ✅ COMPLETED
-3. ~~Complete Context Migration~~ ✅ COMPLETED
-4. ~~Consolidate UserContext into AuthContext~~ ✅ COMPLETED
-5. ~~Consolidate AdminContext into AuthContext~~ ✅ COMPLETED
+
 6. Test authentication flow end-to-end
 7. Focus on product submission workflow
 
