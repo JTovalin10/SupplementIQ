@@ -1,5 +1,6 @@
 'use client';
 
+import ColdStartHandler from '@/components/common/ColdStartHandler';
 import CacheLoadingScreen from '@/components/ui/CacheLoadingScreen';
 import { getAvailableTabs } from '@/lib/auth/role-routing';
 import { useAuth, useDashboard } from '@/lib/contexts';
@@ -30,9 +31,11 @@ export default function JWTDashboard({}: DashboardProps) {
   // Show loading state while authentication is being checked
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-900">Loading...</div>
-      </div>
+      <ColdStartHandler isLoading={isLoading}>
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-gray-900">Loading...</div>
+        </div>
+      </ColdStartHandler>
     );
   }
   

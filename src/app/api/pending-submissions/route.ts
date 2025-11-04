@@ -1,17 +1,23 @@
-import { supabase } from '@/lib/supabase';
-import { NextApiRequest, NextApiResponse } from 'next';
+import { supabase } from '@/lib/backend/supabase';
+import { NextRequest, NextResponse } from 'next/server';
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'GET') {
-    const { data, error } = await supabase.from('submissions').select('*').order('submittedAt', { ascending: false });
+export async function GET(request: NextRequest) {
+  try {
+    const { data, error } = await supabase
+      .from('submissions')
+      .select('*')
+      .order('submittedAt', { ascending: false });
 
     if (error) {
-      res.status(500).json({ error: error.message });
-    } else {
-      res.status(200).json(data);
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
-  } else {
-    res.setHeader('Allow', ['GET']);
-    res.status(405).end(`Method ${req.method} Not Allowed`);
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Pending submissions error:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }

@@ -1,5 +1,6 @@
+import { productCache, type ProductCacheKey } from '@/lib/cache/product-cache';
+import { supabase } from '@/lib/database/supabase/client';
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/supabase';
 
 /**
  * Get top community comment for a product
@@ -78,18 +79,42 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const page = Number(searchParams.get('page')) || 1;
     const limit = Number(searchParams.get('limit')) || 25;
-    const category = searchParams.get('category');
-    const search = searchParams.get('search');
+    const category = searchParams.get('category') || undefined;
+    const search = searchParams.get('search') || undefined;
     const detailed = searchParams.get('detailed') === 'true';
+
+    // Check cache key
+    const cacheKey: ProductCacheKey = {
+      page,
+      category,
+      search
+    };
+
+    // Try to get from cache (only for first 3 pages)
+    if (productCache.shouldCache(cacheKey) && !detailed) {
+      const cachedProducts = await productCache.get(cacheKey);
+      if (cachedProducts) {
+        console.log(`✅ [CACHE] Hit for page ${page}, category: ${category}`);
+        return NextResponse.json({ 
+          success: true, 
+          data: cachedProducts,
+          pagination: {
+            page,
+            limit,
+            total: cachedProducts.length
+          }
+        });
+      }
+      console.log(`❌ [CACHE] Miss for page ${page}, category: ${category}`);
+    }
 
     // Build select query based on whether detailed data is needed
     let selectQuery = `
       id,
       name,
       image_url,
-      transparency_score,
-      confidence_level,
       category,
+      slug,
       dosage_rating,
       danger_rating,
       community_rating,
@@ -127,24 +152,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
     }
 
-    // Add community comments for each product (only for non-detailed queries)
-    let productsWithComments = products || [];
-    if (!detailed && products) {
-      productsWithComments = await Promise.all(
-        products.map(async (product: any) => {
-          const communityComment = await getTopCommunityComment(product.id);
-          
-          return {
-            ...(product as any),
-            community_comment: communityComment
-          };
-        })
-      );
+    // Cache the results if applicable
+    if (productCache.shouldCache(cacheKey) && !detailed && products && Array.isArray(products)) {
+      await productCache.set(cacheKey, products as any);
+      console.log(`💾 [CACHE] Cached page ${page}, category: ${category}`);
     }
 
+    // Return products without community comments for performance
+    // Comments can be fetched separately if needed
     return NextResponse.json({ 
       success: true, 
-      data: productsWithComments,
+      data: products || [],
       pagination: {
         page,
         limit,

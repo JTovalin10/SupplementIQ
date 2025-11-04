@@ -1,20 +1,66 @@
 'use client';
 
-import { Filter, Grid, List, Search } from 'lucide-react';
+import { Filter, Grid, List, Search, Star } from 'lucide-react';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { categories } from '@/lib/config/data/categories';
+
+interface Product {
+  id: number;
+  name: string;
+  slug: string;
+  image_url?: string;
+  category: string;
+  brand?: {
+    id: number;
+    name: string;
+  };
+  dosage_rating?: number;
+  danger_rating?: number;
+  community_rating?: number;
+  total_reviews?: number;
+}
 
 export default function ProductsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [selectedCategory, searchQuery]);
+
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery) params.append('search', searchQuery);
+      if (selectedCategory) params.append('category', selectedCategory);
+      
+      const response = await fetch(`/api/products?${params.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch products');
+      }
+      
+      const data = await response.json();
+      setProducts(data.data || []);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement search functionality
-    console.log('Searching for:', searchQuery, 'Category:', selectedCategory);
+    fetchProducts();
   };
 
   return (
@@ -85,23 +131,116 @@ export default function ProductsPage() {
 
       {/* Results */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
-        <div className='text-center py-12'>
-          <div className='w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-            <Search className='w-8 h-8 text-black' />
+        {isLoading ? (
+          <div className='text-center py-12'>
+            <div className='text-gray-600'>Loading products...</div>
           </div>
-          <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-            No products found
-          </h3>
-          <p className='text-black mb-4'>
-            {searchQuery || selectedCategory
-              ? 'Try adjusting your search criteria or filters'
-              : 'Products will appear here once the database is populated'}
-          </p>
-          <div className='text-sm text-black'>
-            Search query: "{searchQuery}" | Category:{' '}
-            {selectedCategory || 'All'}
+        ) : error ? (
+          <div className='text-center py-12'>
+            <div className='text-red-600'>{error}</div>
           </div>
-        </div>
+        ) : products.length === 0 ? (
+          <div className='text-center py-12'>
+            <div className='w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4'>
+              <Search className='w-8 h-8 text-black' />
+            </div>
+            <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+              No products found
+            </h3>
+            <p className='text-black mb-4'>
+              {searchQuery || selectedCategory
+                ? 'Try adjusting your search criteria or filters'
+                : 'Products will appear here once the database is populated'}
+            </p>
+            <div className='text-sm text-black'>
+              Search query: "{searchQuery}" | Category:{' '}
+              {selectedCategory || 'All'}
+            </div>
+          </div>
+        ) : (
+          <div className={viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6' : 'space-y-4'}>
+            {products.map((product) => (
+              <a 
+                key={product.id} 
+                href={`/products/${product.slug}`}
+                className='border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow block'
+              >
+                {/* Product Image */}
+                <div className='w-full h-64 bg-gray-200 flex items-center justify-center overflow-hidden'>
+                  {product.image_url ? (
+                    <img 
+                      src={product.image_url} 
+                      alt={product.name}
+                      className='w-full h-full object-contain'
+                    />
+                  ) : (
+                    <div className='text-gray-400'>No Image</div>
+                  )}
+                </div>
+                
+                {/* Product Information */}
+                <div className='p-4'>
+                  {/* Brand Name */}
+                  <p className='text-lg font-bold text-gray-900 uppercase'>{product.brand?.name || 'Unknown Brand'}</p>
+                  
+                  {/* Product Type */}
+                  <p className='text-sm font-semibold text-red-600 mt-1'>{product.category}</p>
+                  
+                  {/* Ratings Display */}
+                  <div className='mt-3 space-y-1'>
+                    {/* Dosage Rating */}
+                    {product.dosage_rating !== undefined && (
+                      <div className='text-xs text-gray-600'>
+                        <span className='font-medium'>Dosage: </span>
+                        <span className='text-blue-600 font-semibold'>{product.dosage_rating}/100</span>
+                      </div>
+                    )}
+                    
+                    {/* Danger Rating */}
+                    {product.danger_rating !== undefined && (
+                      <div className='text-xs text-gray-600'>
+                        <span className='font-medium'>Safety: </span>
+                        <span className={`font-semibold ${
+                          product.danger_rating === 0 ? 'text-green-600' :
+                          product.danger_rating < 50 ? 'text-yellow-600' :
+                          product.danger_rating < 75 ? 'text-orange-600' : 'text-red-600'
+                        }`}>
+                          {product.danger_rating}/100
+                        </span>
+                      </div>
+                    )}
+                    
+                    {/* Community Rating */}
+                    <div className='flex items-center'>
+                      <div className='flex'>
+                        {[...Array(5)].map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`w-4 h-4 ${
+                              i < Math.floor(product.community_rating || 0)
+                                ? 'fill-yellow-400 text-yellow-400'
+                                : 'fill-gray-300 text-gray-300'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      {product.total_reviews && product.total_reviews > 0 ? (
+                        <span className='ml-2 text-sm font-semibold text-red-600'>
+                          {product.community_rating?.toFixed(1) || '0.0'} ({product.total_reviews})
+                        </span>
+                      ) : (
+                        <span className='ml-2 text-sm text-gray-500'>No ratings</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Product Name */}
+                  <p className='mt-3 font-semibold text-gray-900'>{product.name}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );

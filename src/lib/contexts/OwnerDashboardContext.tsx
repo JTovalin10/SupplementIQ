@@ -1,6 +1,7 @@
 'use client';
 
 import { useAuth } from '@/lib/contexts';
+import { useColdStartHandler } from '@/lib/hooks/useColdStartHandler';
 
 import { supabase } from '@/lib/database/supabase/client';
 import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -62,6 +63,7 @@ interface OwnerDashboardProviderProps {
 
 export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps) {
   const { user, permissions } = useAuth();
+  const { executeWithColdStartHandling } = useColdStartHandler();
   const [stats, setStats] = useState<OwnerStats>({
     totalUsers: 0,
     pendingSubmissions: 0,
@@ -95,7 +97,10 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
 
   // Memoized data fetching function
   const fetchDashboardData = useMemo(() => async () => {
-    if (didFetchRef.current) return;
+    if (didFetchRef.current) {
+      console.log('🔄 Dashboard data already fetched, skipping...');
+      return;
+    }
     didFetchRef.current = true;
     
     console.log('🔄 Starting to fetch dashboard data...');
@@ -103,20 +108,26 @@ export function OwnerDashboardProvider({ children }: OwnerDashboardProviderProps
     setError(null);
     
     try {
-      // Get the current session and access token
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      // Use cold start handler for session check
+      const { data: { session }, error: sessionError } = await executeWithColdStartHandling(
+        () => supabase.auth.getSession(),
+        'Session Check'
+      );
       
       if (sessionError || !session) {
         throw new Error('No active session found. Please log in again.');
       }
 
       console.log('📡 Fetching pending submissions...');
-      // Fetch pending submissions with pagination
-      const pendingResponse = await fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
+      // Fetch pending submissions with pagination using cold start handler
+      const pendingResponse = await executeWithColdStartHandling(
+        () => fetch('/api/admin/dashboard/pending-submissions?page=1&limit=10', {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        }),
+        'Pending Submissions Fetch'
+      );
       
       console.log('📡 Pending submissions response:', pendingResponse.status);
       

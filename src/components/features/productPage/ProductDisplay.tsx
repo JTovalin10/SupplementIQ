@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import DosageDetails from './components/DosageDetails';
 import ProductDetails from './components/ProductDetails';
 import ProductHeader from './components/ProductHeader';
@@ -29,6 +30,13 @@ function ProductDisplayContent({
   productId
 }: ProductDisplayProps) {
   const { confirmedFields, totalFields } = useConfirmation();
+  const [currentServingSize, setCurrentServingSize] = useState(product.minServingSize || 1);
+  const [isMinMode, setIsMinMode] = useState(true);
+
+  const handleServingSizeChange = (servingSize: number, isMin: boolean) => {
+    setCurrentServingSize(servingSize);
+    setIsMinMode(isMin);
+  };
 
   return (
     <div className={`min-h-screen bg-gray-50 ${className}`}>
@@ -50,9 +58,20 @@ function ProductDisplayContent({
             <div className="space-y-6">
               <ProductDetails product={product} />
               
-              <ProductSpecs product={product} mode={mode} />
+              <ProductSpecs 
+                product={product} 
+                mode={mode} 
+                currentServingSize={currentServingSize}
+                isMinMode={isMinMode}
+                onServingSizeChange={handleServingSizeChange}
+              />
               
-              <ProductRatings product={product} dosageAnalysis={product.dosageAnalysis} />
+              <ProductRatings 
+                product={product} 
+                dosageAnalysis={product.dosageAnalysis}
+                currentServingSize={currentServingSize}
+                isMinMode={isMinMode}
+              />
               
               {/* Show dosage details for everyone */}
               {product.dosageDetails ? (
@@ -82,6 +101,7 @@ function ProductDisplayContent({
                   productName={product.productName}
                   confirmedFields={confirmedFields}
                   totalFields={totalFields}
+                  productData={product}
                 />
               )}
             </div>

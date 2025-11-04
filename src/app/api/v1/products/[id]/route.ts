@@ -104,7 +104,6 @@ export async function PUT(
 ) {
   const { id } = await params;
   try {
-    const { id } = params;
     const body = await request.json();
     const { name, description, category_id, brand, price, image_url } = body;
 

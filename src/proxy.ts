@@ -20,7 +20,6 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/api/v1/auth/login') ||
     pathname.startsWith('/api/v1/auth/register') ||
     pathname.startsWith('/api/v1/docs') ||
-    pathname.startsWith('/api/v1/autocomplete') ||
     pathname.startsWith('/api/v1/products') && request.method === 'GET' ||
     pathname.startsWith('/api/health') ||
     pathname.startsWith('/api/auth/forgot-password') ||

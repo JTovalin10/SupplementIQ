@@ -38,6 +38,48 @@ export default function ModerationDashboard() {
     }
   }, []);
 
+  // Memoize the submission list to prevent unnecessary re-renders
+  const submissionList = useMemo(() => {
+    if (pendingSubmissions.length === 0) {
+      return (
+        <div className="px-6 py-8 text-center">
+          <p className="text-gray-500">No pending submissions</p>
+        </div>
+      );
+    }
+    
+    return pendingSubmissions.map((submission) => (
+      <div key={submission.id} className="px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <div className="flex items-center space-x-4">
+              <div>
+                <h4 className="text-sm font-medium text-black">{submission.productName}</h4>
+                <p className="text-sm text-black">Brand: {submission.brandName}</p>
+                <p className="text-sm text-black">Submitted by: {submission.submittedBy}</p>
+              </div>
+              <div className="text-sm text-black">
+                <p>Category: {submission.category}</p>
+                <p>{formatDate(submission.submittedAt)}</p>
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            {getStatusBadge(submission.status)}
+            <div className="flex space-x-2">
+              <button
+                onClick={() => handleReviewProduct(submission.slug)}
+                className="px-4 py-2 text-sm font-medium bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
+              >
+                Review Product
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ));
+  }, [pendingSubmissions, formatDate, getStatusBadge]);
+
   // Show loading state
   if (isLoading) {
     return (
@@ -88,48 +130,6 @@ export default function ModerationDashboard() {
       </div>
     );
   }
-
-  // Memoize the submission list to prevent unnecessary re-renders
-  const submissionList = useMemo(() => {
-    if (pendingSubmissions.length === 0) {
-      return (
-        <div className="px-6 py-8 text-center">
-          <p className="text-gray-500">No pending submissions</p>
-        </div>
-      );
-    }
-    
-    return pendingSubmissions.map((submission) => (
-      <div key={submission.id} className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <div className="flex items-center space-x-4">
-              <div>
-                <h4 className="text-sm font-medium text-black">{submission.productName}</h4>
-                <p className="text-sm text-black">Brand: {submission.brandName}</p>
-                <p className="text-sm text-black">Submitted by: {submission.submittedBy}</p>
-              </div>
-              <div className="text-sm text-black">
-                <p>Category: {submission.category}</p>
-                <p>{formatDate(submission.submittedAt)}</p>
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3">
-            {getStatusBadge(submission.status)}
-            <div className="flex space-x-2">
-              <button
-                onClick={() => handleReviewProduct(submission.slug)}
-                className="px-4 py-2 text-sm font-medium bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition-colors"
-              >
-                Review Product
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    ));
-  }, [pendingSubmissions, formatDate, getStatusBadge]);
 
   return (
     <div className="space-y-6">

@@ -42,7 +42,6 @@ export async function GET(request: NextRequest) {
       users: '/api/v1/users',
       rankings: '/api/v1/rankings',
       upload: '/api/v1/upload',
-      autocomplete: '/api/v1/autocomplete',
       admin: '/api/v1/admin',
       owner: '/api/v1/owner',
       'pending-products': '/api/v1/pending-products',

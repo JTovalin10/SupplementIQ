@@ -3,13 +3,33 @@ import { IngredientField } from './types';
 // Basic product information fields that are common across all categories
 export const basicInfoIngredients: IngredientField[] = [
   {
-    name: 'serving_size_g',
-    label: 'Serving Size',
-    placeholder: '30',
-    unit: 'g',
-    step: '0.1',
-    description: 'Serving size in grams',
+    name: 'product_form',
+    label: 'Product Form',
+    placeholder: 'powder',
+    unit: '',
+    step: '',
+    description: 'Physical form of the product (powder, pill, bar, liquid, etc.)',
     required: true,
+    section: 'Basic Information'
+  },
+  {
+    name: 'serving_size_g',
+    label: 'Min Serving Size',
+    placeholder: '1',
+    unit: 'serving',
+    step: '0.01',
+    description: 'Minimum recommended serving (e.g., 1 scoop, 3 pills)',
+    required: true,
+    section: 'Basic Information'
+  },
+  {
+    name: 'max_serving_size',
+    label: 'Max Serving Size',
+    placeholder: '2',
+    unit: 'serving',
+    step: '0.01',
+    description: 'Maximum recommended serving (e.g., 2 scoops, 6 pills) - optional if same as min',
+    required: false,
     section: 'Basic Information'
   },
   {
@@ -37,8 +57,8 @@ export const basicInfoIngredients: IngredientField[] = [
     label: 'Servings Per Container',
     placeholder: '30',
     unit: 'servings',
-    step: '1',
-    description: 'Number of servings per container',
+    step: '0.01',
+    description: 'Number of servings per container (max 2 decimal places, max 1M for bulk products)',
     required: true,
     section: 'Basic Information'
   },

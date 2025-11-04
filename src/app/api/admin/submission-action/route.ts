@@ -1,3 +1,4 @@
+import { verifyModeratorPermissions } from '@/lib/auth/permissions';
 import { supabase } from '@/lib/supabase';
 import { NextRequest, NextResponse } from 'next/server';
 

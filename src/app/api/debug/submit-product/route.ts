@@ -7,11 +7,13 @@ const DebugProductSchema = z.object({
   name: z.string().min(1),
   brand_name: z.string().min(1),
   category: z.enum(['protein', 'pre-workout', 'non-stim-pre-workout', 'energy-drink', 'bcaa', 'eaa', 'fat-burner', 'appetite-suppressant', 'creatine']),
+  product_form: z.enum(['powder', 'pill', 'bar', 'liquid', 'capsule', 'tablet', 'drink', 'energy_shot']).optional(),
   description: z.string().optional(),
   image_url: z.string().url().optional(),
-  servings_per_container: z.number().optional(),
+  servings_per_container: z.number().positive().max(1000000).multipleOf(0.01).optional(),
   price: z.number().positive().default(1),
-  serving_size_g: z.number().positive().optional(),
+  serving_size_g: z.number().positive().max(100).multipleOf(0.01).optional(),
+  max_serving_size: z.number().positive().max(100).multipleOf(0.01).optional(),
   year: z.string().optional(),
   submitted_by: z.string().min(1), // Allow any non-empty string for debugging
 });

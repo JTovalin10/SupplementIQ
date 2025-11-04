@@ -473,8 +473,8 @@ function calculateManufacturerDosageAnalysis(
     message,
     isEffective,
     isDangerous,
-    scoopsNeeded,
-    pricePerScoop
+    scoopsNeeded: servingsNeeded,
+    pricePerScoop: pricePerServing
   };
 }
 

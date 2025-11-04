@@ -39,8 +39,25 @@ export async function GET(request: NextRequest) {
       const totalProducts = productsResult.count || 0;
       const recentActivity = recentActivityResult.count || 0;
 
+      // Get user from auth header for role checking
+      const authHeader = request.headers.get('authorization');
+      let userRole: string | null = null;
+      
+      if (authHeader) {
+        const token = authHeader.replace('Bearer ', '');
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser(token);
+        if (!authError && authUser) {
+          const { data: userProfile } = await supabase
+            .from('users')
+            .select('role')
+            .eq('id', authUser.id)
+            .single();
+          userRole = userProfile?.role || null;
+        }
+      }
+
       // Owner gets additional system stats
-      if (user.role === 'owner') {
+      if (userRole === 'owner') {
         return NextResponse.json({
           success: true,
           data: {

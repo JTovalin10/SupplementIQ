@@ -9,9 +9,17 @@ interface ProductRatingsProps {
   product: ProductData;
   dosageAnalysis?: ProductDosageAnalysis;
   className?: string;
+  currentServingSize?: number;
+  isMinMode?: boolean;
 }
 
-export default function ProductRatings({ product, dosageAnalysis, className = '' }: ProductRatingsProps) {
+export default function ProductRatings({ 
+  product, 
+  dosageAnalysis, 
+  className = '',
+  currentServingSize,
+  isMinMode = true
+}: ProductRatingsProps) {
   const [showDosageOverview, setShowDosageOverview] = useState(false);
   const [selectedIngredient, setSelectedIngredient] = useState<IngredientAnalysis | null>(null);
   const getRatingColor = (rating: number) => {
@@ -43,7 +51,18 @@ export default function ProductRatings({ product, dosageAnalysis, className = ''
 
   return (
     <div className={`space-y-4 ${className}`}>
-      <h3 className="text-lg font-semibold text-gray-900">Quality Ratings</h3>
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-gray-900">Quality Ratings</h3>
+        {currentServingSize && (
+          <div className="flex items-center space-x-2 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+            <span>
+              Analyzing: {currentServingSize} scoop{currentServingSize !== 1 ? 's' : ''} 
+              ({isMinMode ? 'Min' : 'Max'} Product)
+            </span>
+          </div>
+        )}
+      </div>
       <div className="grid grid-cols-2 gap-4">
         <div 
           className="bg-white border border-blue-200/60 p-4 rounded-lg cursor-pointer hover:shadow-md transition-shadow"

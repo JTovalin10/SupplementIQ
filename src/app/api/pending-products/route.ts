@@ -9,14 +9,16 @@ const PendingProductRequestSchema = z.object({
   name: z.string().min(1),
   brand_name: z.string().min(1),
   category: z.enum(['protein', 'pre-workout', 'non-stim-pre-workout', 'energy-drink', 'bcaa', 'eaa', 'fat-burner', 'appetite-suppressant', 'creatine']),
+  product_form: z.enum(['powder', 'pill', 'bar', 'liquid', 'capsule', 'tablet', 'drink', 'energy_shot']).optional(),
   job_type: z.enum(['add', 'update', 'delete']),
   flavor: z.string().optional(),
   year: z.string().optional(),
   image_url: z.string().url().optional(),
   description: z.string().optional(),
-  servings_per_container: z.number().optional(),
+  servings_per_container: z.number().positive().max(1000000).multipleOf(0.01).optional(),
   price: z.number().positive(),
-  serving_size_g: z.number().positive().optional(),
+  serving_size_g: z.number().positive().max(100).multipleOf(0.01).optional(),
+  max_serving_size: z.number().positive().max(100).multipleOf(0.01).optional(),
   transparency_score: z.number().min(0).max(100).default(0),
   confidence_level: z.enum(['verified', 'likely', 'estimated', 'unknown']).default('estimated'),
   submitted_by: z.string().uuid(),
@@ -259,7 +261,7 @@ export async function GET(request: NextRequest) {
 
     // Apply pagination
     query = query
-      .order('submitted_at', { ascending: false })
+      .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
 
     const { data: products, error, count } = await query;

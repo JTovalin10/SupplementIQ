@@ -154,47 +154,76 @@ async function calculateDosageRating(category: string, productId: number, detail
 }
 
 /**
- * Calculate danger rating for a product (optimized version)
+ * Calculate danger rating for a product
+ * 
+ * Rules:
+ * 1. If ANY ingredient is illegal (all dosages = 0), danger rating = 100
+ * 2. If ANY ingredient has precaution_people (requires doctor consultation), danger rating += 10
+ * 3. If ANY ingredient exceeds dangerous dosage, danger rating increases
+ * 4. If ANY ingredient exceeds max safe dose, danger rating increases with log scale
  */
 async function calculateDangerRating(category: string, productId: number, details: any): Promise<number> {
   if (!details) return 0;
 
-  const dangerThresholds: Record<string, Record<string, { warning: number; danger: number; extreme: number }>> = {
-    'pre-workout': {
-      caffeine_anhydrous_mg: { warning: 300, danger: 400, extreme: 600 },
-      n_phenethyl_dimethylamine_citrate_mg: { warning: 75, danger: 100, extreme: 150 },
-      l_tyrosine_mg: { warning: 2000, danger: 3000, extreme: 5000 },
-      huperzine_a_mcg: { warning: 100, danger: 200, extreme: 300 }
-    },
-    'fat-burner': {
-      caffeine_anhydrous_mg: { warning: 300, danger: 400, extreme: 600 },
-      halostachine_mg: { warning: 10, danger: 15, extreme: 25 },
-      rauwolscine_mcg: { warning: 1, danger: 2, extreme: 3 },
-      five_htp_mg: { warning: 300, danger: 400, extreme: 600 }
-    },
-    'energy-drink': {
-      caffeine_mg: { warning: 300, danger: 400, extreme: 600 },
-      huperzine_a_mcg: { warning: 100, danger: 200, extreme: 300 }
+  // Import ingredient configs to check for illegal ingredients and precaution_people
+  const { ingredientDosageCache } = await import('../../../../lib/cache/ingredient-dosage-cache');
+  // Get ingredient configs for the category and convert to object
+  const categoryConfigsMap = await ingredientDosageCache.getIngredientConfigsForCategory(category);
+  const ingredients: Record<string, any> = {};
+  for (const [name, config] of categoryConfigsMap) {
+    ingredients[name] = config;
+  }
+  
+  let dangerScore = 0;
+  let hasIllegalIngredient = false;
+  let hasPrecautionPeople = false;
+  let hasDangerousIngredient = false;
+
+  // Check each ingredient in the product
+  for (const [ingredientName, actualDosage] of Object.entries(details)) {
+    if (!actualDosage || typeof actualDosage !== 'number' || actualDosage <= 0) continue;
+    
+    const ingredientConfig = ingredients[ingredientName];
+    if (!ingredientConfig) continue;
+
+    const minDosage = ingredientConfig.minDailyDosage || 0;
+    const maxDosage = ingredientConfig.maxDailyDosage || 0;
+    const dangerousDosage = ingredientConfig.dangerousDosage || 0;
+
+    // Check if ingredient is illegal (all dosages = 0 means banned)
+    if (minDosage === 0 && maxDosage === 0 && dangerousDosage === 0) {
+      hasIllegalIngredient = true;
+      continue; // Skip to next ingredient
     }
-  };
 
-  const categoryThresholds = dangerThresholds[category];
-  if (!categoryThresholds) return 0;
+    // Check if ingredient has precaution_people (requires doctor consultation)
+    if (ingredientConfig.precaution_people && ingredientConfig.precaution_people.length > 0) {
+      hasPrecautionPeople = true;
+    }
 
-  let maxDangerLevel = 0;
+    // Check if exceeds dangerous dosage
+    if (dangerousDosage > 0 && actualDosage >= dangerousDosage) {
+      hasDangerousIngredient = true;
+      dangerScore = Math.max(dangerScore, 100); // Maximum danger
+      continue;
+    }
 
-  for (const [ingredient, thresholds] of Object.entries(categoryThresholds)) {
-    const actualDose = details[ingredient];
-    if (actualDose && actualDose > 0) {
-      if (actualDose >= thresholds.extreme) {
-        maxDangerLevel = Math.max(maxDangerLevel, 100);
-      } else if (actualDose >= thresholds.danger) {
-        maxDangerLevel = Math.max(maxDangerLevel, 75);
-      } else if (actualDose >= thresholds.warning) {
-        maxDangerLevel = Math.max(maxDangerLevel, 50);
-      }
+    // Check if exceeds max safe dose (log scale danger)
+    if (maxDosage > 0 && actualDosage > maxDosage) {
+      const overMaxRatio = actualDosage / maxDosage;
+      const logDanger = Math.log(overMaxRatio) / Math.log(2) * 20;
+      dangerScore = Math.max(dangerScore, Math.min(100, logDanger));
     }
   }
 
-  return maxDangerLevel;
+  // Apply special rules
+  if (hasIllegalIngredient) {
+    return 100; // Automatically 100/100 if contains illegal ingredient
+  }
+
+  if (hasPrecautionPeople) {
+    dangerScore += 10; // Add 10 for doctor consultation requirement
+  }
+
+  return Math.min(100, Math.round(dangerScore));
 }

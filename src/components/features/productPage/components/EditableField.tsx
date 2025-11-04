@@ -11,9 +11,11 @@ interface EditableFieldProps {
   value: any;
   unit?: string;
   mode?: 'review' | 'product';
-  type?: 'text' | 'number' | 'creatine-dropdown';
+  type?: 'text' | 'number' | 'creatine-dropdown' | 'product-form-dropdown';
   placeholder?: string;
   className?: string;
+  options?: Array<{ value: string; label: string }>;
+  productForm?: string; // Add product form to determine validation rules
 }
 
 export default function EditableField({
@@ -24,11 +26,14 @@ export default function EditableField({
   mode = 'product',
   type = 'text',
   placeholder,
-  className = ''
+  className = '',
+  options = [],
+  productForm = 'powder'
 }: EditableFieldProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editedValue, setEditedValue] = useState(value);
   const [localValue, setLocalValue] = useState(value); // Track local changes
+  const [validationError, setValidationError] = useState<string | null>(null);
   const { confirmedFields, confirmField, unconfirmField, updateLocalValue } = useConfirmation();
 
   const isConfirmed = confirmedFields.has(fieldId);
@@ -36,6 +41,7 @@ export default function EditableField({
   const handleEdit = () => {
     setIsEditing(true);
     setEditedValue(localValue); // Use local value instead of original value
+    setValidationError(null); // Clear any previous validation errors
     // If field was confirmed, unconfirm it when editing
     if (isConfirmed) {
       unconfirmField(fieldId);
@@ -47,25 +53,107 @@ export default function EditableField({
     if (type === 'number') {
       const numValue = parseFloat(editedValue);
       if (isNaN(numValue)) {
-        alert('Please enter a valid number');
+        setValidationError('Please enter a valid number');
         return;
       }
+      
+      // Servings validation with decimal support (max 2 decimal places)
+      if (fieldId === 'servingsPerContainer') {
+        if (numValue <= 0) {
+          setValidationError('Servings must be greater than 0');
+          return;
+        }
+        if (numValue > 1000000) {
+          setValidationError('Servings cannot exceed 1,000,000 (bulk product cap)');
+          return;
+        }
+        // Check decimal places (max 2)
+        const decimalPlaces = (numValue.toString().split('.')[1] || '').length;
+        if (decimalPlaces > 2) {
+          setValidationError('Servings can have at most 2 decimal places');
+          return;
+        }
+      }
+      
+              // Min serving size validation (smart based on product form)
+              if (fieldId === 'minServingSize') {
+                if (numValue <= 0) {
+                  setValidationError('Min serving size must be greater than 0');
+                  return;
+                }
+                if (numValue > 100) {
+                  setValidationError('Min serving size cannot exceed 100 (e.g., 100 pills max)');
+                  return;
+                }
+                // For powders, allow decimals (1.5 scoops). For pills/bars, require integers
+                if (productForm === 'powder') {
+                  // Allow decimals for powders (max 2 decimal places)
+                  const decimalPlaces = (numValue.toString().split('.')[1] || '').length;
+                  if (decimalPlaces > 2) {
+                    setValidationError('Min serving size can have at most 2 decimal places');
+                    return;
+                  }
+                } else {
+                  // Require integers for pills, bars, capsules, etc.
+                  if (!Number.isInteger(numValue)) {
+                    setValidationError('Min serving size must be a whole number (1, 2, 3, etc.)');
+                    return;
+                  }
+                }
+              }
+              
+              // Max serving size validation (smart based on product form)
+              if (fieldId === 'maxServingSize') {
+                if (numValue <= 0) {
+                  setValidationError('Max serving size must be greater than 0');
+                  return;
+                }
+                if (numValue > 100) {
+                  setValidationError('Max serving size cannot exceed 100 (e.g., 100 pills max)');
+                  return;
+                }
+                // For powders, allow decimals (1.5 scoops). For pills/bars, require integers
+                if (productForm === 'powder') {
+                  // Allow decimals for powders (max 2 decimal places)
+                  const decimalPlaces = (numValue.toString().split('.')[1] || '').length;
+                  if (decimalPlaces > 2) {
+                    setValidationError('Max serving size can have at most 2 decimal places');
+                    return;
+                  }
+                } else {
+                  // Require integers for pills, bars, capsules, etc.
+                  if (!Number.isInteger(numValue)) {
+                    setValidationError('Max serving size must be a whole number (1, 2, 3, etc.)');
+                    return;
+                  }
+                }
+              }
+      
       // Cap at $400 for supplements (nothing really goes over that)
       if (fieldId === 'price' && numValue > 400) {
-        alert('Price cannot exceed $400');
+        setValidationError('Price cannot exceed $400');
         return;
       }
     }
     
+    // If we get here, validation passed
+    setValidationError(null);
     setIsEditing(false);
     setLocalValue(editedValue); // Update local state
     updateLocalValue(fieldId, editedValue); // Update global context
+    
+    // Automatically confirm the field since user has reviewed and corrected it
+    if (!isConfirmed) {
+      confirmField(fieldId, editedValue);
+    }
+    
     console.log(`Field ${fieldId} updated locally to:`, editedValue);
   };
 
   const handleCancel = () => {
     setIsEditing(false);
     setEditedValue(localValue); // Reset to local value, not original value
+    setValidationError(null); // Clear validation error on cancel
   };
 
   const handleConfirm = () => {
@@ -99,26 +187,75 @@ export default function EditableField({
       );
     }
 
+    if (type === 'product-form-dropdown') {
+      return (
+        <select
+          value={editedValue}
+          onChange={(e) => setEditedValue(e.target.value)}
+          className={`w-full px-2 py-1 border rounded-md text-sm text-black focus:outline-none focus:ring-2 ${
+            validationError 
+              ? 'border-red-500 focus:ring-red-500 bg-red-50' 
+              : 'border-gray-300 focus:ring-blue-500'
+          }`}
+        >
+          <option value="">Select product form...</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     return (
       <input
         type={type}
         value={editedValue}
         onChange={(e) => {
           const value = e.target.value;
-          // Basic validation for numeric fields - just allow numbers and decimal point
+          // Basic validation for numeric fields
           if (type === 'number') {
-            if (!/^\d*\.?\d*$/.test(value)) return;
-            // Prevent typing values over 400 for price field
+            // Serving sizes (min/max) - smart validation based on product form
+            if (fieldId === 'minServingSize' || fieldId === 'maxServingSize') {
+              if (productForm === 'powder') {
+                // Allow decimals for powders (max 2 decimal places)
+                if (!/^\d*\.?\d{0,2}$/.test(value)) return;
+              } else {
+                // Only allow whole numbers (integers) for pills, bars, etc.
+                if (!/^\d+$/.test(value)) return;
+              }
+            } else if (fieldId === 'servingsPerContainer' || fieldId === 'servingSizeG') {
+              // Allow digits, optional decimal point, and up to 2 decimal places
+              if (!/^\d*\.?\d{0,2}$/.test(value)) return;
+            } else {
+              // Other numeric fields allow decimal point
+              if (!/^\d*\.?\d*$/.test(value)) return;
+            }
+            
+            // Prevent typing values over limits
             if (fieldId === 'price') {
               const numValue = parseFloat(value);
               if (value && numValue > 400) return;
+            }
+            if (fieldId === 'servingsPerContainer') {
+              const numValue = parseFloat(value);
+              if (value && numValue > 1000000) return;
+            }
+            if (fieldId === 'servingSizeG' || fieldId === 'minServingSize' || fieldId === 'maxServingSize') {
+              const numValue = parseFloat(value);
+              if (value && numValue > 100) return;
             }
           }
           setEditedValue(value);
         }}
         placeholder={placeholder}
-        step={type === 'number' ? '0.01' : undefined}
-        className="w-full px-2 py-1 border border-gray-300 rounded-md text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-500"
+        step={type === 'number' ? (fieldId === 'minServingSize' || fieldId === 'maxServingSize' ? (productForm === 'powder' ? '0.01' : '1') : (fieldId === 'servingsPerContainer' || fieldId === 'servingSizeG' ? '0.01' : '0.01')) : undefined}
+        className={`w-full px-2 py-1 border rounded-md text-sm text-black focus:outline-none focus:ring-2 ${
+          validationError 
+            ? 'border-red-500 focus:ring-red-500 bg-red-50' 
+            : 'border-gray-300 focus:ring-blue-500'
+        }`}
         autoFocus
       />
     );
@@ -144,23 +281,31 @@ export default function EditableField({
         
         <div className="ml-5 space-y-2">
           {isEditing ? (
-            <div className="space-y-2">
-              {renderInput()}
-              <div className="flex space-x-2">
-                <button
-                  onClick={handleSave}
-                  className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                >
-                  Save
-                </button>
-                <button
-                  onClick={handleCancel}
-                  className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
-                >
-                  Cancel
-                </button>
+              <div className="space-y-2">
+                {renderInput()}
+                {validationError && (
+                  <p className="text-xs text-red-600 font-medium">{validationError}</p>
+                )}
+                <div className="flex space-x-2">
+                  <button
+                    onClick={handleSave}
+                    disabled={!!validationError}
+                    className={`px-2 py-1 text-xs rounded transition-colors ${
+                      validationError
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-green-600 text-white hover:bg-green-700'
+                    }`}
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={handleCancel}
+                    className="px-2 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
+                  >
+                    Cancel
+                  </button>
+                </div>
               </div>
-            </div>
           ) : (
             <div className="flex items-center space-x-2">
               <span className={`text-sm font-semibold ${

@@ -34,14 +34,14 @@ export default function RankingTable({
   // Memoize the cache key to avoid unnecessary re-computations
   const cacheKey = useMemo(() => {
     const params = new URLSearchParams();
-    if (category) params.append('category', category);
-    params.append('sortBy', sortBy);
+    // Remove category and sortBy as they're not used by the API
+    // The API only uses timeRange, limit, and page
     params.append('timeRange', timeRange);
     params.append('limit', limit.toString());
     params.append('page', currentPage.toString());
     params.append('_t', Date.now().toString()); // Add timestamp to bust cache
     return params.toString();
-  }, [category, sortBy, timeRange, limit, currentPage]);
+  }, [timeRange, limit, currentPage]);
 
   // Fetch rankings data with proper caching
   const rankingsData = useMemo(() => {

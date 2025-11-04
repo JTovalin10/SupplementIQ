@@ -1,3 +1,4 @@
+import { fetchCreatineDetails as fetchSharedCreatineDetails } from '@/app/api/products/[slug]/product_details/creatine/index';
 import { calculateEnhancedDosageRating } from '@/lib/config/data/ingredients/enhanced-dosage-calculator';
 import { createClient } from '@/lib/database/supabase/server';
 import { NextRequest, NextResponse } from 'next/server';
@@ -99,38 +100,10 @@ async function fetchFatBurnerDetails(supabase: any, productId: number) {
   return data;
 }
 
+// Wrapper for pending products (admin review mode)
 async function fetchCreatineDetails(supabase: any, productId: number) {
-  console.log('Fetching creatine details for product ID:', productId);
-  const { data, error } = await supabase
-    .from('creatine_details')
-    .select(`
-      *,
-      creatine_types:creatine_type_name (
-        name,
-        category,
-        recommended_daily_dose_g
-      )
-    `)
-    .eq('pending_product_id', productId)
-    .single();
-  
-  if (error) {
-    console.warn('Creatine details error:', error.message);
-    return null;
-  }
-  
-  // Transform the data to include creatine dosage from creatine_types table
-  const creatineDosageMg = data.creatine_types?.recommended_daily_dose_g 
-    ? Math.round(data.creatine_types.recommended_daily_dose_g * 1000) // Convert g to mg
-    : 5000; // Default to 5g if no data
-  
-  const transformedData = {
-    ...data,
-    creatine_monohydrate_mg: creatineDosageMg
-  };
-  
-  console.log('Creatine details fetched:', transformedData);
-  return transformedData;
+  // Pass isPending: true for admin/pending products
+  return await fetchSharedCreatineDetails(supabase, productId, true);
 }
 
 // Main function to fetch dosage details based on category
@@ -160,7 +133,7 @@ async function fetchDosageDetails(supabase: any, category: string, productId: nu
         return await fetchFatBurnerDetails(supabase, productId);
         
       case 'creatine':
-        return await fetchCreatineDetails(supabase, productId);
+        return await fetchCreatineDetails(supabase, productId); // Passes isPending: true
         
       default:
         console.warn('Unknown category for dosage details:', category);
@@ -230,7 +203,27 @@ export async function GET(
     const { data: product, error } = await supabase
       .from('pending_products')
       .select(`
-        *,
+        id,
+        brand_id,
+        product_name,
+        description,
+        image_url,
+        price,
+        currency,
+        servings_per_container,
+        serving_size_g,
+        min_serving_size,
+        max_serving_size,
+        product_form,
+        dosage_rating,
+        danger_rating,
+        category,
+        created_at,
+        updated_at,
+        approval_status,
+        submitted_by,
+        reviewed_by,
+        reviewed_at,
         users:submitted_by (
           id,
           username,
@@ -255,6 +248,10 @@ export async function GET(
 
     // Fetch dosage details based on product category
     const dosageDetails = await fetchDosageDetails(supabase, product.category, product.id);
+
+    // Get min and max serving sizes from the database
+    const minServingSize = product.min_serving_size;
+    const maxServingSize = product.max_serving_size;
 
     // Generate enhanced dosage analysis
     let dosageAnalysis = null;
@@ -333,23 +330,26 @@ export async function GET(
       id: product.id,
       productName: product.product_name,
       brand: {
-        id: product.brands?.id,
-        name: product.brands?.name || 'Unknown',
-        website: product.brands?.website
+        id: product.brands?.[0]?.id,
+        name: product.brands?.[0]?.name || 'Unknown',
+        website: product.brands?.[0]?.website
       },
       category: product.category,
+      productForm: product.product_form,
       description: product.description,
       imageUrl: product.image_url,
       price: product.price,
       currency: product.currency,
       servingsPerContainer: product.servings_per_container,
       servingSizeG: product.serving_size_g,
+      minServingSize: minServingSize,
+      maxServingSize: maxServingSize,
       dosageRating: product.dosage_rating,
       dangerRating: product.danger_rating,
       submittedBy: {
-        id: product.users?.id,
-        username: product.users?.username || 'Unknown',
-        email: product.users?.email
+        id: product.users?.[0]?.id,
+        username: product.users?.[0]?.username || 'Unknown',
+        email: product.users?.[0]?.email
       },
       submittedAt: product.created_at,
       updatedAt: product.updated_at,

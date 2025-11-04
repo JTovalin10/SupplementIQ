@@ -2,7 +2,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { AuthProvider } from '../AuthContext';
+import { AuthProvider } from '../Auth/AuthContext';
 import { AppProvider } from './provider';
 
 interface AppStateProviderProps {
@@ -32,4 +32,4 @@ export {
 } from './hooks';
 
 // Re-export AuthContext hooks
-export { useAuth } from '../AuthContext';
+export { useAuth } from '../Auth/AuthContext';

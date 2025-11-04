@@ -24,18 +24,6 @@
 
 ---
 
-# Realizing Overengineering: C++ to Golang Migration
-
-## The Problem
-- **Overdesigned daily push** using multithreaded C++
-- **Wrong optimization focus:** Optimized for CPU speed instead of network speed
-- **Supabase limitations:** Too many threads causing system issues
-
-## The Solution
-- **Switch to Golang** for daily push operations
-- **Better suited for the job:** Faster than JavaScript but more appropriate for network-bound operations
-- **Simplified architecture** without unnecessary complexity
-
 # Security: Admin Dashboard Hierarchy
 
 ## Permission Levels
@@ -70,21 +58,21 @@
 
 ---
 
-# Security Tree: Force Update Protection
+# Security Cache: Role-Based Access Control
 
 ## Purpose
-- **24-hour segment tree** to track force update requests
-- **Prevents malicious admins** from overloading the server with multiple force update attempts
+- **In-memory role cache** to track user roles (admin, moderator, owner, user)
+- **Fast role lookups** without database queries on every request
 
 ## How It Works
-- **Request tracking:** If a force update request has already been made within 24 hours, subsequent admin requests are automatically rejected
-- **"Trust nobody" principle:** Even legitimate admins cannot bypass this protection
-- **Server protection:** Prevents potential DoS attacks or accidental overload scenarios
+- **TypeScript implementation** with automatic fallback to in-memory Map
+- **Session-based caching** for user roles to reduce database load
+- **Seeded on cold start** from database for privileged users
 
 ## Implementation
-- **Segment tree data structure** for efficient 24-hour window tracking
-- **Automatic rejection** of duplicate force update requests
-- **Additional layer of security** beyond the 75% admin approval requirement
+- **Map-based data structure** for efficient role lookups
+- **Zero dependencies** - pure TypeScript with automatic fallback
+- **Works in browser and server** environments
 
 ---
 
@@ -102,8 +90,8 @@
 - **Data integrity:** Ensures no autocomplete data is lost during outages
 
 ## Implementation Details
-- **C++ Trie tree** for maximum autocomplete speed
-- **Node.js bindings** for JavaScript integration via V8 engine
+- **TypeScript Trie tree** for autocomplete functionality
+- **Node.js integration** via pure JavaScript/TypeScript
 - **Persistent storage** via JSON file for resilience
 - **Automated sync** with database updates
 - **Fault tolerance** through backup and recovery system
@@ -117,7 +105,7 @@
   - Format string vulnerability tests
 - **Edge case handling:** Unicode characters, special symbols, empty strings
 - **Performance testing** with malicious inputs
-- **Dual implementation:** Both C++ (performance) and TypeScript (fallback) versions
+- **Pure TypeScript implementation** with no native dependencies
 
 ## Autocomplete Features
 - **Supplement-specific vocabulary** including alphanumeric product names:
@@ -131,20 +119,19 @@
 
 ---
 
-# C++ Performance Tools: High-Speed Backend Services
+# Performance Tools: High-Speed Backend Services
 
-## AutocompleteService: Multithreaded Performance Engine
-- **High-performance multithreaded service** with thread-safe operations
-- **Lock-free read operations** supporting 10,000+ concurrent searches
-- **Fine-grained locking** for write operations with minimal contention
-- **Performance benchmarks**: 7.5x faster than TypeScript, 4x less memory usage
-- **Zero-downtime updates** with background thread processing
-- **Node.js V8 bindings** for seamless JavaScript integration
+## AutocompleteService: TypeScript Performance Engine
+- **High-performance service** with optimized operations
+- **Fast read operations** supporting concurrent searches
+- **Efficient write operations** with minimal overhead
+- **Zero-downtime updates** with background processing
+- **Node.js integration** via pure TypeScript
 - **Persistence layer** with automatic file backup and recovery
 
-## DailyUpdateService: Dual-Component Architecture
+## DailyUpdateService: Architecture
 - **Split architecture** separating Supabase operations from file/cache management
-- **Go component** with optimized batch processing and exponential backoff
+- **TypeScript component** with optimized batch processing and exponential backoff
 - **File/cache component** managing server cache resets and Trie data updates
 - **Single-operation batch processing** to minimize database calls
 - **Rate limiting and connection pooling** to prevent Supabase rate limiting
@@ -153,9 +140,10 @@
 - **Scheduled updates** every hour (instead of every minute) for efficiency
 - **Single batch product checking** reducing database calls from N to 1
 - **Comprehensive testing suite** with mock data and performance benchmarks
-- **Thread-safe operations** supporting high-volume product processing
+- **Efficient operations** supporting high-volume product processing
 
-### Database Operation Optimization: Single-Query Approach
+### Database Operation Optimization: Single-Query Approach  
+**Note:** This section describes historical architecture. Current implementation uses pure TypeScript.
 - **Problem**: Processing 1000 products required 1000+ individual database calls
 - **Solution**: Single query to check all products (brand + product + year combinations) at once
 - **Implementation**: 
@@ -177,14 +165,13 @@
 - **Efficient Updates**: Trie only processes new, unique data without reformulation info
 - **Workflow**: Database processing → Extract trie data → Clean set → JSON backup → Trie update
 
-## SecurityTree: Advanced Security & Rate Limiting
-- **Segment tree implementation** for 24-hour request tracking
-- **Admin rate limiting** with one request per admin per day
-- **Request validation** with UUID v4 support and timestamp verification
-- **Automatic cleanup** of expired requests (10-minute timeout)
-- **Real-time monitoring** with security statistics and anomaly detection
-- **Thread-safe concurrent operations** for high-throughput scenarios
-- **Zero-trust security model** preventing insider threats and spam attacks
+## Security Cache: Role-Based Access Control
+- **Map-based implementation** for O(1) role lookups
+- **Session caching** with automatic seeding on cold start
+- **TypeScript-only** with zero native dependencies
+- **Cross-platform** - works in browser and server environments
+- **Fallback-friendly** - pure TypeScript when native modules unavailable
+- **Zero-trust security model** with database role verification
 
 ---
 

@@ -7,12 +7,15 @@ export interface ProductData {
     website?: string;
   };
   category: string;
+  productForm?: string; // powder, pill, bar, liquid, etc.
   description: string;
   imageUrl?: string;
   price?: number;
   currency?: string;
   servingsPerContainer?: number;
   servingSizeG?: number;
+  minServingSize?: number;
+  maxServingSize?: number;
   dosageRating: number;
   dangerRating: number;
   submittedBy?: {

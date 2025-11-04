@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
         id,
         name,
         brand_id,
-        brands!brand_id(name),
+        brands(name),
         category,
         created_at,
         updated_at
@@ -63,17 +63,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to fetch recent products' }, { status: 500 });
     }
 
+    console.log('Fetched products:', JSON.stringify(products, null, 2));
+
     // Format the data
-    const formattedProducts = (products || []).map(product => ({
-      id: product.id,
-      name: product.name,
-      brand: product.brands?.[0]?.name || 'Unknown',
-      category: product.category,
-      submittedBy: 'System', // Products in the products table are already approved
-      approvedBy: 'System',
-      createdAt: product.created_at,
-      updatedAt: product.updated_at
-    }));
+    const formattedProducts = (products || []).map((product: any) => {
+      const brands = product.brands as any;
+      const brandName = Array.isArray(brands) 
+        ? brands[0]?.name || 'Unknown'
+        : brands?.name || 'Unknown';
+      
+      return {
+        id: product.id,
+        name: product.name,
+        brand: brandName,
+        category: product.category,
+        submittedBy: 'System', // Products in the products table are already approved
+        approvedBy: 'System',
+        createdAt: product.created_at,
+        updatedAt: product.updated_at
+      };
+    });
 
     return NextResponse.json({
       products: formattedProducts,

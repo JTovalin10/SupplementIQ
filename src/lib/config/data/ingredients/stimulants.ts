@@ -79,11 +79,7 @@ export const stimulantSupplements: SupplementInfo[] = [
     maxDailyDosage: 1000, // 1000mg maximum safe dose
     dangerousDosage: 2000, // 2000mg+ may cause headaches, nausea
     dosageNotes: 'More bioavailable than L-Tyrosine. Take on empty stomach for better absorption. Effects may be enhanced under stress. No specific ratio formulations - this is a single compound.',
-    cautions: [
-      'May cause headaches at high doses',
-      'Nausea or fatigue',
-      'Heartburn'
-    ],
+    cautions: 'May cause headaches at high doses, nausea or fatigue, and heartburn.',
     precaution_people: [
       'hyperthyroidism',
       'taking MAOIs',

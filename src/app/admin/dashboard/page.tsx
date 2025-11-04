@@ -1,5 +1,6 @@
 'use client';
 
+import ColdStartHandler from '@/components/common/ColdStartHandler';
 import JWTDashboard from '@/components/features/JWTDashboard';
 import { hasRoleAccess } from '@/lib/auth/role-routing';
 import { useAuth } from '@/lib/contexts';
@@ -26,18 +27,15 @@ export default function AdminDashboardPage() {
     }
   }, [user, isAuthenticated, isLoading, router]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-black">Loading...</div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user) {
-    return null;
-  }
-
-  // No need to pass userRole - it comes from context
-  return <JWTDashboard />;
+  return (
+    <ColdStartHandler isLoading={isLoading}>
+      {!isAuthenticated || !user ? (
+        <div className="min-h-screen bg-white flex items-center justify-center">
+          <div className="text-black">Loading...</div>
+        </div>
+      ) : (
+        <JWTDashboard />
+      )}
+    </ColdStartHandler>
+  );
 }

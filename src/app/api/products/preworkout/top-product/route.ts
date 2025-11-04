@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { getRedisTCP } from '@/lib/utils/cache/productCache/redis-tcp';
 import { NextRequest, NextResponse } from 'next/server';
 
 // GET /api/products/preworkout/top-product
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     const key = 'top:preworkout';
     let payload: any[] | null = null;
     const cached = await redis.get(key);
-    if (cached) {
+    if (cached && typeof cached === 'string') {
       try { payload = JSON.parse(cached); } catch { payload = null; }
     }
 

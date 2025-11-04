@@ -8,9 +8,11 @@ export { AppStateProvider } from './AppStateContext/index';
 // Export all hooks from AppStateContext
 export {
     useApp,
-    useAuth,
     useDashboard, useLoading, useNotifications, useSearch, useUI
 } from './AppStateContext/index';
+
+// Export Auth context from new Auth folder
+export { AuthProvider, useAuth } from './Auth';
 
 // Export OwnerDashboard context
 export { OwnerDashboardProvider, useOwnerDashboard } from './OwnerDashboardContext';
