@@ -171,6 +171,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           );
         }
       } else {
+        // Clear profile cache when user signs out
+        setProfileCache(new Map());
         setUser(null);
         setPermissions(null);
         setIsLoading(false);
@@ -207,7 +209,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     login: (email, password, rememberMe) =>
       authOperations.login(email, password, rememberMe, session),
     signup,
-    logout,
+    logout: async () => {
+      // Clear profile cache before logout
+      setProfileCache(new Map());
+      await logout();
+    },
     updateUser,
     updateUserProfile: (updates) =>
       updateUserProfile(

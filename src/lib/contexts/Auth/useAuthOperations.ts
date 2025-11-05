@@ -164,6 +164,37 @@ export function useAuthOperations() {
     try {
       console.log("🔍 Starting logout process...");
 
+      // Clear all caches before signing out
+      if (typeof window !== "undefined") {
+        // Clear localStorage (edit cache, user preferences, etc.)
+        try {
+          localStorage.clear();
+          console.log("🗑️ Cleared localStorage");
+        } catch (e) {
+          console.warn("Failed to clear localStorage:", e);
+        }
+
+        // Clear sessionStorage
+        try {
+          sessionStorage.clear();
+          console.log("🗑️ Cleared sessionStorage");
+        } catch (e) {
+          console.warn("Failed to clear sessionStorage:", e);
+        }
+
+        // Clear any IndexedDB caches if they exist
+        try {
+          if ("indexedDB" in window) {
+            // Clear specific caches if needed
+            const cacheKeys = await caches.keys();
+            await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+            console.log("🗑️ Cleared service worker caches");
+          }
+        } catch (e) {
+          console.warn("Failed to clear caches:", e);
+        }
+      }
+
       // Sign out from Supabase with scope 'local' to clear all sessions
       // This ensures the user is logged out regardless of "Remember Me" setting
       const { error } = await executeSupabaseOperation(
@@ -178,15 +209,16 @@ export function useAuthOperations() {
 
       console.log("✅ Logout completed successfully");
 
-      // Redirect to home page
+      // Redirect to login page so user can log in with a different account
       if (typeof window !== "undefined") {
-        window.location.href = "/";
+        window.location.href = "/auth/login";
       }
     } catch (error) {
       console.error("Logout error:", error);
 
+      // Still redirect to login even if there was an error
       if (typeof window !== "undefined") {
-        window.location.href = "/";
+        window.location.href = "/auth/login";
       }
     }
   };
