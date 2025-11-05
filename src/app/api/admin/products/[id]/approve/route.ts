@@ -244,13 +244,15 @@ export async function POST(
 
     // Update brand product count (non-blocking)
     if (pendingProduct.brand_id) {
-      supabase
-        .rpc("increment_brand_product_count", {
-          brand_id: pendingProduct.brand_id,
-        })
-        .catch((err) => {
+      (async () => {
+        try {
+          await supabase.rpc("increment_brand_product_count", {
+            brand_id: pendingProduct.brand_id,
+          });
+        } catch (err) {
           console.warn("Failed to increment brand count (non-critical):", err);
-        });
+        }
+      })();
     }
 
     console.log("✅ Approval process completed successfully");
