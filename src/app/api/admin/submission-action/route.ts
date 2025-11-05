@@ -128,6 +128,7 @@ async function handleApproval(
 
     // Copy category-specific details
     await copyCategoryDetails(
+      supabase,
       tempProduct.id,
       newProduct.id,
       tempProduct.category,
@@ -196,6 +197,7 @@ async function handleApproval(
 
     // Log activity with admin role information
     await logActivity(
+      supabase,
       "product_approved",
       `Product "${tempProduct.name}" approved by ${adminRole}`,
       adminId,
@@ -245,6 +247,7 @@ async function handleRejection(
 
     // Log activity before deleting (so we have a record of the rejection)
     await logActivity(
+      supabase,
       "product_rejected",
       `Product "${tempProduct.name}" rejected by ${adminRole}: ${reason}`,
       adminId,
@@ -335,6 +338,7 @@ async function handleRejection(
 }
 
 async function copyCategoryDetails(
+  supabase: any,
   pendingProductId: number,
   productId: number,
   category: string,
@@ -384,6 +388,7 @@ async function copyCategoryDetails(
 }
 
 async function logActivity(
+  supabase: any,
   type: string,
   description: string,
   userId: string,
