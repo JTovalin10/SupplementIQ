@@ -1,102 +1,105 @@
-import { fetchCreatineDetails as fetchSharedCreatineDetails } from '@/app/api/products/[slug]/product_details/creatine/index';
-import { calculateEnhancedDosageRating } from '@/lib/config/data/ingredients/enhanced-dosage-calculator';
-import { createClient } from '@/lib/database/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
+import { fetchCreatineDetails as fetchSharedCreatineDetails } from "@/app/api/products/[slug]/product_details/creatine/index";
+import { calculateEnhancedDosageRating } from "@/lib/config/data/ingredients/enhanced-dosage-calculator";
+import { createClient } from "@/lib/database/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
 
 // Separate functions for fetching dosage details by category
 async function fetchPreworkoutDetails(supabase: any, productId: number) {
-  console.log('Fetching preworkout details for product ID:', productId);
+  console.log("Fetching preworkout details for product ID:", productId);
   const { data, error } = await supabase
-    .from('preworkout_details')
-    .select('*')
-    .eq('pending_product_id', productId)
+    .from("preworkout_details")
+    .select("*")
+    .eq("pending_product_id", productId)
     .single();
-  
+
   if (error) {
-    console.warn('Preworkout details error:', error.message);
+    console.warn("Preworkout details error:", error.message);
     return null;
   }
-  console.log('Preworkout details fetched:', data);
+  console.log("Preworkout details fetched:", data);
   return data;
 }
 
 async function fetchNonStimPreworkoutDetails(supabase: any, productId: number) {
-  console.log('Fetching non-stim preworkout details for product ID:', productId);
+  console.log(
+    "Fetching non-stim preworkout details for product ID:",
+    productId,
+  );
   const { data, error } = await supabase
-    .from('non_stim_preworkout_details')
-    .select('*')
-    .eq('pending_product_id', productId)
+    .from("non_stim_preworkout_details")
+    .select("*")
+    .eq("pending_product_id", productId)
     .single();
-  
+
   if (error) {
-    console.warn('Non-stim preworkout details error:', error.message);
+    console.warn("Non-stim preworkout details error:", error.message);
     return null;
   }
-  console.log('Non-stim preworkout details fetched:', data);
+  console.log("Non-stim preworkout details fetched:", data);
   return data;
 }
 
 async function fetchEnergyDrinkDetails(supabase: any, productId: number) {
-  console.log('Fetching energy drink details for product ID:', productId);
+  console.log("Fetching energy drink details for product ID:", productId);
   const { data, error } = await supabase
-    .from('energy_drink_details')
-    .select('*')
-    .eq('pending_product_id', productId)
+    .from("energy_drink_details")
+    .select("*")
+    .eq("pending_product_id", productId)
     .single();
-  
+
   if (error) {
-    console.warn('Energy drink details error:', error.message);
+    console.warn("Energy drink details error:", error.message);
     return null;
   }
-  console.log('Energy drink details fetched:', data);
+  console.log("Energy drink details fetched:", data);
   return data;
 }
 
 async function fetchProteinDetails(supabase: any, productId: number) {
-  console.log('Fetching protein details for product ID:', productId);
+  console.log("Fetching protein details for product ID:", productId);
   const { data, error } = await supabase
-    .from('protein_details')
-    .select('*')
-    .eq('pending_product_id', productId)
+    .from("protein_details")
+    .select("*")
+    .eq("pending_product_id", productId)
     .single();
-  
+
   if (error) {
-    console.warn('Protein details error:', error.message);
+    console.warn("Protein details error:", error.message);
     return null;
   }
-  console.log('Protein details fetched:', data);
+  console.log("Protein details fetched:", data);
   return data;
 }
 
 async function fetchAminoAcidDetails(supabase: any, productId: number) {
-  console.log('Fetching amino acid details for product ID:', productId);
+  console.log("Fetching amino acid details for product ID:", productId);
   const { data, error } = await supabase
-    .from('amino_acid_details')
-    .select('*')
-    .eq('pending_product_id', productId)
+    .from("amino_acid_details")
+    .select("*")
+    .eq("pending_product_id", productId)
     .single();
-  
+
   if (error) {
-    console.warn('Amino acid details error:', error.message);
+    console.warn("Amino acid details error:", error.message);
     return null;
   }
-  console.log('Amino acid details fetched:', data);
+  console.log("Amino acid details fetched:", data);
   return data;
 }
 
 async function fetchFatBurnerDetails(supabase: any, productId: number) {
-  console.log('Fetching fat burner details for product ID:', productId);
+  console.log("Fetching fat burner details for product ID:", productId);
   const { data, error } = await supabase
-    .from('fat_burner_details')
-    .select('*')
-    .eq('pending_product_id', productId)
+    .from("fat_burner_details")
+    .select("*")
+    .eq("pending_product_id", productId)
     .single();
-  
+
   if (error) {
-    console.warn('Fat burner details error:', error.message);
+    console.warn("Fat burner details error:", error.message);
     return null;
   }
-  console.log('Fat burner details fetched:', data);
+  console.log("Fat burner details fetched:", data);
   return data;
 }
 
@@ -107,40 +110,49 @@ async function fetchCreatineDetails(supabase: any, productId: number) {
 }
 
 // Main function to fetch dosage details based on category
-async function fetchDosageDetails(supabase: any, category: string, productId: number) {
-  console.log('Fetching dosage details for category:', category, 'product ID:', productId);
-  
+async function fetchDosageDetails(
+  supabase: any,
+  category: string,
+  productId: number,
+) {
+  console.log(
+    "Fetching dosage details for category:",
+    category,
+    "product ID:",
+    productId,
+  );
+
   try {
     switch (category) {
-      case 'pre-workout':
+      case "pre-workout":
         return await fetchPreworkoutDetails(supabase, productId);
-        
-      case 'non-stim-pre-workout':
+
+      case "non-stim-pre-workout":
         return await fetchNonStimPreworkoutDetails(supabase, productId);
-        
-      case 'energy-drink':
+
+      case "energy-drink":
         return await fetchEnergyDrinkDetails(supabase, productId);
-        
-      case 'protein':
+
+      case "protein":
         return await fetchProteinDetails(supabase, productId);
-        
-      case 'bcaa':
-      case 'eaa':
+
+      case "bcaa":
+      case "eaa":
         return await fetchAminoAcidDetails(supabase, productId);
-        
-      case 'fat-burner':
-      case 'appetite-suppressant':
+
+      case "fat-burner":
+      case "appetite-suppressant":
         return await fetchFatBurnerDetails(supabase, productId);
-        
-      case 'creatine':
+
+      case "creatine":
         return await fetchCreatineDetails(supabase, productId); // Passes isPending: true
-        
+
       default:
-        console.warn('Unknown category for dosage details:', category);
+        console.warn("Unknown category for dosage details:", category);
         return null;
     }
   } catch (error) {
-    console.error('Error fetching dosage details:', error);
+    console.error("Error fetching dosage details:", error);
     return null;
   }
 }
@@ -148,61 +160,77 @@ async function fetchDosageDetails(supabase: any, category: string, productId: nu
 // GET /api/admin/products/[slug] - Get detailed product information for review
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const supabase = await createClient();
     const { id: productSlug } = await params;
 
-    console.log('Product slug received:', productSlug);
-    
-    if (!productSlug || productSlug === 'undefined') {
-      return NextResponse.json({ error: 'Invalid product slug' }, { status: 400 });
+    console.log("Product slug received:", productSlug);
+
+    if (!productSlug || productSlug === "undefined") {
+      return NextResponse.json(
+        { error: "Invalid product slug" },
+        { status: 400 },
+      );
     }
 
     // Get the authorization header
-    const authHeader = request.headers.get('authorization');
+    const authHeader = request.headers.get("authorization");
     if (!authHeader) {
-      return NextResponse.json({ error: 'Authorization header required' }, { status: 401 });
+      return NextResponse.json(
+        { error: "Authorization header required" },
+        { status: 401 },
+      );
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    const token = authHeader.replace("Bearer ", "");
 
     // For development/testing, allow test-token to bypass auth
-    if (token === 'test-token') {
-      console.log('Using test token - bypassing authentication');
+    if (token === "test-token") {
+      console.log("Using test token - bypassing authentication");
     } else {
       // Verify the token and get user
-      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-      
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser(token);
+
       if (authError || !user) {
-        return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+        return NextResponse.json({ error: "Invalid token" }, { status: 401 });
       }
 
       // Get user profile to check role
       const { data: userProfile, error: profileError } = await supabase
-        .from('users')
-        .select('role')
-        .eq('id', user.id)
+        .from("users")
+        .select("role")
+        .eq("id", user.id)
         .single();
 
       if (profileError || !userProfile) {
-        return NextResponse.json({ error: 'User profile not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: "User profile not found" },
+          { status: 404 },
+        );
       }
 
       // Check if user has moderator+ permissions
-      const allowedRoles = ['moderator', 'admin', 'owner'];
+      const allowedRoles = ["moderator", "admin", "owner"];
       if (!allowedRoles.includes(userProfile.role)) {
-        return NextResponse.json({
-          error: `Insufficient permissions. Only ${allowedRoles.join(', ')} can review products.`
-        }, { status: 403 });
+        return NextResponse.json(
+          {
+            error: `Insufficient permissions. Only ${allowedRoles.join(", ")} can review products.`,
+          },
+          { status: 403 },
+        );
       }
     }
 
     // Fetch the pending product with all related data
     const { data: product, error } = await supabase
-      .from('pending_products')
-      .select(`
+      .from("pending_products")
+      .select(
+        `
         id,
         brand_id,
         product_name,
@@ -234,8 +262,9 @@ export async function GET(
           name,
           website
         )
-      `)
-      .eq('slug', productSlug)
+      `,
+      )
+      .eq("slug", productSlug)
       .single();
 
     if (error) {
@@ -243,11 +272,60 @@ export async function GET(
     }
 
     if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    console.log("User data from join:", product.users);
+    console.log("Submitted by UUID:", product.submitted_by);
+    console.log("Brand data from join:", product.brands);
+    console.log("Brand ID:", product.brand_id);
+
+    // If user join failed, fetch user directly
+    let userData = Array.isArray(product.users)
+      ? product.users[0]
+      : product.users;
+    if (!userData && product.submitted_by) {
+      console.log("User join returned null, fetching user directly...");
+      const { data: user, error: userError } = await supabase
+        .from("users")
+        .select("id, username, email")
+        .eq("id", product.submitted_by)
+        .single();
+
+      if (!userError && user) {
+        userData = user;
+        console.log("User fetched directly:", userData);
+      } else {
+        console.error("Failed to fetch user:", userError);
+      }
+    }
+
+    // If brand join failed, fetch brand directly
+    let brandData = Array.isArray(product.brands)
+      ? product.brands[0]
+      : product.brands;
+    if (!brandData && product.brand_id) {
+      console.log("Brand join returned null, fetching brand directly...");
+      const { data: brand, error: brandError } = await supabase
+        .from("brands")
+        .select("id, name, website")
+        .eq("id", product.brand_id)
+        .single();
+
+      if (!brandError && brand) {
+        brandData = brand;
+        console.log("Brand fetched directly:", brandData);
+      } else {
+        console.error("Failed to fetch brand:", brandError);
+      }
     }
 
     // Fetch dosage details based on product category
-    const dosageDetails = await fetchDosageDetails(supabase, product.category, product.id);
+    const dosageDetails = await fetchDosageDetails(
+      supabase,
+      product.category,
+      product.id,
+    );
 
     // Get min and max serving sizes from the database
     const minServingSize = product.min_serving_size;
@@ -255,16 +333,20 @@ export async function GET(
 
     // Generate enhanced dosage analysis
     let dosageAnalysis = null;
-    if (dosageDetails && product.servings_per_container && product.serving_size_g) {
+    if (
+      dosageDetails &&
+      product.servings_per_container &&
+      product.serving_size_g
+    ) {
       try {
         // Extract ingredient data from dosage details
         const ingredients: Record<string, number> = {};
         Object.entries(dosageDetails).forEach(([key, value]) => {
-          if (typeof value === 'number' && value > 0 && key.includes('_mg')) {
+          if (typeof value === "number" && value > 0 && key.includes("_mg")) {
             // Map database field names to ingredient names
             let ingredientName = key;
-            if (key === 'creatine_dosage_mg') {
-              ingredientName = 'creatine_monohydrate_mg';
+            if (key === "creatine_dosage_mg") {
+              ingredientName = "creatine_monohydrate_mg";
             }
             ingredients[ingredientName] = value;
           }
@@ -277,50 +359,56 @@ export async function GET(
               servingsPerContainer: product.servings_per_container,
               servingSizeG: product.serving_size_g,
               price: product.price,
-              currency: product.currency || 'USD',
+              currency: product.currency || "USD",
               creatineType: dosageDetails.creatine_type_name || undefined,
-              ingredients: ingredients
+              ingredients: ingredients,
             });
           } catch (calcError) {
-            console.error('Enhanced dosage calculator failed:', calcError);
+            console.error("Enhanced dosage calculator failed:", calcError);
             // Fallback: create simple analysis using existing data
             dosageAnalysis = {
               overallScore: 100,
-              overallRating: 'Excellent',
+              overallRating: "Excellent",
               message: `Excellent dosage! This product provides ${ingredients.creatine_monohydrate_mg}mg of creatine per serving, which is within the optimal range of 3000-5000mg.`,
-              ingredientAnalysis: [{
-                ingredientName: 'creatine_monohydrate_mg',
-                displayName: 'Creatine Monohydrate',
-                actualDosage: ingredients.creatine_monohydrate_mg,
-                minDosage: 3000,
-                maxDosage: 5000,
-                dangerousDosage: 10000,
-                score: 100,
-                rating: 'Excellent',
-                message: `Perfect dosage! ${ingredients.creatine_monohydrate_mg}mg is within the optimal range.`,
-                dosageNotes: 'Standard creatine monohydrate dosage for muscle building and performance.',
-                cautions: 'Consult doctor if you have kidney disease.',
-                precaution_people: ['Kidney disease', 'Diabetes'],
-                dosage_citation: 'https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2048496/',
-                cautions_citation: 'https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2048496/'
-              }],
+              ingredientAnalysis: [
+                {
+                  ingredientName: "creatine_monohydrate_mg",
+                  displayName: "Creatine Monohydrate",
+                  actualDosage: ingredients.creatine_monohydrate_mg,
+                  minDosage: 3000,
+                  maxDosage: 5000,
+                  dangerousDosage: 10000,
+                  score: 100,
+                  rating: "Excellent",
+                  message: `Perfect dosage! ${ingredients.creatine_monohydrate_mg}mg is within the optimal range.`,
+                  dosageNotes:
+                    "Standard creatine monohydrate dosage for muscle building and performance.",
+                  cautions: "Consult doctor if you have kidney disease.",
+                  precaution_people: ["Kidney disease", "Diabetes"],
+                  dosage_citation:
+                    "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2048496/",
+                  cautions_citation:
+                    "https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2048496/",
+                },
+              ],
               valueScore: 85,
               servingEfficiency: 1,
-              pricePerEffectiveDose: product.price / product.servings_per_container,
+              pricePerEffectiveDose:
+                product.price / product.servings_per_container,
               manufacturerMinDosage: {
                 score: 100,
-                message: 'Manufacturer provides optimal minimum dosage'
+                message: "Manufacturer provides optimal minimum dosage",
               },
               manufacturerMaxDosage: {
                 score: 100,
-                message: 'Manufacturer provides optimal maximum dosage'
-              }
+                message: "Manufacturer provides optimal maximum dosage",
+              },
             };
           }
         }
       } catch (error) {
-        console.error('Error generating dosage analysis:', error);
-        console.error('Error stack:', error.stack);
+        console.error("Error generating dosage analysis:", error);
+        console.error("Error stack:", error.stack);
         // Continue without dosage analysis rather than failing
       }
     }
@@ -330,9 +418,9 @@ export async function GET(
       id: product.id,
       productName: product.product_name,
       brand: {
-        id: product.brands?.[0]?.id,
-        name: product.brands?.[0]?.name || 'Unknown',
-        website: product.brands?.[0]?.website
+        id: brandData?.id,
+        name: brandData?.name || "Unknown",
+        website: brandData?.website,
       },
       category: product.category,
       productForm: product.product_form,
@@ -347,9 +435,9 @@ export async function GET(
       dosageRating: product.dosage_rating,
       dangerRating: product.danger_rating,
       submittedBy: {
-        id: product.users?.[0]?.id,
-        username: product.users?.[0]?.username || 'Unknown',
-        email: product.users?.[0]?.email
+        id: userData?.id,
+        username: userData?.username || "Unknown",
+        email: userData?.email,
       },
       submittedAt: product.created_at,
       updatedAt: product.updated_at,
@@ -357,12 +445,15 @@ export async function GET(
       reviewedBy: product.reviewed_by,
       reviewedAt: product.reviewed_at,
       dosageDetails: dosageDetails,
-      dosageAnalysis: dosageAnalysis
+      dosageAnalysis: dosageAnalysis,
     };
 
     return NextResponse.json({ product: formattedProduct });
   } catch (error) {
-    console.error('Error fetching product details:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching product details:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

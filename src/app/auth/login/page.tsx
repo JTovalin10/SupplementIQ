@@ -43,13 +43,22 @@ function LoginPageContent() {
     setError("");
 
     try {
+      console.log("[LOGIN PAGE] Attempting login with email:", email);
       const result = await login(email, password, rememberMe);
+      console.log("[LOGIN PAGE] Login result:", result);
 
       if (!result.success) {
-        setError(result.error || "Login failed");
+        const errorMessage = result.error || "Login failed";
+        console.error("[LOGIN PAGE] Login failed:", errorMessage);
+        setError(errorMessage);
+      } else {
+        console.log("[LOGIN PAGE] Login successful");
       }
     } catch (err) {
-      setError("An unexpected error occurred");
+      console.error("[LOGIN PAGE] Unexpected error:", err);
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred",
+      );
     } finally {
       setIsLoading(false);
     }

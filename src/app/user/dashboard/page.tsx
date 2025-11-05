@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/lib/contexts';
-import { Award, Plus, TrendingUp, User } from 'lucide-react';
-import Link from 'next/link';
+import { useAuth } from "@/lib/contexts";
+import { Award, Plus, TrendingUp, User } from "lucide-react";
+import Link from "next/link";
 
 export default function UserDashboardPage() {
   const { isAuthenticated, user } = useAuth();
@@ -40,10 +40,6 @@ export default function UserDashboardPage() {
                 Welcome back, {user.username || user.email}!
               </p>
             </div>
-            <div className="flex items-center space-x-2">
-              <User className="w-5 h-5 text-gray-400" />
-              <span className="text-gray-600">{user.role}</span>
-            </div>
           </div>
         </div>
       </div>
@@ -58,8 +54,12 @@ export default function UserDashboardPage() {
                 <Award className="h-8 w-8 text-blue-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Reputation Points</p>
-                <p className="text-2xl font-semibold text-gray-900">{user.reputation_points || 0}</p>
+                <p className="text-sm font-medium text-gray-500">
+                  Reputation Points
+                </p>
+                <p className="text-2xl font-semibold text-gray-900">
+                  {user.reputation_points || 0}
+                </p>
               </div>
             </div>
           </div>
@@ -70,7 +70,9 @@ export default function UserDashboardPage() {
                 <TrendingUp className="h-8 w-8 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-gray-500">Contributions</p>
+                <p className="text-sm font-medium text-gray-500">
+                  Contributions
+                </p>
                 <p className="text-2xl font-semibold text-gray-900">0</p>
               </div>
             </div>
@@ -83,7 +85,9 @@ export default function UserDashboardPage() {
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">Role</p>
-                <p className="text-2xl font-semibold text-gray-900 capitalize">{user.role}</p>
+                <p className="text-2xl font-semibold text-gray-900 capitalize">
+                  {user.role}
+                </p>
               </div>
             </div>
           </div>
@@ -91,7 +95,9 @@ export default function UserDashboardPage() {
 
         {/* Quick Actions */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Quick Actions
+          </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <Link
               href="/contribute/new-product"
@@ -130,7 +136,9 @@ export default function UserDashboardPage() {
 
         {/* Recent Activity */}
         <div className="bg-white rounded-lg shadow-sm border p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+            Recent Activity
+          </h2>
           <div className="text-center py-8">
             <p className="text-gray-500">No recent activity to display.</p>
             <Link

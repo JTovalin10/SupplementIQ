@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { ArrowLeft, Calendar, Package, Star, User } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { ArrowLeft, Calendar, Package, Star, User } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export interface ProductData {
   id: string;
@@ -34,7 +34,7 @@ export interface ProductData {
 
 interface ProductDisplayProps {
   product: ProductData;
-  mode: 'review' | 'product';
+  mode: "review" | "product";
   showBackButton?: boolean;
   showSubmissionInfo?: boolean;
   className?: string;
@@ -45,42 +45,42 @@ export default function ProductDisplay({
   mode,
   showBackButton = true,
   showSubmissionInfo = true,
-  className = ''
+  className = "",
 }: ProductDisplayProps) {
   const router = useRouter();
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
   const getRatingColor = (rating: number) => {
-    if (rating >= 80) return 'text-green-600';
-    if (rating >= 60) return 'text-yellow-600';
-    return 'text-red-600';
+    if (rating >= 80) return "text-gray-700";
+    if (rating >= 60) return "text-gray-600";
+    return "text-gray-500";
   };
 
   const getRatingLabel = (rating: number) => {
-    if (rating >= 80) return 'Excellent';
-    if (rating >= 60) return 'Good';
-    if (rating >= 40) return 'Fair';
-    return 'Poor';
+    if (rating >= 80) return "Excellent";
+    if (rating >= 60) return "Good";
+    if (rating >= 40) return "Fair";
+    return "Poor";
   };
 
   const getStatusBadge = () => {
-    if (mode === 'review') {
+    if (mode === "review") {
       return (
-        <span className="px-3 py-1 text-sm font-medium bg-yellow-100 text-yellow-800 rounded-full">
+        <span className="px-3 py-1 text-sm font-medium bg-gray-100 text-gray-700 rounded-full">
           Pending Review
         </span>
       );
     }
-    
+
     // For product mode, you might want to show different statuses
     return null;
   };
@@ -105,7 +105,7 @@ export default function ProductDisplay({
                 </>
               )}
               <h1 className="text-xl font-semibold text-gray-900">
-                {mode === 'review' ? 'Product Review' : 'Product Details'}
+                {mode === "review" ? "Product Review" : "Product Details"}
               </h1>
             </div>
             <div className="flex items-center space-x-4">
@@ -141,13 +141,13 @@ export default function ProductDisplay({
               {/* Product Name and Brand */}
               <div>
                 <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                  {product.productName.toUpperCase()}
+                  {product.productName}
                 </h1>
                 <p className="text-lg text-gray-600 mb-4">
                   {product.brand.name}
                 </p>
                 <div className="flex items-center space-x-4 text-sm text-gray-500">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded">
+                  <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded">
                     {product.category}
                   </span>
                 </div>
@@ -156,7 +156,9 @@ export default function ProductDisplay({
               {/* Description */}
               {product.description && (
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Description</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Description
+                  </h3>
                   <p className="text-gray-600">{product.description}</p>
                 </div>
               )}
@@ -166,12 +168,16 @@ export default function ProductDisplay({
                 {product.servingsPerContainer && (
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <h4 className="font-semibold text-gray-900">Servings</h4>
-                    <p className="text-gray-600">{product.servingsPerContainer} per container</p>
+                    <p className="text-gray-600">
+                      {product.servingsPerContainer} per container
+                    </p>
                   </div>
                 )}
                 {product.servingSizeG && (
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-900">Serving Size</h4>
+                    <h4 className="font-semibold text-gray-900">
+                      Serving Size
+                    </h4>
                     <p className="text-gray-600">{product.servingSizeG}g</p>
                   </div>
                 )}
@@ -185,9 +191,14 @@ export default function ProductDisplay({
                 )}
                 {product.price && product.servingsPerContainer && (
                   <div className="bg-gray-50 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-900">Price per Scoop</h4>
+                    <h4 className="font-semibold text-gray-900">
+                      Price per Scoop
+                    </h4>
                     <p className="text-gray-600">
-                      {product.currency} {(product.price / product.servingsPerContainer).toFixed(2)}
+                      {product.currency}{" "}
+                      {(product.price / product.servingsPerContainer).toFixed(
+                        2,
+                      )}
                     </p>
                   </div>
                 )}
@@ -195,76 +206,97 @@ export default function ProductDisplay({
 
               {/* Ratings */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900">Quality Ratings</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Quality Ratings
+                </h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-gray-900">Dosage Rating</h4>
+                      <h4 className="font-semibold text-gray-900">
+                        Dosage Rating
+                      </h4>
                       <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                        <span className={`font-semibold ${getRatingColor(product.dosageRating)}`}>
+                        <Star className="h-4 w-4 text-gray-500 mr-1" />
+                        <span
+                          className={`font-semibold ${getRatingColor(product.dosageRating)}`}
+                        >
                           {product.dosageRating}/100
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600">{getRatingLabel(product.dosageRating)}</p>
+                    <p className="text-sm text-gray-600">
+                      {getRatingLabel(product.dosageRating)}
+                    </p>
                   </div>
                   <div className="bg-gray-50 p-4 rounded-lg">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-semibold text-gray-900">Danger Rating</h4>
+                      <h4 className="font-semibold text-gray-900">
+                        Danger Rating
+                      </h4>
                       <div className="flex items-center">
-                        <Star className="h-4 w-4 text-yellow-400 mr-1" />
-                        <span className={`font-semibold ${getRatingColor(product.dangerRating)}`}>
+                        <Star className="h-4 w-4 text-gray-500 mr-1" />
+                        <span
+                          className={`font-semibold ${getRatingColor(product.dangerRating)}`}
+                        >
                           {product.dangerRating}/100
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-gray-600">{getRatingLabel(product.dangerRating)}</p>
+                    <p className="text-sm text-gray-600">
+                      {getRatingLabel(product.dangerRating)}
+                    </p>
                   </div>
                 </div>
               </div>
 
               {/* Submission Info - Only show in review mode or when explicitly requested */}
-              {showSubmissionInfo && (product.submittedBy || product.submittedAt) && (
-                <div className="border-t pt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    {mode === 'review' ? 'Submission Details' : 'Product Information'}
-                  </h3>
-                  <div className="space-y-3">
-                    {product.submittedBy && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <User className="h-4 w-4 mr-2" />
-                        <span>
-                          {mode === 'review' ? 'Submitted by:' : 'Added by:'} 
-                          <strong className="ml-1">{product.submittedBy.username}</strong>
-                        </span>
-                      </div>
-                    )}
-                    {product.submittedAt && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        <span>
-                          {mode === 'review' ? 'Submitted on:' : 'Added on:'} 
-                          <strong className="ml-1">{formatDate(product.submittedAt)}</strong>
-                        </span>
-                      </div>
-                    )}
-                    {product.brand.website && (
-                      <div className="flex items-center text-sm text-gray-600">
-                        <span>Brand Website: </span>
-                        <a
-                          href={product.brand.website}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-800 ml-1"
-                        >
-                          {product.brand.website}
-                        </a>
-                      </div>
-                    )}
+              {showSubmissionInfo &&
+                (product.submittedBy || product.submittedAt) && (
+                  <div className="border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      {mode === "review"
+                        ? "Submission Details"
+                        : "Product Information"}
+                    </h3>
+                    <div className="space-y-3">
+                      {product.submittedBy && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <User className="h-4 w-4 mr-2" />
+                          <span>
+                            {mode === "review" ? "Submitted by:" : "Added by:"}
+                            <strong className="ml-1">
+                              {product.submittedBy.username}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+                      {product.submittedAt && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 mr-2" />
+                          <span>
+                            {mode === "review" ? "Submitted on:" : "Added on:"}
+                            <strong className="ml-1">
+                              {formatDate(product.submittedAt)}
+                            </strong>
+                          </span>
+                        </div>
+                      )}
+                      {product.brand.website && (
+                        <div className="flex items-center text-sm text-gray-600">
+                          <span>Brand Website: </span>
+                          <a
+                            href={product.brand.website}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-gray-700 hover:text-gray-900 ml-1"
+                          >
+                            {product.brand.website}
+                          </a>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
             </div>
           </div>
         </div>

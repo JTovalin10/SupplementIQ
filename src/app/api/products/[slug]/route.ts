@@ -1,12 +1,12 @@
-import { calculateEnhancedDosageRating } from '@/lib/config/data/ingredients/enhanced-dosage-calculator';
-import { createClient } from '@/lib/database/supabase/server';
-import { NextRequest, NextResponse } from 'next/server';
-import { fetchProductDetails } from './product_details/index';
+import { calculateEnhancedDosageRating } from "@/lib/config/data/ingredients/enhanced-dosage-calculator";
+import { createClient } from "@/lib/database/supabase/server";
+import { NextRequest, NextResponse } from "next/server";
+import { fetchProductDetails } from "./product_details/index";
 
 // GET /api/products/[slug] - Get approved product information for public display
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     const supabase = await createClient();
@@ -16,9 +16,7 @@ export async function GET(
     const productIdInt = parseInt(identifier, 10);
     const isSlug = isNaN(productIdInt);
 
-    let query = supabase
-      .from('products')
-      .select(`
+    let query = supabase.from("products").select(`
         *,
         brands:brand_id (
           id,
@@ -29,9 +27,9 @@ export async function GET(
 
     // Use slug or ID based on what was provided
     if (isSlug) {
-      query = query.eq('slug', identifier);
+      query = query.eq("slug", identifier);
     } else {
-      query = query.eq('id', productIdInt);
+      query = query.eq("id", productIdInt);
     }
 
     const { data: product, error } = await query.single();
@@ -41,28 +39,66 @@ export async function GET(
     }
 
     if (!product) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
     // Fetch dosage details based on category using modular handlers
-    const dosageDetails = await fetchProductDetails(supabase, product.category, product.id);
+    const dosageDetails = await fetchProductDetails(
+      supabase,
+      product.category,
+      product.id,
+    );
 
     // Calculate enhanced dosage analysis if dosage details exist
     let dosageAnalysis = null;
-    if (dosageDetails && product.servings_per_container && product.serving_size_g) {
+    if (
+      dosageDetails &&
+      product.servings_per_container &&
+      product.serving_size_g
+    ) {
       try {
         // Extract ingredient data from dosage details
         const ingredients: Record<string, number> = {};
         Object.entries(dosageDetails).forEach(([key, value]) => {
-          if (typeof value === 'number' && value > 0 && (key.includes('_mg') || key.includes('_g'))) {
+          // Skip non-ingredient fields
+          if (
+            key === "id" ||
+            key === "product_id" ||
+            key === "pending_product_id" ||
+            key === "creatine_type_name" ||
+            key === "flavors" ||
+            key === "serving_size_g" ||
+            key === "servings_per_container" ||
+            key.startsWith("lab_verified_") ||
+            key.startsWith("creatine_types")
+          ) {
+            return;
+          }
+
+          if (
+            typeof value === "number" &&
+            value > 0 &&
+            (key.includes("_mg") ||
+              key.includes("_g") ||
+              key === "creatine_dosage_mg")
+          ) {
             // Map database field names to ingredient names
             let ingredientName = key;
-            if (key === 'creatine_dosage_mg') {
-              ingredientName = 'creatine_monohydrate_mg';
+            if (
+              key === "creatine_dosage_mg" ||
+              key === "creatine_monohydrate_mg"
+            ) {
+              ingredientName = "creatine_monohydrate_mg";
             }
             ingredients[ingredientName] = value;
           }
         });
+
+        console.log(
+          "📊 Extracted ingredients for dosage analysis:",
+          ingredients,
+        );
+        console.log("📊 Dosage details keys:", Object.keys(dosageDetails));
 
         if (Object.keys(ingredients).length > 0) {
           dosageAnalysis = await calculateEnhancedDosageRating({
@@ -70,13 +106,19 @@ export async function GET(
             servingsPerContainer: product.servings_per_container,
             servingSizeG: product.serving_size_g,
             price: null, // Not needed for public view
-            currency: 'USD',
+            currency: "USD",
             creatineType: dosageDetails.creatine_type_name || undefined,
-            ingredients: ingredients
+            ingredients: ingredients,
           });
+          console.log(
+            "✅ Dosage analysis calculated:",
+            dosageAnalysis ? "Success" : "Failed",
+          );
+        } else {
+          console.warn("⚠️ No ingredients extracted from dosage details");
         }
       } catch (calcError) {
-        console.error('Error calculating dosage analysis:', calcError);
+        console.error("Error calculating dosage analysis:", calcError);
       }
     }
 
@@ -87,11 +129,11 @@ export async function GET(
       productName: product.name,
       brand: {
         id: product.brands?.id,
-        name: product.brands?.name || 'Unknown',
-        website: product.brands?.website
+        name: product.brands?.name || "Unknown",
+        website: product.brands?.website,
       },
       category: product.category,
-      description: product.description || 'No description available',
+      description: product.description || "No description available",
       imageUrl: product.image_url,
       servingsPerContainer: product.servings_per_container,
       servingSizeG: product.serving_size_g,
@@ -102,12 +144,15 @@ export async function GET(
       dosageDetails: dosageDetails,
       dosageAnalysis: dosageAnalysis, // Add calculated dosage analysis
       updatedAt: product.updated_at,
-      createdAt: product.created_at
+      createdAt: product.created_at,
     };
 
     return NextResponse.json({ product: formattedProduct });
   } catch (error) {
-    console.error('Error fetching product details:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Error fetching product details:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
