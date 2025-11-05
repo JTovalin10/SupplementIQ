@@ -1,32 +1,34 @@
-'use client';
+"use client";
 
-import Button from '@/components/ui/button';
-import Input from '@/components/ui/input';
-import { supabase } from '@/lib/supabase';
-import { ArrowLeft, CheckCircle, Eye, EyeOff, Lock } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import { supabase } from "@/lib/database/supabase/client";
+import { ArrowLeft, CheckCircle, Eye, EyeOff, Lock } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
-export default function ResetPasswordPage() {
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+function ResetPasswordPageContent() {
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
-  
+
   const router = useRouter();
   const searchParams = useSearchParams();
 
   // Check if we have the necessary tokens from the URL and establish session
   useEffect(() => {
     const handleAuthCallback = async () => {
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      
+      const accessToken = searchParams.get("access_token");
+      const refreshToken = searchParams.get("refresh_token");
+
       if (!accessToken || !refreshToken) {
-        setError('Invalid or missing reset link. Please request a new password reset.');
+        setError(
+          "Invalid or missing reset link. Please request a new password reset.",
+        );
         return;
       }
 
@@ -38,12 +40,16 @@ export default function ResetPasswordPage() {
         });
 
         if (error) {
-          console.error('Session error:', error);
-          setError('Invalid or expired reset link. Please request a new password reset.');
+          console.error("Session error:", error);
+          setError(
+            "Invalid or expired reset link. Please request a new password reset.",
+          );
         }
       } catch (err) {
-        console.error('Auth callback error:', err);
-        setError('Invalid or expired reset link. Please request a new password reset.');
+        console.error("Auth callback error:", err);
+        setError(
+          "Invalid or expired reset link. Please request a new password reset.",
+        );
       }
     };
 
@@ -52,16 +58,16 @@ export default function ResetPasswordPage() {
 
   const validatePassword = (password: string) => {
     if (password.length < 8) {
-      return 'Password must be at least 8 characters long';
+      return "Password must be at least 8 characters long";
     }
-    
+
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
     const hasNumbers = /\d/.test(password);
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
 
     if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
-      return 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+      return "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character";
     }
 
     return null;
@@ -70,7 +76,7 @@ export default function ResetPasswordPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     // Validate passwords
     const passwordError = validatePassword(password);
@@ -81,7 +87,7 @@ export default function ResetPasswordPage() {
     }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError("Passwords do not match");
       setIsLoading(false);
       return;
     }
@@ -89,31 +95,33 @@ export default function ResetPasswordPage() {
     try {
       // Update password using Supabase Auth directly
       const { error } = await supabase.auth.updateUser({
-        password: password
+        password: password,
       });
 
       if (error) {
-        console.error('Password update error:', error);
-        
+        console.error("Password update error:", error);
+
         // Handle specific error cases
-        if (error.message.includes('session')) {
-          setError('Invalid or expired reset link. Please request a new password reset.');
+        if (error.message.includes("session")) {
+          setError(
+            "Invalid or expired reset link. Please request a new password reset.",
+          );
         } else {
-          setError('Failed to update password. Please try again.');
+          setError("Failed to update password. Please try again.");
         }
       } else {
         setSuccess(true);
       }
     } catch (err) {
-      console.error('Reset password error:', err);
-      setError('An unexpected error occurred. Please try again.');
+      console.error("Reset password error:", err);
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleBackToLogin = () => {
-    router.push('/login');
+    router.push("/login");
   };
 
   if (success) {
@@ -127,7 +135,8 @@ export default function ResetPasswordPage() {
             Password updated successfully
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Your password has been updated. You can now sign in with your new password.
+            Your password has been updated. You can now sign in with your new
+            password.
           </p>
         </div>
 
@@ -136,15 +145,12 @@ export default function ResetPasswordPage() {
             <div className="space-y-6">
               <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-md">
                 <p className="text-sm">
-                  Your password has been successfully updated. You can now log in with your new password.
+                  Your password has been successfully updated. You can now log
+                  in with your new password.
                 </p>
               </div>
 
-              <Button
-                onClick={handleBackToLogin}
-                className="w-full"
-                size="lg"
-              >
+              <Button onClick={handleBackToLogin} className="w-full" size="lg">
                 Continue to login
               </Button>
             </div>
@@ -180,7 +186,7 @@ export default function ResetPasswordPage() {
             <div>
               <Input
                 label="New password"
-                type={showPassword ? 'text' : 'password'}
+                type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
                 value={password}
@@ -207,7 +213,7 @@ export default function ResetPasswordPage() {
             <div>
               <Input
                 label="Confirm new password"
-                type={showConfirmPassword ? 'text' : 'password'}
+                type={showConfirmPassword ? "text" : "password"}
                 autoComplete="new-password"
                 required
                 value={confirmPassword}
@@ -238,7 +244,7 @@ export default function ResetPasswordPage() {
                 className="w-full"
                 size="lg"
               >
-                {isLoading ? 'Updating password...' : 'Update password'}
+                {isLoading ? "Updating password..." : "Update password"}
               </Button>
             </div>
 
@@ -256,5 +262,19 @@ export default function ResetPasswordPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <ResetPasswordPageContent />
+    </Suspense>
   );
 }

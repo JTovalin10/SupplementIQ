@@ -27,6 +27,7 @@
     "autoprefixer": "^10.4.21",
     "bcryptjs": "^3.0.2",
     "caniuse-lite": "^1.0.30001565",
+    "clsx": "^2.1.1",
     "express-validator": "^7.3.0",
     "fast-levenshtein": "^3.0.0",
     "ioredis": "^5.8.2",
@@ -39,6 +40,7 @@
     "react-dom": "^18",
     "react-katex": "^3.1.0",
     "redis": "^5.9.0",
+    "tailwind-merge": "^3.3.1",
     "zod": "^3.25.76"
   },
   "devDependencies": {

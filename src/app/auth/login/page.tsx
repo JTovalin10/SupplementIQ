@@ -1,31 +1,31 @@
-'use client';
+"use client";
 
-import { useAuth } from '@/lib/contexts';
-import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation'; // Correct import without NextRouter type
-import { useEffect, useState } from 'react';
+import { useAuth } from "@/lib/contexts";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
 
 function redirectAfterLogin(router: any, searchParams: URLSearchParams) {
   // Check for redirect parameter in URL
-  const redirectTo = searchParams.get('redirect');
-  
+  const redirectTo = searchParams.get("redirect");
+
   if (redirectTo) {
-    console.log('Redirecting to:', redirectTo);
+    console.log("Redirecting to:", redirectTo);
     router.push(redirectTo);
   } else {
-    console.log('Redirecting to home page');
-    router.push('/');
+    console.log("Redirecting to home page");
+    router.push("/");
   }
 }
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+function LoginPageContent() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   const { login, isAuthenticated, user } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -40,16 +40,16 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setError("");
 
     try {
       const result = await login(email, password, rememberMe);
-      
+
       if (!result.success) {
-        setError(result.error || 'Login failed');
+        setError(result.error || "Login failed");
       }
     } catch (err) {
-      setError('An unexpected error occurred');
+      setError("An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -65,7 +65,7 @@ export default function LoginPage() {
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
+          Or{" "}
           <a
             href="/register"
             className="font-medium text-blue-600 hover:text-blue-500"
@@ -85,7 +85,10 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Email address
               </label>
               <div className="mt-1 relative">
@@ -105,14 +108,17 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Password
               </label>
               <div className="mt-1 relative">
                 <input
                   id="password"
                   name="password"
-                  type={showPassword ? 'text' : 'password'}
+                  type={showPassword ? "text" : "password"}
                   autoComplete="current-password"
                   required
                   value={password}
@@ -145,13 +151,19 @@ export default function LoginPage() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-900"
+                >
                   Remember me
                 </label>
               </div>
 
               <div className="text-sm">
-                <a href="/forgot-password" className="font-medium text-blue-600 hover:text-blue-500">
+                <a
+                  href="/forgot-password"
+                  className="font-medium text-blue-600 hover:text-blue-500"
+                >
                   Forgot your password?
                 </a>
               </div>
@@ -163,12 +175,26 @@ export default function LoginPage() {
                 disabled={isLoading}
                 className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? 'Signing in...' : 'Sign in'}
+                {isLoading ? "Signing in..." : "Sign in"}
               </button>
             </div>
           </form>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

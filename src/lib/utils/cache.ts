@@ -1,4 +1,9 @@
-import { CacheEntry } from '../types';
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+  hits: number;
+}
 
 /**
  * In-memory cache implementation for SupplementIQ
@@ -114,7 +119,7 @@ class SupplementIQCache {
    * Evict the oldest entry (LRU-like behavior)
    */
   private evictOldest(): void {
-    let oldestKey = '';
+    let oldestKey = "";
     let oldestTime = Date.now();
 
     for (const [key, entry] of this.cache.entries()) {
@@ -159,13 +164,13 @@ export const cacheKeys = {
     `search:${JSON.stringify({ query, filters })}`,
   user: (id: string) => `user:${id}`,
   contribution: (id: string) => `contribution:${id}`,
-  ingredients: () => 'ingredients:all',
+  ingredients: () => "ingredients:all",
   transparencyRankings: (category?: string) =>
-    `rankings:transparency:${category || 'all'}`,
+    `rankings:transparency:${category || "all"}`,
   costEfficiencyRankings: (category?: string) =>
-    `rankings:cost:${category || 'all'}`,
-  productStats: () => 'stats:products',
-  userStats: () => 'stats:users',
+    `rankings:cost:${category || "all"}`,
+  productStats: () => "stats:products",
+  userStats: () => "stats:users",
 };
 
 /**
@@ -174,7 +179,7 @@ export const cacheKeys = {
 export function withCache<T>(
   key: string,
   fn: () => Promise<T>,
-  ttl?: number
+  ttl?: number,
 ): Promise<T> {
   return new Promise(async (resolve, reject) => {
     // Try to get from cache first
@@ -218,11 +223,11 @@ export function invalidatePattern(pattern: string): number {
 export async function warmCache(): Promise<void> {
   // This would be called during app startup or scheduled jobs
   // Implementation depends on your data fetching functions
-  console.log('Cache warming initiated...');
+  console.log("Cache warming initiated...");
 
   // Example: Pre-load popular products, ingredients, etc.
   // await loadPopularProducts();
   // await loadAllIngredients();
 
-  console.log('Cache warming completed');
+  console.log("Cache warming completed");
 }
