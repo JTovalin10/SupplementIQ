@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Create Supabase client
+    const supabase = await createClient();
+
     // Get the temporary product
     const { data: tempProduct, error: fetchError } = await supabase
       .from("temporary_products")
