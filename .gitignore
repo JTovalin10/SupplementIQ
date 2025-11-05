@@ -47,7 +47,8 @@ build/
 
 # cache
 .cache/
-cache/
+/cache/
+!.cache/
 
 # logs
 logs
