@@ -1,7 +1,10 @@
-'use client';
+"use client";
 
-import { IngredientField, categoryIngredients } from '@/lib/config/data/ingredients';
-import { useEffect, useState } from 'react';
+import {
+  IngredientField,
+  categoryIngredients,
+} from "@/lib/config/data/ingredients";
+import { useEffect, useState } from "react";
 
 interface IngredientReviewFormProps {
   category: string;
@@ -15,13 +18,22 @@ interface EditableIngredientFieldProps {
   onUpdate: (value: string | number) => void;
 }
 
-function EditableIngredientField({ ingredient, value, onUpdate }: EditableIngredientFieldProps) {
-  const [localValue, setLocalValue] = useState(value || '');
+function EditableIngredientField({
+  ingredient,
+  value,
+  onUpdate,
+}: EditableIngredientFieldProps) {
+  const [localValue, setLocalValue] = useState(() => value || "");
   const [isEditing, setIsEditing] = useState(false);
 
+  // Sync localValue with prop value when not editing
+  // This syncs the editable field display when the prop value changes externally
+
   useEffect(() => {
-    setLocalValue(value || '');
-  }, [value]);
+    if (!isEditing && value !== undefined) {
+      setLocalValue(value || "");
+    }
+  }, [value, isEditing]);
 
   const handleSave = () => {
     onUpdate(localValue);
@@ -29,15 +41,15 @@ function EditableIngredientField({ ingredient, value, onUpdate }: EditableIngred
   };
 
   const handleCancel = () => {
-    setLocalValue(value || '');
+    setLocalValue(value || "");
     setIsEditing(false);
   };
 
   const formatValue = (val: any) => {
-    if (val === null || val === undefined || val === '') return 'Not specified';
-    if (typeof val === 'number') return `${val}${ingredient.unit}`;
-    if (typeof val === 'string') {
-      if (val === 'not_specified') return 'Not specified';
+    if (val === null || val === undefined || val === "") return "Not specified";
+    if (typeof val === "number") return `${val}${ingredient.unit}`;
+    if (typeof val === "string") {
+      if (val === "not_specified") return "Not specified";
       return `${val}${ingredient.unit}`;
     }
     return String(val);
@@ -46,10 +58,9 @@ function EditableIngredientField({ ingredient, value, onUpdate }: EditableIngred
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-black">
-        {ingredient.label} ({ingredient.unit})
-        {ingredient.required && ' *'}
+        {ingredient.label} ({ingredient.unit}){ingredient.required && " *"}
       </label>
-      
+
       {isEditing ? (
         <div className="space-y-2">
           <input
@@ -77,9 +88,7 @@ function EditableIngredientField({ ingredient, value, onUpdate }: EditableIngred
         </div>
       ) : (
         <div className="flex items-center justify-between">
-          <span className="text-sm text-black">
-            {formatValue(value)}
-          </span>
+          <span className="text-sm text-black">{formatValue(value)}</span>
           <button
             onClick={() => setIsEditing(true)}
             className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
@@ -88,56 +97,57 @@ function EditableIngredientField({ ingredient, value, onUpdate }: EditableIngred
           </button>
         </div>
       )}
-      
+
       {ingredient.description && (
-        <p className="text-xs text-gray-500">
-          {ingredient.description}
-        </p>
+        <p className="text-xs text-gray-500">{ingredient.description}</p>
       )}
     </div>
   );
 }
 
-export default function IngredientReviewForm({ 
-  category, 
-  categoryDetails, 
-  onIngredientUpdate 
+export default function IngredientReviewForm({
+  category,
+  categoryDetails,
+  onIngredientUpdate,
 }: IngredientReviewFormProps) {
   const ingredients = categoryIngredients[category] || [];
-  
+
   // Debug logging
-  console.log('IngredientReviewForm - Category:', category);
-  console.log('IngredientReviewForm - CategoryDetails:', categoryDetails);
-  console.log('IngredientReviewForm - Ingredients:', ingredients);
-  
+  console.log("IngredientReviewForm - Category:", category);
+  console.log("IngredientReviewForm - CategoryDetails:", categoryDetails);
+  console.log("IngredientReviewForm - Ingredients:", ingredients);
+
   // Group ingredients by section
-  const ingredientsBySection = ingredients.reduce((acc, ingredient) => {
-    const section = ingredient.section || 'Other';
-    if (!acc[section]) {
-      acc[section] = [];
-    }
-    acc[section].push(ingredient);
-    return acc;
-  }, {} as Record<string, typeof ingredients>);
+  const ingredientsBySection = ingredients.reduce(
+    (acc, ingredient) => {
+      const section = ingredient.section || "Other";
+      if (!acc[section]) {
+        acc[section] = [];
+      }
+      acc[section].push(ingredient);
+      return acc;
+    },
+    {} as Record<string, typeof ingredients>,
+  );
 
   const sectionOrder = [
-    'Nutritional Information',
-    'Basic Information',
-    'BCAA Ingredients',
-    'EAA Ingredients',
-    'Additional Ingredients',
-    'Dairy Proteins',
-    'Plant Proteins', 
-    'Specialty Proteins',
-    'Lab Verification',
-    'Other'
+    "Nutritional Information",
+    "Basic Information",
+    "BCAA Ingredients",
+    "EAA Ingredients",
+    "Additional Ingredients",
+    "Dairy Proteins",
+    "Plant Proteins",
+    "Specialty Proteins",
+    "Lab Verification",
+    "Other",
   ];
 
   if (ingredients.length === 0) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-sm text-red-800 font-medium">
-          <strong className="text-red-900">⚠️ Error:</strong> 
+          <strong className="text-red-900">⚠️ Error:</strong>
           No ingredient configuration found for category: {category}
         </p>
         <p className="text-sm text-red-600 mt-2">
@@ -151,11 +161,12 @@ export default function IngredientReviewForm({
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
         <p className="text-sm text-red-800 font-medium">
-          <strong className="text-red-900">⚠️ Error:</strong> 
+          <strong className="text-red-900">⚠️ Error:</strong>
           No ingredient data found in database for this submission.
         </p>
         <p className="text-sm text-red-600 mt-2">
-          The submission may not have ingredient details or there was an error fetching them.
+          The submission may not have ingredient details or there was an error
+          fetching them.
         </p>
       </div>
     );
@@ -165,15 +176,16 @@ export default function IngredientReviewForm({
     <div className="space-y-8">
       <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
         <p className="text-sm text-yellow-800 font-medium">
-          <strong className="text-yellow-900">📝 Review Instructions:</strong> 
-          Only reject if the product doesn't exist. Verify all ingredients are accurate and edit any incorrect values.
+          <strong className="text-yellow-900">📝 Review Instructions:</strong>
+          Only reject if the product doesn't exist. Verify all ingredients are
+          accurate and edit any incorrect values.
         </p>
       </div>
-      
+
       {sectionOrder.map((sectionName) => {
         const sectionIngredients = ingredientsBySection[sectionName];
         if (!sectionIngredients || sectionIngredients.length === 0) return null;
-        
+
         return (
           <div key={sectionName} className="space-y-6">
             <h4 className="text-lg font-medium text-black border-b border-gray-200 pb-3">
@@ -185,7 +197,9 @@ export default function IngredientReviewForm({
                   key={ingredient.name}
                   ingredient={ingredient}
                   value={categoryDetails?.[ingredient.name]}
-                  onUpdate={(value) => onIngredientUpdate(ingredient.name, value)}
+                  onUpdate={(value) =>
+                    onIngredientUpdate(ingredient.name, value)
+                  }
                 />
               ))}
             </div>

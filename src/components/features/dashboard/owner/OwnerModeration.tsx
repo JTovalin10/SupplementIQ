@@ -1,38 +1,54 @@
-'use client';
+"use client";
 
-import { useOwnerDashboard } from '@/lib/contexts/OwnerDashboardContext';
-import { useRouter } from 'next/navigation';
-import { useMemo } from 'react';
+import { useOwnerDashboard } from "@/lib/contexts/OwnerDashboardContext";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo } from "react";
 
-export default function ModerationDashboard() {
+function ModerationDashboard() {
   const { pendingSubmissions, isLoading, error } = useOwnerDashboard();
   const router = useRouter();
 
-  console.log('🔍 OwnerModeration state:', { isLoading, error, submissionsCount: pendingSubmissions.length });
+  console.log("🔍 OwnerModeration state:", {
+    isLoading,
+    error,
+    submissionsCount: pendingSubmissions.length,
+  });
 
   const handleReviewProduct = (submissionSlug: string) => {
     router.push(`/admin/products/${submissionSlug}`);
   };
 
   // Memoize the format date function
-  const formatDate = useMemo(() => (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+  const formatDate = useCallback((dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
   }, []);
 
   // Memoize the status badge component
-  const getStatusBadge = useMemo(() => (status: string) => {
+  const getStatusBadge = useCallback((status: string) => {
     switch (status) {
-      case 'pending':
-        return <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">Pending</span>;
-      case 'approved':
-        return <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">Approved</span>;
-      case 'rejected':
-        return <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">Rejected</span>;
+      case "pending":
+        return (
+          <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded-full">
+            Pending
+          </span>
+        );
+      case "approved":
+        return (
+          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+            Approved
+          </span>
+        );
+      case "rejected":
+        return (
+          <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded-full">
+            Rejected
+          </span>
+        );
       default:
         return null;
     }
@@ -47,16 +63,22 @@ export default function ModerationDashboard() {
         </div>
       );
     }
-    
+
     return pendingSubmissions.map((submission) => (
       <div key={submission.id} className="px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center space-x-4">
               <div>
-                <h4 className="text-sm font-medium text-black">{submission.productName}</h4>
-                <p className="text-sm text-black">Brand: {submission.brandName}</p>
-                <p className="text-sm text-black">Submitted by: {submission.submittedBy}</p>
+                <h4 className="text-sm font-medium text-black">
+                  {submission.productName}
+                </h4>
+                <p className="text-sm text-black">
+                  Brand: {submission.brandName}
+                </p>
+                <p className="text-sm text-black">
+                  Submitted by: {submission.submittedBy}
+                </p>
               </div>
               <div className="text-sm text-black">
                 <p>Category: {submission.category}</p>
@@ -78,7 +100,7 @@ export default function ModerationDashboard() {
         </div>
       </div>
     ));
-  }, [pendingSubmissions, formatDate, getStatusBadge]);
+  }, [pendingSubmissions, formatDate, getStatusBadge, handleReviewProduct]);
 
   // Show loading state
   if (isLoading) {
@@ -86,7 +108,9 @@ export default function ModerationDashboard() {
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-black">Pending Product Submissions</h3>
+            <h3 className="text-lg font-semibold text-black">
+              Pending Product Submissions
+            </h3>
           </div>
           <div className="p-6">
             <div className="space-y-4">
@@ -113,7 +137,9 @@ export default function ModerationDashboard() {
       <div className="space-y-6">
         <div className="bg-white rounded-lg shadow-sm border">
           <div className="px-6 py-4 border-b">
-            <h3 className="text-lg font-semibold text-black">Pending Product Submissions</h3>
+            <h3 className="text-lg font-semibold text-black">
+              Pending Product Submissions
+            </h3>
           </div>
           <div className="p-6">
             <div className="text-center">
@@ -135,12 +161,15 @@ export default function ModerationDashboard() {
     <div className="space-y-6">
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="px-6 py-4 border-b">
-          <h3 className="text-lg font-semibold text-black">Pending Product Submissions</h3>
+          <h3 className="text-lg font-semibold text-black">
+            Pending Product Submissions
+          </h3>
         </div>
-        <div className="divide-y divide-gray-200">
-          {submissionList}
-        </div>
+        <div className="divide-y divide-gray-200">{submissionList}</div>
       </div>
     </div>
   );
 }
+
+ModerationDashboard.displayName = "ModerationDashboard";
+export default ModerationDashboard;
