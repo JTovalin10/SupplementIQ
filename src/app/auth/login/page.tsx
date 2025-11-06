@@ -25,17 +25,36 @@ function LoginPageContent() {
   const [rememberMe, setRememberMe] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
-  const { login, isAuthenticated, user } = useAuth();
+  const { login, isAuthenticated, user, isLoading: authLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Ensure useRouter and redirect is only used once after mount
+  // Check if user is already authenticated (non-blocking)
+  // Show login form immediately, check auth in background
   useEffect(() => {
-    if (isAuthenticated && user?.role) {
+    // Set a short timeout to show form quickly even if auth is still loading
+    const timer = setTimeout(() => {
+      setCheckingAuth(false);
+    }, 200); // Slightly longer timeout to allow auth state to settle after logout
+
+    // If auth is done loading and user is authenticated, redirect
+    if (!authLoading && isAuthenticated && user?.role) {
+      clearTimeout(timer);
       redirectAfterLogin(router, searchParams);
+      return;
     }
-  }, [isAuthenticated, user?.role, router, searchParams]);
+
+    // If auth is done loading and user is NOT authenticated, show form
+    // Also show form if auth loading takes too long (handles logout edge cases)
+    if (!authLoading && !isAuthenticated) {
+      clearTimeout(timer);
+      setCheckingAuth(false);
+    }
+
+    return () => clearTimeout(timer);
+  }, [isAuthenticated, user?.role, authLoading, router, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,11 +83,23 @@ function LoginPageContent() {
     }
   };
 
+  // Show minimal loading state only if checking auth very briefly
+  if (checkingAuth && authLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <Lock className="h-12 w-12 text-blue-600" />
+          <Lock className="h-12 w-12 text-gray-600" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account
@@ -77,7 +108,7 @@ function LoginPageContent() {
           Or{" "}
           <a
             href="/register"
-            className="font-medium text-blue-600 hover:text-blue-500"
+            className="font-medium text-gray-700 hover:text-gray-900"
           >
             create a new account
           </a>
@@ -109,7 +140,7 @@ function LoginPageContent() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                   placeholder="Enter your email"
                 />
                 <Mail className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -132,7 +163,7 @@ function LoginPageContent() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-600 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="appearance-none block w-full px-3 py-2 pl-10 pr-10 border border-gray-300 rounded-md placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm"
                   placeholder="Enter your password"
                 />
                 <Lock className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
@@ -158,7 +189,7 @@ function LoginPageContent() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                  className="h-4 w-4 text-gray-600 focus:ring-gray-500 border-gray-300 rounded"
                 />
                 <label
                   htmlFor="remember-me"
@@ -171,7 +202,7 @@ function LoginPageContent() {
               <div className="text-sm">
                 <a
                   href="/forgot-password"
-                  className="font-medium text-blue-600 hover:text-blue-500"
+                  className="font-medium text-gray-700 hover:text-gray-900"
                 >
                   Forgot your password?
                 </a>
@@ -182,7 +213,7 @@ function LoginPageContent() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-gray-700 hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? "Signing in..." : "Sign in"}
               </button>

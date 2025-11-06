@@ -164,17 +164,48 @@ export function useAuthOperations() {
     try {
       console.log("🔍 Starting logout process...");
 
-      // Clear all caches before signing out
+      // Sign out from Supabase first - this will clear Supabase's session storage
+      // This ensures the user is logged out regardless of "Remember Me" setting
+      const { error } = await executeSupabaseOperation(
+        () => supabase.auth.signOut({ scope: "local" }),
+        "User Logout",
+      );
+
+      // Clear app-specific caches after sign out (don't clear Supabase's storage)
       if (typeof window !== "undefined") {
-        // Clear localStorage (edit cache, user preferences, etc.)
+        // Clear app-specific localStorage items (but preserve Supabase's session storage)
         try {
-          localStorage.clear();
-          console.log("🗑️ Cleared localStorage");
+          const keysToRemove: string[] = [];
+          // Get all keys and filter out Supabase's internal storage
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key) {
+              // Only clear app-specific keys, not Supabase's auth storage
+              // Supabase uses keys like 'sb-<project>-auth-token' which we should preserve
+              // until signOut completes, then Supabase will clear them itself
+              // Don't touch keys that start with 'sb-' (Supabase) or other system keys
+              if (
+                key.startsWith("supplementiq_") ||
+                key === "supplementiq_user_edits" ||
+                key.includes("user_preferences") ||
+                key.includes("product_cache") ||
+                key.includes("edit_cache") ||
+                key.includes("products:v1") ||
+                key.startsWith("user_preferences_")
+              ) {
+                keysToRemove.push(key);
+              }
+            }
+          }
+          keysToRemove.forEach((key) => localStorage.removeItem(key));
+          console.log(
+            `🗑️ Cleared ${keysToRemove.length} app-specific localStorage items`,
+          );
         } catch (e) {
-          console.warn("Failed to clear localStorage:", e);
+          console.warn("Failed to clear app localStorage:", e);
         }
 
-        // Clear sessionStorage
+        // Clear sessionStorage (this is safe, Supabase uses localStorage)
         try {
           sessionStorage.clear();
           console.log("🗑️ Cleared sessionStorage");
@@ -182,10 +213,9 @@ export function useAuthOperations() {
           console.warn("Failed to clear sessionStorage:", e);
         }
 
-        // Clear any IndexedDB caches if they exist
+        // Clear any service worker caches if they exist
         try {
-          if ("indexedDB" in window) {
-            // Clear specific caches if needed
+          if ("indexedDB" in window && "caches" in window) {
             const cacheKeys = await caches.keys();
             await Promise.all(cacheKeys.map((key) => caches.delete(key)));
             console.log("🗑️ Cleared service worker caches");
@@ -194,13 +224,6 @@ export function useAuthOperations() {
           console.warn("Failed to clear caches:", e);
         }
       }
-
-      // Sign out from Supabase with scope 'local' to clear all sessions
-      // This ensures the user is logged out regardless of "Remember Me" setting
-      const { error } = await executeSupabaseOperation(
-        () => supabase.auth.signOut({ scope: "local" }),
-        "User Logout",
-      );
 
       if (error) {
         console.error("Logout error:", error);

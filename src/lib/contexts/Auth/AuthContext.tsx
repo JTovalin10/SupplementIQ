@@ -71,7 +71,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setIsRetrying(true);
         console.log("⏱️ [AUTH] Checking session...");
 
-        // Use cold start handler for session check
+        // Use cold start handler for session check with shorter timeout
         const sessionStartTime = Date.now();
         const {
           data: { session },
@@ -98,26 +98,31 @@ export function AuthProvider({ children }: AuthProviderProps) {
           console.log("⏱️ [AUTH] Fetching user profile...");
           const profileStartTime = Date.now();
 
-          await fetchUserProfile(
+          // Fetch profile but don't block if it takes too long
+          fetchUserProfile(
             session.user,
             profileCache,
             setUser,
             setPermissions,
             setIsLoading,
             setProfileCache,
-          );
+          ).catch((profileError) => {
+            console.error("❌ [AUTH] Profile fetch failed:", profileError);
+            // Set loading to false even if profile fetch fails
+            setIsLoading(false);
+          });
 
-          console.log(
-            `⏱️ [AUTH] Profile fetch took ${Date.now() - profileStartTime}ms`,
-          );
+          console.log(`⏱️ [AUTH] Profile fetch initiated (async)`);
         } else {
           console.log("⚠️ [AUTH] No user session found");
           setUser(null);
           setPermissions(null);
           setIsLoading(false);
+          setIsRetrying(false);
         }
 
-        setIsRetrying(false);
+        // Note: isRetrying is set to false above for both cases
+        // This ensures proper state management after logout
         console.log(
           `✅ [AUTH] Auth initialization completed in ${Date.now() - startTime}ms`,
         );
@@ -176,6 +181,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser(null);
         setPermissions(null);
         setIsLoading(false);
+        setIsRetrying(false);
+        // Ensure we're not in a loading state after logout
+        console.log("✅ [AUTH] User signed out, state cleared");
       }
     });
 
