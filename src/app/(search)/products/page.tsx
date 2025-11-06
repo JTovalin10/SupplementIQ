@@ -3,7 +3,7 @@
 import { Filter, Grid, List, Search, Star } from "lucide-react";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { categories } from "@/lib/config/data/categories";
 
@@ -23,7 +23,7 @@ interface Product {
   total_reviews?: number;
 }
 
-export default function ProductsPage() {
+function ProductsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
@@ -287,5 +287,19 @@ export default function ProductsPage() {
         )}
       </div>
     </>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="text-center py-12">
+          <div className="text-gray-600">Loading products...</div>
+        </div>
+      }
+    >
+      <ProductsPageContent />
+    </Suspense>
   );
 }
