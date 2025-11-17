@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     reputation_points INTEGER DEFAULT 0,
     role user_role DEFAULT 'newcomer',
     bio TEXT,
+    encryption_salt TEXT, -- Per-user salt for application-level encryption (NOT for passwords - Supabase Auth handles that)
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -447,11 +448,12 @@ BEGIN
         DELETE FROM public.users WHERE id = OLD.id;
         RETURN OLD;
     ELSE
-        INSERT INTO public.users (id, username, email, created_at, updated_at)
+        INSERT INTO public.users (id, username, email, encryption_salt, created_at, updated_at)
         VALUES (
             NEW.id,
             COALESCE(NEW.raw_user_meta_data ->> 'username', split_part(NEW.email, '@', 1)),
             NEW.email,
+            encode(gen_random_bytes(32), 'hex'), -- Generate 32-byte cryptographic salt
             NEW.created_at,
             NEW.updated_at
         )

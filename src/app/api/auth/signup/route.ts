@@ -1,6 +1,10 @@
-import { getUserFriendlyError, mapSupabaseError } from '@/lib/auth/error-messages';
-import { supabase } from '@/lib/supabase';
-import { NextRequest, NextResponse } from 'next/server';
+import {
+  getUserFriendlyError,
+  mapSupabaseError,
+} from "@/lib/auth/error-messages";
+import { supabase } from "@/lib/supabase";
+import { NextRequest, NextResponse } from "next/server";
+import { checkAuthRateLimit } from "@/lib/utils/rateLimit";
 
 /**
  * Signup API route for NextAuth integration
@@ -12,8 +16,8 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password || !username) {
       return NextResponse.json(
-        { success: false, error: 'Please fill in all required fields' },
-        { status: 400 }
+        { success: false, error: "Please fill in all required fields" },
+        { status: 400 },
       );
     }
 
@@ -21,38 +25,76 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { success: false, error: 'Please enter a valid email address' },
-        { status: 400 }
+        { success: false, error: "Please enter a valid email address" },
+        { status: 400 },
       );
     }
 
     // Validate password strength
     if (password.length < 8) {
       return NextResponse.json(
-        { success: false, error: 'Password must be at least 8 characters long' },
-        { status: 400 }
+        {
+          success: false,
+          error: "Password must be at least 8 characters long",
+        },
+        { status: 400 },
       );
     }
 
     // Validate username
     if (username.length < 3) {
       return NextResponse.json(
-        { success: false, error: 'Username must be at least 3 characters long' },
-        { status: 400 }
+        {
+          success: false,
+          error: "Username must be at least 3 characters long",
+        },
+        { status: 400 },
+      );
+    }
+
+    // Rate limiting check
+    const normalizedEmail = email.toLowerCase().trim();
+    const rateLimitResult = await checkAuthRateLimit(
+      request,
+      "register",
+      normalizedEmail,
+    );
+
+    if (!rateLimitResult.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Too many registration attempts. Please try again later.",
+          retryAfter: rateLimitResult.retryAfter,
+          resetAt: rateLimitResult.resetAt,
+        },
+        {
+          status: 429,
+          headers: {
+            "Retry-After": rateLimitResult.retryAfter?.toString() || "60",
+            "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+            "X-RateLimit-Remaining": "0",
+            "X-RateLimit-Reset": rateLimitResult.resetAt.toString(),
+          },
+        },
       );
     }
 
     // Check if username is already taken (case-insensitive)
     const { data: existingUser } = await supabase
-      .from('users')
-      .select('username')
-      .ilike('username', username.toLowerCase())
+      .from("users")
+      .select("username")
+      .ilike("username", username.toLowerCase())
       .single();
 
     if (existingUser) {
       return NextResponse.json(
-        { success: false, error: 'This username is already taken. Please choose a different one' },
-        { status: 400 }
+        {
+          success: false,
+          error:
+            "This username is already taken. Please choose a different one",
+        },
+        { status: 400 },
       );
     }
 
@@ -71,14 +113,18 @@ export async function POST(request: NextRequest) {
       const userFriendlyError = mapSupabaseError(error.message);
       return NextResponse.json(
         { success: false, error: userFriendlyError },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (!data.user) {
       return NextResponse.json(
-        { success: false, error: 'Unable to create your account. Please try again or contact support' },
-        { status: 500 }
+        {
+          success: false,
+          error:
+            "Unable to create your account. Please try again or contact support",
+        },
+        { status: 500 },
       );
     }
 
@@ -88,17 +134,26 @@ export async function POST(request: NextRequest) {
     // The auth trigger will automatically create the user record in public.users table
     // We don't need to manually insert it, as this could cause conflicts
     // The trigger will use the username from user_metadata or fallback to email prefix
-    
-    return NextResponse.json({ 
-      success: true, 
-      requiresConfirmation 
-    });
+
+    return NextResponse.json(
+      {
+        success: true,
+        requiresConfirmation,
+      },
+      {
+        headers: {
+          "X-RateLimit-Limit": rateLimitResult.limit.toString(),
+          "X-RateLimit-Remaining": rateLimitResult.remaining.toString(),
+          "X-RateLimit-Reset": rateLimitResult.resetAt.toString(),
+        },
+      },
+    );
   } catch (error) {
-    console.error('Signup error:', error);
+    console.error("Signup error:", error);
     const userFriendlyError = getUserFriendlyError(error);
     return NextResponse.json(
       { success: false, error: userFriendlyError },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

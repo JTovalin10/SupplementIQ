@@ -2,6 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { sanitizeHttpUrl } from "@/lib/utils/url-sanitizer";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { requireAuth } from "@/lib/api/auth";
 
 // Validation schemas
 const PendingProductRequestSchema = z
@@ -55,7 +56,7 @@ const PendingProductRequestSchema = z
     confidence_level: z
       .enum(["verified", "likely", "estimated", "unknown"])
       .default("estimated"),
-    submitted_by: z.string().uuid(),
+    // submitted_by removed - now obtained from verified JWT token
     notes: z.string().optional(),
   })
   .passthrough(); // Allow additional ingredient fields
@@ -92,33 +93,32 @@ function parseYear(yearStr?: string): number | null {
 // POST /api/pending-products - Submit product for approval
 export async function POST(request: NextRequest) {
   try {
+    // ✅ SECURE: Verify JWT token first
+    const authResult = await requireAuth(request);
+
+    if (authResult instanceof NextResponse) {
+      return authResult; // Returns 401 if not authenticated
+    }
+
+    const { user } = authResult;
+
     const body = await request.json();
     const validatedData = PendingProductRequestSchema.parse(body);
 
-    // Check if user has permission to submit image URLs
-    const userId = request.headers.get("x-user-id");
-    const userRole = request.headers.get("x-user-role");
-
-    if (!userId) {
-      return NextResponse.json(
-        { error: "Authentication required" },
-        { status: 401 },
-      );
-    }
-
     // Get user's reputation points and role from database
+    // Use verified user.id from JWT token
     const { data: userData, error: userError } = await supabase
       .from("users")
       .select("reputation_points, role")
-      .eq("id", userId)
+      .eq("id", user.id) // ← Use verified user ID from JWT
       .single();
 
     if (userError || !userData) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Use database role as primary, fallback to header role
-    const effectiveRole = userData.role || userRole;
+    // ✅ SECURE: Use role from database (source of truth)
+    const effectiveRole = userData.role;
 
     // Check if user can submit image URLs (1000+ points OR admin/owner/moderator)
     const canSubmitImageUrl =
@@ -208,7 +208,7 @@ export async function POST(request: NextRequest) {
         dosage_rating: 0,
         danger_rating: 0,
         approval_status: 0, // 0 = pending
-        submitted_by: validatedData.submitted_by,
+        submitted_by: user.id, // ✅ SECURE: Use verified user ID from JWT
       })
       .select(
         `

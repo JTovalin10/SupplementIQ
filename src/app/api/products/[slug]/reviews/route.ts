@@ -1,5 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../../../lib/supabase';
+import { NextRequest, NextResponse } from "next/server";
+import { supabase } from "../../../../../lib/supabase";
+import { requireAuth } from "@/lib/api/auth";
 
 /**
  * GET /api/products/[id]/reviews - Fetch reviews for a specific product
@@ -8,12 +9,12 @@ import { supabase } from '../../../../../lib/supabase';
  * @param {Object} context.params - Route parameters
  * @param {string} context.params.id - Product ID from URL
  * @returns {Promise<NextResponse>} JSON response with product reviews
- * 
+ *
  * Query Parameters:
  * - page: Page number (default: 1)
  * - limit: Items per page (default: 10)
  * - sort: Sort by 'helpful', 'recent', or 'rating' (default: 'helpful')
- * 
+ *
  * Response includes:
  * - array of product reviews with user information
  * - ratings on 1-10 scale (automatically maintained by database triggers)
@@ -21,33 +22,34 @@ import { supabase } from '../../../../../lib/supabase';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     const { slug } = await params;
     const { searchParams } = new URL(request.url);
-    const page = Number(searchParams.get('page')) || 1;
-    const limit = Number(searchParams.get('limit')) || 10;
-    const sort = searchParams.get('sort') || 'helpful';
+    const page = Number(searchParams.get("page")) || 1;
+    const limit = Number(searchParams.get("limit")) || 10;
+    const sort = searchParams.get("sort") || "helpful";
 
     // Validate sort parameter
-    const validSorts = ['helpful', 'recent', 'rating'];
-    const sortBy = validSorts.includes(sort) ? sort : 'helpful';
+    const validSorts = ["helpful", "recent", "rating"];
+    const sortBy = validSorts.includes(sort) ? sort : "helpful";
 
-    let orderBy = 'helpful_votes';
+    let orderBy = "helpful_votes";
     let ascending = false;
-    
-    if (sortBy === 'recent') {
-      orderBy = 'created_at';
+
+    if (sortBy === "recent") {
+      orderBy = "created_at";
       ascending = false;
-    } else if (sortBy === 'rating') {
-      orderBy = 'rating';
+    } else if (sortBy === "rating") {
+      orderBy = "rating";
       ascending = false;
     }
 
     const { data: reviews, error } = await supabase
-      .from('product_reviews')
-      .select(`
+      .from("product_reviews")
+      .select(
+        `
         id,
         rating,
         title,
@@ -65,29 +67,35 @@ export async function GET(
           reputation_points,
           role
         )
-      `)
-      .eq('product_id', slug)
+      `,
+      )
+      .eq("product_id", slug)
       .order(orderBy, { ascending })
       .range((page - 1) * limit, page * limit - 1);
 
     if (error) {
-      console.error('Error fetching reviews:', error);
-      return NextResponse.json({ error: 'Failed to fetch reviews' }, { status: 500 });
+      console.error("Error fetching reviews:", error);
+      return NextResponse.json(
+        { error: "Failed to fetch reviews" },
+        { status: 500 },
+      );
     }
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       data: reviews || [],
       pagination: {
         page,
         limit,
-        total: reviews?.length || 0
-      }
+        total: reviews?.length || 0,
+      },
     });
-
   } catch (error) {
-    console.error('Reviews API error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Reviews API error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -98,7 +106,7 @@ export async function GET(
  * @param {Object} context.params - Route parameters
  * @param {string} context.params.id - Product ID from URL
  * @returns {Promise<NextResponse>} JSON response with created review data
- * 
+ *
  * Request Body:
  * - rating: Rating 1.0-10.0 (required) - will automatically update product's community_rating
  * - title: Review title (required)
@@ -109,37 +117,40 @@ export async function GET(
  * - effectiveness: 1-5 rating (optional)
  * - safety_concerns: Any safety concerns (optional)
  * - is_verified_purchase: Whether user actually bought it (optional)
- * 
+ *
  * Note: Creating a review automatically increments total_reviews and updates community_rating via database triggers
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string }> },
 ) {
   try {
     const { slug } = await params;
-    const body = await request.json();
-    
-    // Get user from auth token
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+
+    // ✅ SECURE: Verify JWT token first
+    const authResult = await requireAuth(request);
+
+    if (authResult instanceof NextResponse) {
+      return authResult; // Returns 401 if not authenticated
     }
+
+    const { user } = authResult;
+
+    const body = await request.json();
 
     // Basic validation
     if (!body.rating || !body.title || !body.comment) {
-      return NextResponse.json({ error: 'Rating, title, and comment are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Rating, title, and comment are required" },
+        { status: 400 },
+      );
     }
 
-    // TODO: Extract user ID from JWT token
-    // For now, we'll need to implement proper auth
-    const userId = 'temp-user-id'; // Replace with actual user ID from token
-
     const { data: review, error } = await supabase
-      .from('product_reviews')
+      .from("product_reviews")
       .insert({
         product_id: parseInt(slug),
-        user_id: userId,
+        user_id: user.id, // ✅ SECURE: Use verified user ID from JWT
         rating: body.rating,
         title: body.title,
         comment: body.comment,
@@ -148,23 +159,31 @@ export async function POST(
         value_for_money: body.value_for_money,
         effectiveness: body.effectiveness,
         safety_concerns: body.safety_concerns,
-        is_verified_purchase: body.is_verified_purchase || false
+        is_verified_purchase: body.is_verified_purchase || false,
       })
       .select()
       .single();
 
     if (error) {
-      console.error('Error creating review:', error);
-      return NextResponse.json({ error: 'Failed to create review' }, { status: 500 });
+      console.error("Error creating review:", error);
+      return NextResponse.json(
+        { error: "Failed to create review" },
+        { status: 500 },
+      );
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      data: review 
-    }, { status: 201 });
-
+    return NextResponse.json(
+      {
+        success: true,
+        data: review,
+      },
+      { status: 201 },
+    );
   } catch (error) {
-    console.error('Review creation error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error("Review creation error:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
